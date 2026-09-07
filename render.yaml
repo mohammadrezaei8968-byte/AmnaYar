@@ -5,7 +5,6 @@ services:
     rootDir: web
     buildCommand: "echo AmnaYar static site"
     staticPublishPath: .
-    plan: free
     domains:
       - amnayar.ir
     headers:
