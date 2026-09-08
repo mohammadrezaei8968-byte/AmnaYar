@@ -41,14 +41,28 @@ services:
         value: https://amnayar.ir,https://www.amnayar.ir,https://amnayar-admin.onrender.com
       - key: PUBLIC_API_URL
         value: https://api.amnayar.ir
+      - key: APP_DOWNLOAD_URL
+        sync: false
       - key: MAX_ACTIVE_DEVICES
         value: "2"
       - key: INITIAL_CREDITS
-        value: "100"
+        value: "0"
       - key: DB_FILE
         value: /tmp/amnayar.db
       - key: GOOGLE_PLAY_INTEGRITY_ENABLED
         value: "false"
+      - key: BANK_PROVIDER
+        value: api_ir
+      - key: BANK_API_IR_TOKEN
+        sync: false
+      - key: BANK_API_IR_BASE_URL
+        value: https://s.api.ir/api/sw1
+      - key: BANK_API_IR_IBAN_TO_ACCOUNT_PATH
+        value: IbanToAccount
+      - key: BANK_API_IR_IBAN_TO_CARD_PATH
+        sync: false
+      - key: BANK_PROVIDER_TIMEOUT_MS
+        value: "12000"
 
   - type: web
     runtime: node

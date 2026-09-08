@@ -1,4 +1,1 @@
-AmnaYar Free Deploy 1.0.0
-Source Android/backend version: 5.10.0
-Web release: 1.2.0
-Prepared: 2026-09-07
+AmnaYar Backend v1.5.0 - banking provider integration / conversion UI v5.16.0

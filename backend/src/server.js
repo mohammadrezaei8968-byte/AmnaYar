@@ -22,7 +22,7 @@ app.use("/api/auth/", rateLimit({windowMs:15*60*1000,max:30,standardHeaders:true
 
 const PORT = Number(process.env.PORT || 8080);
 const SECRET = process.env.JWT_SECRET || "";
-const APP_VERSION = "5.10.0";
+const APP_VERSION = "5.16.0";
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "";
 const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || "";
 if (!SECRET || SECRET.length < 32) { if (NODE_ENV === "production") throw new Error("JWT_SECRET must be at least 32 characters in production"); console.warn("WARNING: set JWT_SECRET to a random secret of at least 32 characters."); }
@@ -76,12 +76,6 @@ if (!db.prepare("SELECT id FROM packages LIMIT 1").get()) {
   if(!db.prepare("SELECT id FROM packages WHERE credits=500 LIMIT 1").get()) seed.run("بسته 500 اعتبار",500,500000);
   if(!db.prepare("SELECT id FROM packages WHERE credits=1000 LIMIT 1").get()) seed.run("بسته 1000 اعتبار",1000,1000000);
 }
-// Repair migration for existing databases with zero package prices.
-const commercialPackagePrices = {100:100000, 500:500000, 1000:1000000};
-for (const [credits, price] of Object.entries(commercialPackagePrices)) {
-  db.prepare("UPDATE packages SET price_toman=? WHERE credits=? AND price_toman<=0")
-    .run(price, Number(credits));
-}
 
 function now(){ return new Date().toISOString(); }
 function deviceDigest(value){ return crypto.createHmac("sha256", SECRET).update(String(value)).digest("hex"); }
@@ -117,24 +111,101 @@ function mask(s){s=String(s||"");return s.length>8?s.slice(0,4)+"****"+s.slice(-
 function spend(req,type,input,result){return db.transaction(()=>{const u=db.prepare("SELECT * FROM users WHERE id=? AND active=1").get(req.user.uid);if(!u)throw new Error("inactive");if(u.credits<1)return null;const changed=db.prepare("UPDATE users SET credits=credits-1 WHERE id=? AND credits>0").run(u.id);if(!changed.changes)return null;db.prepare("INSERT INTO verifications(user_id,type,input_masked,result,created_at) VALUES(?,?,?,?,?)").run(u.id,type,mask(input),result,now());return u.credits-1;})();}
 function addCreditsForPaidPurchase(purchaseId, providerRef){return db.transaction(()=>{const row=db.prepare("SELECT * FROM purchases WHERE id=?").get(purchaseId);if(!row)throw new Error("purchase_not_found");if(row.status==="paid")return {already:true,credits:0};const p=db.prepare("SELECT credits FROM packages WHERE id=?").get(row.package_id);if(!p)throw new Error("package_not_found");const changed=db.prepare("UPDATE purchases SET status='paid',provider_ref=?,paid_at=? WHERE id=? AND status='pending'").run(providerRef||null,now(),purchaseId);if(!changed.changes)return {already:true,credits:0};db.prepare("UPDATE users SET credits=credits+? WHERE id=?").run(p.credits,row.user_id);return {already:false,credits:p.credits};})();}
 
+app.get("/api/app/version",(req,res)=>res.json({version:APP_VERSION,channel:String(req.query.channel||"direct"),url:process.env.APP_DOWNLOAD_URL||"",notes:"امنا یار با طراحی بانکی جدید و اتصال سرویس استعلام بانکی"}));
 app.get("/api/health",(req,res)=>res.json({ok:true,service:"amnayar",version:APP_VERSION,environment:NODE_ENV,max_active_devices:Number(process.env.MAX_ACTIVE_DEVICES||2),timestamp:now()}));
-app.get("/api/app/config",(req,res)=>res.json({name:"امنا یار",version:APP_VERSION,minSupportedVersion:process.env.MIN_SUPPORTED_APP_VERSION||"5.0.0",apiBase:"https://api.amnayar.ir/api",support:{email:"mohammad.rezaei8968@gmail.com",phone:"09930855527"},channels:db.prepare("SELECT code,title,enabled,app_download_enabled FROM sales_channels WHERE enabled=1 ORDER BY id").all()}));
-app.post("/api/auth/register",(req,res)=>{const username=String(req.body.username||"").trim().toLowerCase();const password=String(req.body.password||"");if(!/^[a-z0-9_.-]{3,40}$/.test(username)||password.length<8)return res.status(400).json({error:"نام کاربری یا رمز عبور نامعتبر است"});if(db.prepare("SELECT id FROM users WHERE username=?").get(username))return res.status(409).json({error:"کاربر قبلاً ثبت شده است"});const publicId=crypto.randomUUID();const hash=bcrypt.hashSync(password,12);const initial=Math.max(0,Number(process.env.INITIAL_CREDITS||0));const info=db.prepare("INSERT INTO users(public_id,username,password_hash,credits,created_at) VALUES(?,?,?,?,?)").run(publicId,username,hash,initial,now());const user=db.prepare("SELECT * FROM users WHERE id=?").get(info.lastInsertRowid);res.json({token:sign(user),user:{public_id:user.public_id,credits:user.credits}});});
+app.get("/api/app/config",(req,res)=>res.json({name:"امنا یار",version:APP_VERSION,minSupportedVersion:process.env.MIN_SUPPORTED_APP_VERSION||"5.0.0",apiBase:"https://api.amnayar.ir/api",support:{email:"mohammad.rezaei8968@gmail.com"},channels:db.prepare("SELECT code,title,enabled,app_download_enabled FROM sales_channels WHERE enabled=1 ORDER BY id").all()}));
+app.post("/api/auth/register",(req,res)=>{const username=String(req.body.username||"").trim().toLowerCase();const password=String(req.body.password||"");if(!/^[a-z0-9_.-]{3,40}$/.test(username)||password.length<8)return res.status(400).json({error:"نام کاربری یا رمز عبور نامعتبر است"});if(db.prepare("SELECT id FROM users WHERE username=?").get(username))return res.status(409).json({error:"کاربر قبلاً ثبت شده است"});const publicId=crypto.randomUUID();const hash=bcrypt.hashSync(password,12);const initial=0; const info=db.prepare("INSERT INTO users(public_id,username,password_hash,credits,created_at) VALUES(?,?,?,?,?)").run(publicId,username,hash,initial,now());const user=db.prepare("SELECT * FROM users WHERE id=?").get(info.lastInsertRowid);res.json({token:sign(user),user:{public_id:user.public_id,credits:user.credits}});});
 app.post("/api/auth/login",(req,res)=>{const u=db.prepare("SELECT * FROM users WHERE username=?").get(String(req.body.username||"").trim().toLowerCase());if(!u||!bcrypt.compareSync(String(req.body.password||""),u.password_hash)||!u.active)return res.status(401).json({error:"اطلاعات ورود نادرست است"});res.json({token:sign(u),user:{public_id:u.public_id,credits:u.credits}});});
 app.get("/api/me",auth,(req,res)=>{const u=db.prepare("SELECT public_id,username,credits,active,created_at FROM users WHERE id=?").get(req.user.uid);if(!u)return res.status(404).json({error:"user_not_found"});res.json(u);});
 app.post("/api/device/register",auth,(req,res)=>{const deviceKey=String(req.body.deviceKey||"").trim();if(deviceKey.length<16||deviceKey.length>200)return res.status(400).json({error:"device_key_invalid"});const channel=String(req.body.channel||"other").slice(0,30);const appVersion=String(req.body.appVersion||"").slice(0,40);const count=db.prepare("SELECT COUNT(*) c FROM devices WHERE user_id=? AND active=1").get(req.user.uid).c;const digest=deviceDigest(deviceKey);
 const exists=db.prepare("SELECT id FROM devices WHERE user_id=? AND device_key=?").get(req.user.uid,digest);const max=Number(process.env.MAX_ACTIVE_DEVICES||2);if(!exists&&count>=max)return res.status(409).json({error:"device_limit_reached"});db.prepare("INSERT INTO devices(user_id,device_key,channel,app_version,created_at) VALUES(?,?,?,?,?) ON CONFLICT(user_id,device_key) DO UPDATE SET channel=excluded.channel,app_version=excluded.app_version,active=1").run(req.user.uid,digest,channel,appVersion,now());
 audit(req.user.uid,"device_register",req.requestId);const u=db.prepare("SELECT id,public_id FROM users WHERE id=?").get(req.user.uid);res.json({ok:true,token:sign(u,digest)});});
 app.post("/api/integrity/google",auth,(req,res)=>{if(process.env.GOOGLE_PLAY_INTEGRITY_ENABLED!=="true")return res.status(503).json({error:"google_play_integrity_not_configured"});const token=String(req.body.token||"");if(!token)return res.status(400).json({error:"integrity_token_required"});res.status(501).json({error:"google_integrity_server_verifier_required",message:"Configure Google Play Integrity server credentials before enforcing verdicts."});});
-app.post("/api/verify/card",auth,(req,res)=>{const card=String(req.body.card||"").replace(/\s/g,"");const ok=validCard(card);const bank=ok?(cardBins[card.slice(0,6)]||"بانک در فهرست محلی پیدا نشد"):"";const remaining=spend(req,"card",card,ok?"valid":"invalid");if(remaining===null)return res.status(402).json({error:"اعتبار کافی نیست"});res.json({valid:ok,bank,remaining});});
-app.post("/api/verify/national-id",auth,(req,res)=>{const id=String(req.body.nationalId||"");const ok=validNationalId(id);const remaining=spend(req,"national-id",id,ok?"valid":"invalid");if(remaining===null)return res.status(402).json({error:"اعتبار کافی نیست"});res.json({valid:ok,remaining});});
-app.post("/api/verify/iban",auth,(req,res)=>{const iban=String(req.body.iban||"").toUpperCase().replace(/\s/g,"");const ok=validIban(iban);const bank=ok?(ibanCodes[iban.slice(4,7)]||"بانک در فهرست محلی پیدا نشد"):"";const remaining=spend(req,"iban",iban,ok?"valid":"invalid");if(remaining===null)return res.status(402).json({error:"اعتبار کافی نیست"});res.json({valid:ok,bank,remaining});});
+
+async function bankApiIrRequest(service, body){
+  const token=String(process.env.BANK_API_IR_TOKEN||"").trim();
+  if(!token) throw Object.assign(new Error("bank_provider_not_configured"),{code:"bank_provider_not_configured"});
+  const base=String(process.env.BANK_API_IR_BASE_URL||"https://s.api.ir/api/sw1").replace(/\/$/,"");
+  const url=base+"/"+String(service).replace(/^\//,"");
+  const controller=new AbortController(); const timer=setTimeout(()=>controller.abort(),Number(process.env.BANK_PROVIDER_TIMEOUT_MS||12000));
+  try{
+    const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json","Authorization":"Bearer "+token},body:JSON.stringify(body),signal:controller.signal});
+    const text=await r.text(); let json=null; try{json=JSON.parse(text);}catch{}
+    if(!r.ok || !json || json.success===false) throw Object.assign(new Error((json&&json.message)||"bank_provider_error"),{code:"bank_provider_error",status:r.status,provider:json});
+    return json;
+  }finally{clearTimeout(timer);}
+}
+function providerData(x){return x&&x.data?x.data:{};}
+function ownerNameFromData(d){return String(d.name||d.ownerName||d.fullName||[d.firstName,d.lastName].filter(Boolean).join(" ")||"").trim();}
+function hasCredit(req){const u=db.prepare("SELECT credits FROM users WHERE id=? AND active=1").get(req.user.uid);return !!u&&u.credits>0;}
+function providerError(res,e){if(e&&e.code==="bank_provider_not_configured")return res.status(503).json({error:"bank_provider_not_configured",message:"سرویس بانکی روی سرور تنظیم نشده است."});console.error("bank_provider",e);return res.status(502).json({error:"bank_provider_unavailable",message:"سرویس بانکی در دسترس نیست؛ لطفاً دوباره تلاش کنید."});}
+
+app.post("/api/verify/card",auth,async (req,res)=>{
+  const card=normalizeDigits(String(req.body.card||"")).replace(/\s/g,"");
+  if(!validCard(card)) return res.status(400).json({error:"card_invalid",message:"شماره کارت معتبر نیست"});
+  if(!hasCredit(req)) return res.status(402).json({error:"اعتبار کافی نیست"});
+  try{
+    const d=providerData(await bankApiIrRequest("BankCardInfo",{cardNumber:card}));
+    const owner=ownerNameFromData(d), iban=String(d.iban||d.IBAN||"");
+    const account=String(d.accountNumber||d.account||d.depositNumber||"");
+    const bank=String(d.bankName||cardBins[card.slice(0,6)]||"");
+    const remaining=spend(req,"card",card,"valid");
+    res.json({valid:true,bank,ownerName:owner,iban,account,remaining,message:"اطلاعات کارت از سرویس بانکی دریافت شد."});
+  }catch(e){providerError(res,e);}
+});
+app.post("/api/verify/national-id",auth,(req,res)=>{const id=normalizeDigits(String(req.body.nationalId||""));const ok=validNationalId(id);const remaining=spend(req,"national-id",id,ok?"valid":"invalid");if(remaining===null)return res.status(402).json({error:"اعتبار کافی نیست"});res.json({valid:ok,remaining,message:ok?"ساختار کد ملی معتبر است.":"کد ملی معتبر نیست."});});
+app.post("/api/verify/iban",auth,async (req,res)=>{
+  const iban=normalizeDigits(String(req.body.iban||"")).toUpperCase().replace(/\s/g,"");
+  if(!validIban(iban)) return res.status(400).json({error:"iban_invalid",message:"شماره شبا معتبر نیست"});
+  if(!hasCredit(req)) return res.status(402).json({error:"اعتبار کافی نیست"});
+  try{
+    const d=providerData(await bankApiIrRequest("IbanInfo",{iban}));
+    const owner=ownerNameFromData(d), bank=String(d.bankName||ibanCodes[iban.slice(4,7)]||"");
+    const account=String(d.accountNumber||d.account||d.depositNumber||"");
+    const remaining=spend(req,"iban",iban,d.active===false?"inactive":"valid");
+    res.json({valid:d.active!==false,active:d.active!==false,bank,ownerName:owner,iban,account,remaining,message:"اطلاعات شبا از سرویس بانکی دریافت شد."});
+  }catch(e){providerError(res,e);}
+});
+
+// Commercial banking conversion endpoints: only the two user-facing directions are exposed.
+async function apiIrOptional(service, body, envName){const path=String(process.env[envName]||"").trim();if(!path)throw Object.assign(new Error("optional_bank_service_not_configured"),{code:"optional_bank_service_not_configured"});return providerData(await bankApiIrRequest(path.replace(/^.*\/sw1\//,""),body));}
+app.post("/api/convert/card",auth,async (req,res)=>{
+  const card=normalizeDigits(String(req.body.card||"")).replace(/\s/g,"");
+  if(!validCard(card))return res.status(400).json({error:"conversion_invalid",message:"شماره کارت معتبر نیست"});
+  if(!hasCredit(req))return res.status(402).json({error:"اعتبار کافی نیست"});
+  try{
+    const d=providerData(await bankApiIrRequest("BankCardInfo",{cardNumber:card}));
+    const owner=ownerNameFromData(d), iban=String(d.iban||d.IBAN||""), account=String(d.accountNumber||d.account||d.depositNumber||"");
+    if(!iban && !account) return res.status(502).json({error:"bank_provider_invalid_response",message:"سرویس بانکی نتیجه تبدیل کارت را کامل برنگرداند."});
+    const remaining=spend(req,"conversion-card",card,"valid");
+    res.json({valid:true,ownerName:owner,bank:String(d.bankName||cardBins[card.slice(0,6)]||""),card,account,iban,remaining});
+  }catch(e){providerError(res,e);}
+});
+app.post("/api/convert/iban",auth,async (req,res)=>{
+  const iban=normalizeDigits(String(req.body.iban||"")).toUpperCase().replace(/\s/g,"");
+  if(!validIban(iban))return res.status(400).json({error:"conversion_invalid",message:"شماره شبا معتبر نیست"});
+  if(!hasCredit(req))return res.status(402).json({error:"اعتبار کافی نیست"});
+  try{
+    const info=providerData(await bankApiIrRequest("IbanInfo",{iban}));
+    let account=String(info.accountNumber||info.account||info.depositNumber||"");
+    if(!account){
+      try{const ad=await apiIrOptional("IbanToAccount",{iban},"BANK_API_IR_IBAN_TO_ACCOUNT_PATH");account=String(ad.accountNumber||ad.account||ad.depositNumber||"");}catch(e){if(e.code!=="optional_bank_service_not_configured")throw e;}
+    }
+    let card="";
+    try{const cd=await apiIrOptional("IbanToCard",{iban},"BANK_API_IR_IBAN_TO_CARD_PATH");card=String(cd.cardNumber||cd.card||"");}catch(e){if(e.code!=="optional_bank_service_not_configured")throw e;}
+    if(!account && !card)return res.status(503).json({error:"bank_conversion_incomplete",message:"سرویس بانکی نام حساب یا کارت متصل به این شبا را ارائه نکرد."});
+    const remaining=spend(req,"conversion-iban",iban,"valid");
+    res.json({valid:true,ownerName:ownerNameFromData(info),bank:String(info.bankName||ibanCodes[iban.slice(4,7)]||""),iban,account,card,remaining});
+  }catch(e){providerError(res,e);}
+});
+
 app.get("/api/history",auth,(req,res)=>res.json(db.prepare("SELECT type,input_masked,result,created_at FROM verifications WHERE user_id=? ORDER BY id DESC LIMIT 100").all(req.user.uid)));
 app.get("/api/me/devices",auth,(req,res)=>{const rows=db.prepare("SELECT id,channel,app_version,active,created_at FROM devices WHERE user_id=? ORDER BY id DESC").all(req.user.uid);const max=Number(process.env.MAX_ACTIVE_DEVICES||2);res.json({maxActive:max,active:rows.filter(x=>x.active).length,devices:rows});});
 app.post("/api/me/devices/:id/revoke",auth,(req,res)=>{const id=Number(req.params.id);const d=db.prepare("SELECT id,active FROM devices WHERE id=? AND user_id=?").get(id,req.user.uid);if(!d)return res.status(404).json({error:"device_not_found"});if(!d.active)return res.json({ok:true,alreadyRevoked:true});db.prepare("UPDATE devices SET active=0 WHERE id=? AND user_id=?").run(id,req.user.uid);audit(req.user.uid,"device_revoke",req.requestId);res.json({ok:true});});
 app.get("/api/me/purchases",auth,(req,res)=>res.json(db.prepare("SELECT id,order_id,amount_toman,store,status,provider_ref,paid_at,created_at FROM purchases WHERE user_id=? ORDER BY id DESC LIMIT 50").all(req.user.uid)));
+app.get("/api/packages",(req,res)=>res.json(db.prepare("SELECT id,title,credits,price_toman FROM packages WHERE active=1 ORDER BY price_toman").all()));
 app.get("/api/channels",(req,res)=>res.json(db.prepare("SELECT code,title,enabled,purchase_enabled,app_download_enabled FROM sales_channels WHERE enabled=1 ORDER BY id").all()));
-app.get("/api/packages",(req,res)=>res.json(db.prepare("SELECT id,title,credits,price_toman,price_toman AS amount_toman FROM packages WHERE active=1 ORDER BY price_toman").all()));
+
 app.post("/api/purchases/create",auth,async (req,res)=>{let purchaseId=null;try{const packageId=Number(req.body.packageId);const p=db.prepare("SELECT * FROM packages WHERE id=? AND active=1").get(packageId);if(!p)return res.status(404).json({error:"package_not_found"});const store=String(req.body.store||"direct").trim().toLowerCase().slice(0,30);const channel=db.prepare("SELECT * FROM sales_channels WHERE code=? AND enabled=1").get(store);if(!channel)return res.status(400).json({error:"channel_disabled"});if(!channel.purchase_enabled)return res.status(403).json({error:"purchase_disabled_for_channel"});if(store==="direct" && !process.env.SAMAN_TERMINAL_ID)return res.status(503).json({error:"saman_not_configured"});const callbackUrl=process.env.SAMAN_CALLBACK_URL||`${process.env.PUBLIC_API_URL||""}/api/payments/saman/callback`;if(store==="direct" && !callbackUrl.startsWith("https://"))return res.status(503).json({error:"saman_callback_must_use_https"});const orderId="AMNA-"+crypto.randomUUID();const info=db.prepare("INSERT INTO purchases(user_id,package_id,amount_toman,store,order_id,status,created_at) VALUES(?,?,?,?,?,?,?)").run(req.user.uid,p.id,p.price_toman,store,orderId,"pending",now());purchaseId=info.lastInsertRowid;const checkoutToken=crypto.randomBytes(32).toString("hex");db.prepare("UPDATE purchases SET checkout_token_hash=? WHERE id=?").run(crypto.createHash("sha256").update(checkoutToken).digest("hex"),purchaseId);let paymentUrl=null;if(store==="direct"){const result=await samanInit({terminalId:requiredEnv("SAMAN_TERMINAL_ID"),amountRial:p.price_toman*10,orderId,callbackUrl,phone:String(req.body.phone||"")});db.prepare("UPDATE purchases SET gateway_token=?,gateway_txn_key=? WHERE id=?").run(result.token,result.txnKey,purchaseId);paymentUrl=`${process.env.PUBLIC_API_URL||""}/api/payments/saman/redirect/${purchaseId}/${checkoutToken}`;}res.json({purchaseId,orderId,amount_toman:p.price_toman,status:"pending",provider:store,paymentUrl});}catch(e){console.error("purchase_create",e);if(purchaseId)db.prepare("UPDATE purchases SET status=CASE WHEN status='pending' THEN 'failed' ELSE status END WHERE id=?").run(purchaseId);res.status(502).json({error:"payment_provider_unavailable"});}});
 function requiredEnv(name){const v=process.env[name];if(!v)throw new Error(`${name}_NOT_CONFIGURED`);return v;}
 
@@ -151,6 +222,7 @@ audit(purchase.user_id,`payment_${provider}_${req.body.status||"unknown"}`,req.r
 res.json({ok:true,credited:result.credits,already:result.already});});
 
 app.post("/api/admin/login", rateLimit({windowMs:15*60*1000,max:10,standardHeaders:true,legacyHeaders:false}),(req,res)=>{const username=String(req.body.username||"");const password=String(req.body.password||"");if(!ADMIN_USERNAME||!ADMIN_PASSWORD_HASH||username!==ADMIN_USERNAME||!bcrypt.compareSync(password,ADMIN_PASSWORD_HASH))return res.status(401).json({error:"اطلاعات مدیر نادرست است"});res.json({token:jwt.sign({admin:true,username},SECRET,{expiresIn:"8h"})});});
+
 app.get("/api/admin/summary",adminAuth,(req,res)=>{const users=db.prepare("SELECT COUNT(*) c FROM users").get().c;const active=db.prepare("SELECT COUNT(*) c FROM users WHERE active=1").get().c;const checks=db.prepare("SELECT COUNT(*) c FROM verifications").get().c;const sales=db.prepare("SELECT COALESCE(SUM(amount_toman),0) s FROM purchases WHERE status='paid'").get().s;const pending=db.prepare("SELECT COUNT(*) c FROM purchases WHERE status='pending'").get().c;res.json({users,active,verifications:checks,sales_toman:sales,pending_purchases:pending});});
 app.get("/api/admin/users",adminAuth,(req,res)=>res.json(db.prepare("SELECT id,public_id,username,credits,active,created_at FROM users ORDER BY id DESC LIMIT 500").all()));
 app.post("/api/admin/users/:id/credits",adminAuth,(req,res)=>{const amount=Number(req.body.amount||0);if(!Number.isInteger(amount)||amount===0||Math.abs(amount)>1000000)return res.status(400).json({error:"invalid_amount"});db.prepare("UPDATE users SET credits=MAX(0,credits+?) WHERE id=?").run(amount,req.params.id);res.json({ok:true});});
@@ -167,8 +239,8 @@ app.get("/api/admin/devices",adminAuth,(req,res)=>res.json(db.prepare("SELECT d.
 app.post("/api/admin/devices/:id/status",adminAuth,(req,res)=>{db.prepare("UPDATE devices SET active=? WHERE id=?").run(req.body.active?1:0,Number(req.params.id));res.json({ok:true});});
 app.get("/api/admin/api-status",adminAuth,(req,res)=>{const checks=[
   {key:"national_id",title:"صحت‌سنجی کد ملی",status:"ready",detail:"الگوریتم رقم کنترلی"},
-  {key:"card",title:"کارت بانکی",status:"ready",detail:"Luhn + BIN محلی"},
-  {key:"iban",title:"شبا",status:"ready",detail:"MOD-97 + کد بانک"},
+  {key:"card",title:"کارت بانکی",status:process.env.BANK_API_IR_TOKEN?"configured":"not_configured",detail:process.env.BANK_API_IR_TOKEN?"استعلام از سرویس بانکی API.ir":"نیازمند توکن سرویس بانکی"},
+  {key:"iban",title:"شبا",status:process.env.BANK_API_IR_TOKEN?"configured":"not_configured",detail:process.env.BANK_API_IR_TOKEN?"استعلام از سرویس بانکی API.ir":"نیازمند توکن سرویس بانکی"},
   {key:"saman",title:"درگاه سامان",status:process.env.SAMAN_TERMINAL_ID?"configured":"not_configured",detail:process.env.SAMAN_TERMINAL_ID?"Credential تنظیم شده":"نیازمند تنظیم Terminal ID"},
   {key:"bazaar",title:"کافه‌بازار",status:process.env.PAYMENT_BAZAAR_WEBHOOK_SECRET?"configured":"not_configured",detail:"Webhook"},
   {key:"myket",title:"مایکت",status:process.env.PAYMENT_MYKET_WEBHOOK_SECRET?"configured":"not_configured",detail:"Webhook"}
