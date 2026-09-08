@@ -65,40 +65,73 @@ if (!db.prepare("SELECT id FROM sales_channels LIMIT 1").get()) {
   const t=now(); for (const c of defaultChannels) stmt.run(...c,t,t);
 }
 
-// Commercial packages: repair existing zero/invalid prices
-// and create missing packages.
+// ============================================================
+// COMMERCIAL CREDIT PACKAGES
+// قیمت‌ها قطعی هستند و همیشه در Startup اصلاح می‌شوند.
+// ============================================================
+
 const packageDefaults = [
-  [100, 100000, "بسته 100 اعتبار"],
-  [500, 500000, "بسته 500 اعتبار"],
-  [1000, 1000000, "بسته 1000 اعتبار"]
+  {
+    credits: 100,
+    price_toman: 100000,
+    title: "بسته 100 اعتبار"
+  },
+  {
+    credits: 500,
+    price_toman: 500000,
+    title: "بسته 500 اعتبار"
+  },
+  {
+    credits: 1000,
+    price_toman: 1000000,
+    title: "بسته 1000 اعتبار"
+  }
 ];
 
 const insertPackage = db.prepare(`
-  INSERT INTO packages(title, credits, price_toman, active)
+  INSERT INTO packages (
+    title,
+    credits,
+    price_toman,
+    active
+  )
   VALUES (?, ?, ?, 1)
 `);
 
-const updatePackagePrice = db.prepare(`
+const repairPackage = db.prepare(`
   UPDATE packages
-  SET price_toman = ?
+  SET
+    title = ?,
+    price_toman = ?,
+    active = 1
   WHERE credits = ?
-    AND (price_toman IS NULL OR price_toman <= 0)
 `);
 
-for (const [credits, price, title] of packageDefaults) {
+for (const pkg of packageDefaults) {
   const existing = db.prepare(`
     SELECT id
     FROM packages
     WHERE credits = ?
     LIMIT 1
-  `).get(credits);
+  `).get(pkg.credits);
 
   if (!existing) {
-    insertPackage.run(title, credits, price);
+    insertPackage.run(
+      pkg.title,
+      pkg.credits,
+      pkg.price_toman
+    );
   } else {
-    updatePackagePrice.run(price, credits);
+    // حتی اگر قیمت قبلی غیرصفر ولی اشتباه باشد،
+    // قیمت صحیح دوباره اعمال می‌شود.
+    repairPackage.run(
+      pkg.title,
+      pkg.price_toman,
+      pkg.credits
+    );
   }
 }
+
 function now(){ return new Date().toISOString(); }
 function deviceDigest(value){ return crypto.createHmac("sha256", SECRET).update(String(value)).digest("hex"); }
 function audit(userId, action, requestId){ db.prepare("INSERT INTO audit_logs(user_id,action,request_id,created_at) VALUES(?,?,?,?)").run(userId||null,action,requestId||null,now()); }
@@ -225,7 +258,34 @@ app.get("/api/history",auth,(req,res)=>res.json(db.prepare("SELECT type,input_ma
 app.get("/api/me/devices",auth,(req,res)=>{const rows=db.prepare("SELECT id,channel,app_version,active,created_at FROM devices WHERE user_id=? ORDER BY id DESC").all(req.user.uid);const max=Number(process.env.MAX_ACTIVE_DEVICES||2);res.json({maxActive:max,active:rows.filter(x=>x.active).length,devices:rows});});
 app.post("/api/me/devices/:id/revoke",auth,(req,res)=>{const id=Number(req.params.id);const d=db.prepare("SELECT id,active FROM devices WHERE id=? AND user_id=?").get(id,req.user.uid);if(!d)return res.status(404).json({error:"device_not_found"});if(!d.active)return res.json({ok:true,alreadyRevoked:true});db.prepare("UPDATE devices SET active=0 WHERE id=? AND user_id=?").run(id,req.user.uid);audit(req.user.uid,"device_revoke",req.requestId);res.json({ok:true});});
 app.get("/api/me/purchases",auth,(req,res)=>res.json(db.prepare("SELECT id,order_id,amount_toman,store,status,provider_ref,paid_at,created_at FROM purchases WHERE user_id=? ORDER BY id DESC LIMIT 50").all(req.user.uid)));
-app.get("/api/packages",(req,res)=>res.json(db.prepare("SELECT id,title,credits,price_toman FROM packages WHERE active=1 ORDER BY price_toman").all()));
+app.get("/api/packages", (req, res) => {
+  const packages = db.prepare(`
+    SELECT
+      id,
+      title,
+      credits,
+      price_toman
+    FROM packages
+    WHERE active = 1
+      AND credits IN (100, 500, 1000)
+    ORDER BY credits ASC
+  `).all();
+
+  const fixedPrices = {
+    100: 100000,
+    500: 500000,
+    1000: 1000000
+  };
+
+  const result = packages.map(pkg => ({
+    id: pkg.id,
+    title: pkg.title,
+    credits: pkg.credits,
+    price_toman: fixedPrices[pkg.credits]
+  }));
+
+  res.json(result);
+});
 app.get("/api/channels",(req,res)=>res.json(db.prepare("SELECT code,title,enabled,purchase_enabled,app_download_enabled FROM sales_channels WHERE enabled=1 ORDER BY id").all()));
 
 app.post("/api/purchases/create",auth,async (req,res)=>{let purchaseId=null;try{const packageId=Number(req.body.packageId);const p=db.prepare("SELECT * FROM packages WHERE id=? AND active=1").get(packageId);if(!p)return res.status(404).json({error:"package_not_found"});const store=String(req.body.store||"direct").trim().toLowerCase().slice(0,30);const channel=db.prepare("SELECT * FROM sales_channels WHERE code=? AND enabled=1").get(store);if(!channel)return res.status(400).json({error:"channel_disabled"});if(!channel.purchase_enabled)return res.status(403).json({error:"purchase_disabled_for_channel"});if(store==="direct" && !process.env.SAMAN_TERMINAL_ID)return res.status(503).json({error:"saman_not_configured"});const callbackUrl=process.env.SAMAN_CALLBACK_URL||`${process.env.PUBLIC_API_URL||""}/api/payments/saman/callback`;if(store==="direct" && !callbackUrl.startsWith("https://"))return res.status(503).json({error:"saman_callback_must_use_https"});const orderId="AMNA-"+crypto.randomUUID();const info=db.prepare("INSERT INTO purchases(user_id,package_id,amount_toman,store,order_id,status,created_at) VALUES(?,?,?,?,?,?,?)").run(req.user.uid,p.id,p.price_toman,store,orderId,"pending",now());purchaseId=info.lastInsertRowid;const checkoutToken=crypto.randomBytes(32).toString("hex");db.prepare("UPDATE purchases SET checkout_token_hash=? WHERE id=?").run(crypto.createHash("sha256").update(checkoutToken).digest("hex"),purchaseId);let paymentUrl=null;if(store==="direct"){const result=await samanInit({terminalId:requiredEnv("SAMAN_TERMINAL_ID"),amountRial:p.price_toman*10,orderId,callbackUrl,phone:String(req.body.phone||"")});db.prepare("UPDATE purchases SET gateway_token=?,gateway_txn_key=? WHERE id=?").run(result.token,result.txnKey,purchaseId);paymentUrl=`${process.env.PUBLIC_API_URL||""}/api/payments/saman/redirect/${purchaseId}/${checkoutToken}`;}res.json({purchaseId,orderId,amount_toman:p.price_toman,status:"pending",provider:store,paymentUrl});}catch(e){console.error("purchase_create",e);if(purchaseId)db.prepare("UPDATE purchases SET status=CASE WHEN status='pending' THEN 'failed' ELSE status END WHERE id=?").run(purchaseId);res.status(502).json({error:"payment_provider_unavailable"});}});
