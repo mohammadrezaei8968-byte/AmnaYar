@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>پنل مدیریت امنا یار</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#f5f7fb;color:#172033}
+.top{background:#10233f;color:#fff;padding:18px 24px;display:flex;justify-content:space-between;align-items:center}
+.brand{font-size:22px;font-weight:700}.wrap{display:flex;min-height:calc(100vh - 66px)}
+aside{width:230px;background:#fff;border-left:1px solid #e6eaf0;padding:18px}
+nav button{width:100%;border:0;background:transparent;text-align:right;padding:13px;border-radius:10px;cursor:pointer;font-size:15px;margin:3px 0}
+nav button.active,nav button:hover{background:#eef4ff}
+main{flex:1;padding:24px;max-width:1400px}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.card{background:#fff;border:1px solid #e6eaf0;border-radius:16px;padding:20px;box-shadow:0 3px 12px #12203a0b}
+.kpi{font-size:28px;font-weight:700;margin-top:8px}.muted{color:#667085}
+.panel{margin-top:20px}.panel h2{margin-top:0}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:14px;overflow:hidden}
+th,td{padding:13px;border-bottom:1px solid #edf0f4;text-align:right}th{background:#fafbfc}
+.badge{padding:5px 9px;border-radius:99px;background:#e9f8ef}.off{background:#fdecec}
+.btn{border:0;border-radius:9px;padding:9px 13px;cursor:pointer;background:#1f6feb;color:#fff}
+input{padding:10px;border:1px solid #d6dbe5;border-radius:9px;width:100%}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.row{display:flex;gap:10px;align-items:center}
+@media(max-width:900px){.cards{grid-template-columns:1fr 1fr}aside{width:180px}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="top"><div class="brand">🛡️ امنا یار — پنل مدیریت</div><div id="status">MVP</div></header>
+<div class="wrap">
+<aside><nav>
+<button class="active" onclick="show('dashboard',this)">📊 داشبورد</button>
+<button onclick="show('users',this)">👥 کاربران</button>
+<button onclick="show('packages',this)">💰 بسته‌ها</button>
+<button onclick="show('services',this)">🔌 سرویس‌ها</button>
+<button onclick="show('purchases',this)">🧾 سفارش‌ها</button>
+<button onclick="show('verifications',this)">📋 استعلام‌ها</button>
+<button onclick="show('channels',this)">🏪 کانال‌های فروش</button>
+<button onclick="show('devices',this)">📱 دستگاه‌ها</button>
+<button onclick="show('apiStatus',this)">🩺 وضعیت API</button>
+<button onclick="show('settings',this)">⚙️ تنظیمات</button>
+</nav></aside>
+<main id="app"></main>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,173 @@
+const express = require("express");
+const cors = require("cors");
+const helmet = require("helmet");
+const Database = require("better-sqlite3");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
+const {initPayment: samanInit, verifyPayment: samanVerify} = require("./providers/saman");
+const rateLimit = require("express-rate-limit");
+
+const app = express();
+app.set("trust proxy", 1);
+const NODE_ENV = process.env.NODE_ENV || "development";
+if (NODE_ENV === "production") app.use((req,res,next)=>{ if (req.secure || req.headers["x-forwarded-proto"] === "https") return next(); return res.status(400).json({error:"https_required"}); });
+app.use(helmet());
+const allowedOrigins = (process.env.CORS_ORIGINS || "").split(",").map(x => x.trim()).filter(Boolean);
+app.use(cors({ origin: allowedOrigins.length ? allowedOrigins : false }));
+app.use(express.json({limit:"64kb"}));
+app.use((req,res,next)=>{ req.requestId=crypto.randomUUID(); res.setHeader("X-Request-ID",req.requestId); next(); });
+app.use("/api/", rateLimit({windowMs:60*1000,max:120,standardHeaders:true,legacyHeaders:false}));
+app.use("/api/auth/", rateLimit({windowMs:15*60*1000,max:30,standardHeaders:true,legacyHeaders:false}));
+
+const PORT = Number(process.env.PORT || 8080);
+const SECRET = process.env.JWT_SECRET || "";
+const APP_VERSION = "5.10.0";
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "";
+const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || "";
+if (!SECRET || SECRET.length < 32) { if (NODE_ENV === "production") throw new Error("JWT_SECRET must be at least 32 characters in production"); console.warn("WARNING: set JWT_SECRET to a random secret of at least 32 characters."); }
+if (!ADMIN_PASSWORD_HASH) { if (NODE_ENV === "production") throw new Error("ADMIN_PASSWORD_HASH is required in production"); console.warn("WARNING: set ADMIN_PASSWORD_HASH (bcrypt) for production admin login."); }
+const db = new Database(process.env.DB_FILE || "amnayar.db");
+db.pragma("journal_mode = WAL");
+
+db.exec(`
+CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY AUTOINCREMENT, public_id TEXT UNIQUE NOT NULL, username TEXT UNIQUE, password_hash TEXT, credits INTEGER NOT NULL DEFAULT 0, active INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS verifications(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, type TEXT NOT NULL, input_masked TEXT NOT NULL, result TEXT NOT NULL, created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS packages(id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, credits INTEGER NOT NULL, price_toman INTEGER NOT NULL, active INTEGER NOT NULL DEFAULT 1);
+CREATE TABLE IF NOT EXISTS purchases(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, package_id INTEGER, amount_toman INTEGER NOT NULL, store TEXT NOT NULL DEFAULT 'direct', order_id TEXT UNIQUE NOT NULL, status TEXT NOT NULL, provider_ref TEXT, paid_at TEXT, created_at TEXT NOT NULL, gateway_token TEXT, gateway_txn_key INTEGER, checkout_token_hash TEXT);
+CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS devices(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, device_key TEXT NOT NULL, channel TEXT NOT NULL, app_version TEXT, active INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL, UNIQUE(user_id,device_key));
+CREATE TABLE IF NOT EXISTS audit_logs(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, action TEXT NOT NULL, request_id TEXT, created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS payment_events(id INTEGER PRIMARY KEY AUTOINCREMENT, provider TEXT NOT NULL, event_id TEXT UNIQUE NOT NULL, order_id TEXT, raw_hash TEXT NOT NULL, created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS sales_channels(id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT UNIQUE NOT NULL, title TEXT NOT NULL, enabled INTEGER NOT NULL DEFAULT 1, purchase_enabled INTEGER NOT NULL DEFAULT 1, app_download_enabled INTEGER NOT NULL DEFAULT 1, webhook_enabled INTEGER NOT NULL DEFAULT 0, notes TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+`);
+
+// Lightweight migration for databases created by v2.
+const cols = db.prepare("PRAGMA table_info(purchases)").all().map(x => x.name);
+if (!cols.includes("store")) db.exec("ALTER TABLE purchases ADD COLUMN store TEXT NOT NULL DEFAULT 'direct'");
+if (!cols.includes("order_id")) { db.exec("ALTER TABLE purchases ADD COLUMN order_id TEXT"); db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_purchases_order_id ON purchases(order_id)"); }
+if (!cols.includes("provider_ref")) db.exec("ALTER TABLE purchases ADD COLUMN provider_ref TEXT");
+if (!cols.includes("paid_at")) db.exec("ALTER TABLE purchases ADD COLUMN paid_at TEXT");
+if (!cols.includes("gateway_token")) db.exec("ALTER TABLE purchases ADD COLUMN gateway_token TEXT");
+if (!cols.includes("gateway_txn_key")) db.exec("ALTER TABLE purchases ADD COLUMN gateway_txn_key INTEGER");
+if (!cols.includes("checkout_token_hash")) db.exec("ALTER TABLE purchases ADD COLUMN checkout_token_hash TEXT");
+
+// Multi-channel distribution defaults. The manager can enable/disable channels from admin.
+const defaultChannels = [
+  ["bazaar","کافه‌بازار",1,1,1,0,"اتصال پرداخت/خرید با اطلاعات حساب توسعه‌دهنده انجام شود."],
+  ["myket","مایکت",1,1,1,0,"اتصال پرداخت/خرید با اطلاعات حساب توسعه‌دهنده انجام شود."],
+  ["google-play","Google Play",0,0,0,0,"فعلاً غیرفعال؛ توزیع فعلی بدون Google Play انجام می‌شود."],
+  ["direct","فروش مستقیم",1,1,1,1,"درگاه مستقیم و وب‌سایت مدیر."],
+  ["b2b","فروش سازمانی",1,1,0,1,"فروش با قرارداد/لایسنس سازمانی."],
+];
+if (!db.prepare("SELECT id FROM sales_channels LIMIT 1").get()) {
+  const stmt = db.prepare("INSERT INTO sales_channels(code,title,enabled,purchase_enabled,app_download_enabled,webhook_enabled,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)");
+  const t=now(); for (const c of defaultChannels) stmt.run(...c,t,t);
+}
+
+// Commercial default package: 100 credits for 100,000 toman. Prices remain editable in admin.
+if (!db.prepare("SELECT id FROM packages LIMIT 1").get()) {
+  const seed = db.prepare("INSERT INTO packages(title,credits,price_toman,active) VALUES(?,?,?,1)");
+  seed.run("بسته 100 اعتبار",100,100000);
+  seed.run("بسته 500 اعتبار",500,500000);
+  seed.run("بسته 1000 اعتبار",1000,1000000);
+} else {
+  const seed = db.prepare("INSERT INTO packages(title,credits,price_toman,active) VALUES(?,?,?,1)");
+  if(!db.prepare("SELECT id FROM packages WHERE credits=500 LIMIT 1").get()) seed.run("بسته 500 اعتبار",500,500000);
+  if(!db.prepare("SELECT id FROM packages WHERE credits=1000 LIMIT 1").get()) seed.run("بسته 1000 اعتبار",1000,1000000);
+}
+
+function now(){ return new Date().toISOString(); }
+function deviceDigest(value){ return crypto.createHmac("sha256", SECRET).update(String(value)).digest("hex"); }
+function audit(userId, action, requestId){ db.prepare("INSERT INTO audit_logs(user_id,action,request_id,created_at) VALUES(?,?,?,?)").run(userId||null,action,requestId||null,now()); }
+function sign(user, deviceDigestValue=null){
+  const payload={uid:user.id, pid:user.public_id};
+  if(deviceDigestValue) payload.did=deviceDigestValue;
+  return jwt.sign(payload, SECRET, {expiresIn:"30d"});
+}
+function auth(req,res,next){
+  try {
+    const h=req.headers.authorization||"";
+    const token=jwt.verify(h.startsWith("Bearer ")?h.slice(7):"",SECRET);
+    const u=db.prepare("SELECT id,public_id,active FROM users WHERE id=?").get(token.uid);
+    if(!u || !u.active) return res.status(401).json({error:"account_inactive"});
+    if(token.did){
+      const raw=String(req.headers["x-device-key"]||"");
+      if(!raw || deviceDigest(raw)!==token.did) return res.status(401).json({error:"device_not_authorized"});
+      const d=db.prepare("SELECT id FROM devices WHERE user_id=? AND device_key=? AND active=1").get(u.id,token.did);
+      if(!d) return res.status(401).json({error:"device_not_authorized"});
+    }
+    req.user=token; next();
+  } catch { res.status(401).json({error:"unauthorized"}); }
+}
+function adminAuth(req,res,next){ try { const h=req.headers.authorization||""; const x=jwt.verify(h.startsWith("Bearer ")?h.slice(7):"",SECRET); if(x.admin!==true) throw 0; req.admin=x; next(); } catch { res.status(401).json({error:"admin_unauthorized"}); } }
+function normalizeDigits(s){return String(s||"").replace(/[۰-۹]/g,c=>String("۰۱۲۳۴۵۶۷۸۹".indexOf(c))).replace(/[٠-٩]/g,c=>String("٠١٢٣٤٥٦٧٨٩".indexOf(c)));}
+function validCard(s){ s=normalizeDigits(s).replace(/\D/g,""); if(s.length!==16 || /^(\d)\1+$/.test(s)) return false; let sum=0; for(let i=0;i<16;i++){let n=+s[i];if(i%2===0){n*=2;if(n>9)n-=9;}sum+=n;} return sum%10===0; }
+function validNationalId(s){ s=normalizeDigits(s).replace(/\D/g,""); if(s.length!==10 || /^(\d)\1+$/.test(s)) return false; let sum=0;for(let i=0;i<9;i++)sum+=(+s[i])*(10-i);const r=sum%11,c=+s[9];return r<2?c===r:c===11-r; }
+function validIban(s){ s=normalizeDigits(s).toUpperCase().replace(/\s/g,""); if(!/^IR\d{24}$/.test(s)) return false; const x=s.slice(4)+"1827"+s.slice(2,4); let rem=0; for(const c of x) rem=(rem*10+(+c))%97; return rem===1; }
+const cardBins={"603799":"بانک ملی ایران","589210":"بانک سپه","627648":"بانک توسعه صادرات","627961":"بانک صنعت و معدن","603770":"بانک کشاورزی","628023":"بانک مسکن","627760":"پست بانک ایران","502229":"بانک پاسارگاد","610433":"بانک ملت","603769":"بانک صادرات ایران","627353":"بانک تجارت","627412":"بانک اقتصاد نوین","622106":"بانک پارسیان","621986":"بانک سامان","639346":"بانک سینا","639607":"بانک سرمایه","502806":"بانک شهر","504172":"بانک رسالت","505785":"بانک ایران زمین"};
+const ibanCodes={"010":"بانک مرکزی","011":"بانک صنعت و معدن","012":"بانک ملت","013":"بانک رفاه کارگران","014":"بانک مسکن","015":"بانک سپه","016":"بانک کشاورزی","017":"بانک ملی ایران","018":"بانک تجارت","019":"بانک صادرات ایران","020":"بانک توسعه صادرات","021":"پست بانک ایران","022":"بانک توسعه تعاون","055":"بانک اقتصاد نوین","056":"بانک سامان","057":"بانک پاسارگاد","058":"بانک سرمایه","059":"بانک سینا","060":"بانک شهر","062":"بانک آینده","064":"بانک گردشگری","066":"بانک دی","069":"بانک ایران زمین"};
+function mask(s){s=String(s||"");return s.length>8?s.slice(0,4)+"****"+s.slice(-4):"****";}
+function spend(req,type,input,result){return db.transaction(()=>{const u=db.prepare("SELECT * FROM users WHERE id=? AND active=1").get(req.user.uid);if(!u)throw new Error("inactive");if(u.credits<1)return null;const changed=db.prepare("UPDATE users SET credits=credits-1 WHERE id=? AND credits>0").run(u.id);if(!changed.changes)return null;db.prepare("INSERT INTO verifications(user_id,type,input_masked,result,created_at) VALUES(?,?,?,?,?)").run(u.id,type,mask(input),result,now());return u.credits-1;})();}
+function addCreditsForPaidPurchase(purchaseId, providerRef){return db.transaction(()=>{const row=db.prepare("SELECT * FROM purchases WHERE id=?").get(purchaseId);if(!row)throw new Error("purchase_not_found");if(row.status==="paid")return {already:true,credits:0};const p=db.prepare("SELECT credits FROM packages WHERE id=?").get(row.package_id);if(!p)throw new Error("package_not_found");const changed=db.prepare("UPDATE purchases SET status='paid',provider_ref=?,paid_at=? WHERE id=? AND status='pending'").run(providerRef||null,now(),purchaseId);if(!changed.changes)return {already:true,credits:0};db.prepare("UPDATE users SET credits=credits+? WHERE id=?").run(p.credits,row.user_id);return {already:false,credits:p.credits};})();}
+
+app.get("/api/health",(req,res)=>res.json({ok:true,service:"amnayar",version:APP_VERSION,environment:NODE_ENV,max_active_devices:Number(process.env.MAX_ACTIVE_DEVICES||2),timestamp:now()}));
+app.get("/api/app/config",(req,res)=>res.json({name:"امنا یار",version:APP_VERSION,minSupportedVersion:process.env.MIN_SUPPORTED_APP_VERSION||"5.0.0",apiBase:"https://api.amnayar.ir/api",support:{email:"mohammad.rezaei8968@gmail.com",phone:"09930855527"},channels:db.prepare("SELECT code,title,enabled,app_download_enabled FROM sales_channels WHERE enabled=1 ORDER BY id").all()}));
+app.post("/api/auth/register",(req,res)=>{const username=String(req.body.username||"").trim().toLowerCase();const password=String(req.body.password||"");if(!/^[a-z0-9_.-]{3,40}$/.test(username)||password.length<8)return res.status(400).json({error:"نام کاربری یا رمز عبور نامعتبر است"});if(db.prepare("SELECT id FROM users WHERE username=?").get(username))return res.status(409).json({error:"کاربر قبلاً ثبت شده است"});const publicId=crypto.randomUUID();const hash=bcrypt.hashSync(password,12);const initial=Math.max(0,Number(process.env.INITIAL_CREDITS||0));const info=db.prepare("INSERT INTO users(public_id,username,password_hash,credits,created_at) VALUES(?,?,?,?,?)").run(publicId,username,hash,initial,now());const user=db.prepare("SELECT * FROM users WHERE id=?").get(info.lastInsertRowid);res.json({token:sign(user),user:{public_id:user.public_id,credits:user.credits}});});
+app.post("/api/auth/login",(req,res)=>{const u=db.prepare("SELECT * FROM users WHERE username=?").get(String(req.body.username||"").trim().toLowerCase());if(!u||!bcrypt.compareSync(String(req.body.password||""),u.password_hash)||!u.active)return res.status(401).json({error:"اطلاعات ورود نادرست است"});res.json({token:sign(u),user:{public_id:u.public_id,credits:u.credits}});});
+app.get("/api/me",auth,(req,res)=>{const u=db.prepare("SELECT public_id,username,credits,active,created_at FROM users WHERE id=?").get(req.user.uid);if(!u)return res.status(404).json({error:"user_not_found"});res.json(u);});
+app.post("/api/device/register",auth,(req,res)=>{const deviceKey=String(req.body.deviceKey||"").trim();if(deviceKey.length<16||deviceKey.length>200)return res.status(400).json({error:"device_key_invalid"});const channel=String(req.body.channel||"other").slice(0,30);const appVersion=String(req.body.appVersion||"").slice(0,40);const count=db.prepare("SELECT COUNT(*) c FROM devices WHERE user_id=? AND active=1").get(req.user.uid).c;const digest=deviceDigest(deviceKey);
+const exists=db.prepare("SELECT id FROM devices WHERE user_id=? AND device_key=?").get(req.user.uid,digest);const max=Number(process.env.MAX_ACTIVE_DEVICES||2);if(!exists&&count>=max)return res.status(409).json({error:"device_limit_reached"});db.prepare("INSERT INTO devices(user_id,device_key,channel,app_version,created_at) VALUES(?,?,?,?,?) ON CONFLICT(user_id,device_key) DO UPDATE SET channel=excluded.channel,app_version=excluded.app_version,active=1").run(req.user.uid,digest,channel,appVersion,now());
+audit(req.user.uid,"device_register",req.requestId);const u=db.prepare("SELECT id,public_id FROM users WHERE id=?").get(req.user.uid);res.json({ok:true,token:sign(u,digest)});});
+app.post("/api/integrity/google",auth,(req,res)=>{if(process.env.GOOGLE_PLAY_INTEGRITY_ENABLED!=="true")return res.status(503).json({error:"google_play_integrity_not_configured"});const token=String(req.body.token||"");if(!token)return res.status(400).json({error:"integrity_token_required"});res.status(501).json({error:"google_integrity_server_verifier_required",message:"Configure Google Play Integrity server credentials before enforcing verdicts."});});
+app.post("/api/verify/card",auth,(req,res)=>{const card=String(req.body.card||"").replace(/\s/g,"");const ok=validCard(card);const bank=ok?(cardBins[card.slice(0,6)]||"بانک در فهرست محلی پیدا نشد"):"";const remaining=spend(req,"card",card,ok?"valid":"invalid");if(remaining===null)return res.status(402).json({error:"اعتبار کافی نیست"});res.json({valid:ok,bank,remaining});});
+app.post("/api/verify/national-id",auth,(req,res)=>{const id=String(req.body.nationalId||"");const ok=validNationalId(id);const remaining=spend(req,"national-id",id,ok?"valid":"invalid");if(remaining===null)return res.status(402).json({error:"اعتبار کافی نیست"});res.json({valid:ok,remaining});});
+app.post("/api/verify/iban",auth,(req,res)=>{const iban=String(req.body.iban||"").toUpperCase().replace(/\s/g,"");const ok=validIban(iban);const bank=ok?(ibanCodes[iban.slice(4,7)]||"بانک در فهرست محلی پیدا نشد"):"";const remaining=spend(req,"iban",iban,ok?"valid":"invalid");if(remaining===null)return res.status(402).json({error:"اعتبار کافی نیست"});res.json({valid:ok,bank,remaining});});
+app.get("/api/history",auth,(req,res)=>res.json(db.prepare("SELECT type,input_masked,result,created_at FROM verifications WHERE user_id=? ORDER BY id DESC LIMIT 100").all(req.user.uid)));
+app.get("/api/me/devices",auth,(req,res)=>{const rows=db.prepare("SELECT id,channel,app_version,active,created_at FROM devices WHERE user_id=? ORDER BY id DESC").all(req.user.uid);const max=Number(process.env.MAX_ACTIVE_DEVICES||2);res.json({maxActive:max,active:rows.filter(x=>x.active).length,devices:rows});});
+app.post("/api/me/devices/:id/revoke",auth,(req,res)=>{const id=Number(req.params.id);const d=db.prepare("SELECT id,active FROM devices WHERE id=? AND user_id=?").get(id,req.user.uid);if(!d)return res.status(404).json({error:"device_not_found"});if(!d.active)return res.json({ok:true,alreadyRevoked:true});db.prepare("UPDATE devices SET active=0 WHERE id=? AND user_id=?").run(id,req.user.uid);audit(req.user.uid,"device_revoke",req.requestId);res.json({ok:true});});
+app.get("/api/me/purchases",auth,(req,res)=>res.json(db.prepare("SELECT id,order_id,amount_toman,store,status,provider_ref,paid_at,created_at FROM purchases WHERE user_id=? ORDER BY id DESC LIMIT 50").all(req.user.uid)));
+app.get("/api/packages",(req,res)=>res.json(db.prepare("SELECT id,title,credits,price_toman FROM packages WHERE active=1 ORDER BY price_toman").all()));
+app.get("/api/channels",(req,res)=>res.json(db.prepare("SELECT code,title,enabled,purchase_enabled,app_download_enabled FROM sales_channels WHERE enabled=1 ORDER BY id").all()));
+
+app.post("/api/purchases/create",auth,async (req,res)=>{let purchaseId=null;try{const packageId=Number(req.body.packageId);const p=db.prepare("SELECT * FROM packages WHERE id=? AND active=1").get(packageId);if(!p)return res.status(404).json({error:"package_not_found"});const store=String(req.body.store||"direct").trim().toLowerCase().slice(0,30);const channel=db.prepare("SELECT * FROM sales_channels WHERE code=? AND enabled=1").get(store);if(!channel)return res.status(400).json({error:"channel_disabled"});if(!channel.purchase_enabled)return res.status(403).json({error:"purchase_disabled_for_channel"});if(store==="direct" && !process.env.SAMAN_TERMINAL_ID)return res.status(503).json({error:"saman_not_configured"});const callbackUrl=process.env.SAMAN_CALLBACK_URL||`${process.env.PUBLIC_API_URL||""}/api/payments/saman/callback`;if(store==="direct" && !callbackUrl.startsWith("https://"))return res.status(503).json({error:"saman_callback_must_use_https"});const orderId="AMNA-"+crypto.randomUUID();const info=db.prepare("INSERT INTO purchases(user_id,package_id,amount_toman,store,order_id,status,created_at) VALUES(?,?,?,?,?,?,?)").run(req.user.uid,p.id,p.price_toman,store,orderId,"pending",now());purchaseId=info.lastInsertRowid;const checkoutToken=crypto.randomBytes(32).toString("hex");db.prepare("UPDATE purchases SET checkout_token_hash=? WHERE id=?").run(crypto.createHash("sha256").update(checkoutToken).digest("hex"),purchaseId);let paymentUrl=null;if(store==="direct"){const result=await samanInit({terminalId:requiredEnv("SAMAN_TERMINAL_ID"),amountRial:p.price_toman*10,orderId,callbackUrl,phone:String(req.body.phone||"")});db.prepare("UPDATE purchases SET gateway_token=?,gateway_txn_key=? WHERE id=?").run(result.token,result.txnKey,purchaseId);paymentUrl=`${process.env.PUBLIC_API_URL||""}/api/payments/saman/redirect/${purchaseId}/${checkoutToken}`;}res.json({purchaseId,orderId,amount_toman:p.price_toman,status:"pending",provider:store,paymentUrl});}catch(e){console.error("purchase_create",e);if(purchaseId)db.prepare("UPDATE purchases SET status=CASE WHEN status='pending' THEN 'failed' ELSE status END WHERE id=?").run(purchaseId);res.status(502).json({error:"payment_provider_unavailable"});}});
+function requiredEnv(name){const v=process.env[name];if(!v)throw new Error(`${name}_NOT_CONFIGURED`);return v;}
+
+
+app.get("/api/payments/saman/redirect/:id/:token",async (req,res)=>{try{const id=Number(req.params.id);const hash=crypto.createHash("sha256").update(String(req.params.token)).digest("hex");const row=db.prepare("SELECT id,status,gateway_token,checkout_token_hash FROM purchases WHERE id=? AND store='direct'").get(id);if(!row||row.checkout_token_hash!==hash||!row.gateway_token)return res.status(404).send("سفارش پرداخت پیدا نشد");if(row.status==="paid")return res.status(409).send("این سفارش قبلاً پرداخت شده است");const action=process.env.SAMAN_PAYMENT_URL||"https://sep.shaparak.ir/OnlinePG/OnlinePG";res.type("html").send(`<!doctype html><html lang="fa" dir="rtl"><meta charset="utf-8"><title>در حال انتقال به درگاه سامان</title><body onload="document.forms[0].submit()"><p>در حال انتقال به درگاه پرداخت سامان...</p><form method="post" action="${action}"><input type="hidden" name="Token" value="${String(row.gateway_token).replace(/&/g,"&amp;").replace(/"/g,"&quot;")}"><noscript><button type="submit">ادامه پرداخت</button></noscript></form></body></html>`);}catch(e){console.error("saman_redirect",e);res.status(500).send("خطا در انتقال به درگاه");}});
+
+app.post("/api/payments/saman/callback",async (req,res)=>{const body=req.body||{};const orderId=String(body.ResNum||body.resNum||"");const refNum=String(body.RefNum||body.refNum||"");if(!orderId)return res.status(400).send("ResNum نامعتبر است");const purchase=db.prepare("SELECT * FROM purchases WHERE order_id=? AND store='direct'").get(orderId);if(!purchase)return res.status(404).send("سفارش پیدا نشد");if(purchase.status==="paid")return res.type("html").send("پرداخت قبلاً تأیید شده است.");if(!refNum)return res.type("html").send("پرداخت ناموفق یا لغو شد.");try{const result=await samanVerify({terminalId:requiredEnv("SAMAN_TERMINAL_ID"),txnKey:purchase.gateway_txn_key,refNum});const expectedRial=purchase.amount_toman*10;if(!result.success)return res.type("html").send("پرداخت تأیید نشد.");if(result.amount!=null&&Number(result.amount)!==expectedRial)return res.status(400).send("مبلغ تراکنش با سفارش مطابقت ندارد");const credited=addCreditsForPaidPurchase(purchase.id,result.rrn||refNum);audit(purchase.user_id,"payment_saman_paid",req.requestId);const redirect=process.env.SAMAN_RESULT_URL||"";if(redirect.startsWith("https://")){const sep=redirect.includes("?")?"&":"?";return res.redirect(`${redirect}${sep}status=success&order_id=${encodeURIComponent(orderId)}`);}return res.type("html").send(`پرداخت با موفقیت تأیید شد. سفارش ${orderId}<br>کد پیگیری: ${result.rrn||refNum}<br>اعتبار افزوده‌شده: ${credited.already?0:credited.credits}`);}catch(e){console.error("saman_callback",e);return res.status(202).type("html").send("پرداخت دریافت شد ولی تأیید بانکی موقتاً در دسترس نیست؛ سفارش برای بررسی مجدد باقی می‌ماند.");}});
+
+app.get("/api/purchases/:id",auth,(req,res)=>{const row=db.prepare("SELECT id,package_id,amount_toman,store,order_id,status,provider_ref,paid_at,created_at FROM purchases WHERE id=? AND user_id=?").get(Number(req.params.id),req.user.uid);if(!row)return res.status(404).json({error:"purchase_not_found"});res.json(row);});
+// Production payment adapter contract. The actual Bazaar/Myket SDK/API credentials must be supplied by the merchant account.
+app.post("/api/payments/webhook/:provider",(req,res)=>{const provider=String(req.params.provider||"").toLowerCase();const eventId=String(req.headers["x-event-id"]||req.body.event_id||"");const signature=String(req.headers["x-signature"]||"");const secret=process.env[`PAYMENT_${provider.toUpperCase()}_WEBHOOK_SECRET`]||"";if(!secret||!eventId)return res.status(503).json({error:"payment_webhook_not_configured"});const raw=JSON.stringify(req.body||{});const expected=crypto.createHmac("sha256",secret).update(raw).digest("hex");const sigBuf=Buffer.from(signature,"utf8");const expBuf=Buffer.from(expected,"utf8");if(sigBuf.length!==expBuf.length||!crypto.timingSafeEqual(sigBuf,expBuf))return res.status(401).json({error:"bad_signature"});if(db.prepare("SELECT id FROM payment_events WHERE event_id=?").get(eventId))return res.json({ok:true,duplicate:true});const orderId=String(req.body.order_id||"");const purchase=db.prepare("SELECT * FROM purchases WHERE order_id=?").get(orderId);if(!purchase)return res.status(404).json({error:"order_not_found"});
+if(req.body.amount_toman!==undefined && Number(req.body.amount_toman)!==Number(purchase.amount_toman))return res.status(400).json({error:"amount_mismatch"});const rawHash=crypto.createHash("sha256").update(raw).digest("hex");db.prepare("INSERT INTO payment_events(provider,event_id,order_id,raw_hash,created_at) VALUES(?,?,?,?,?)").run(provider,eventId,orderId,rawHash,now());if(String(req.body.status||"")!=="paid")return res.json({ok:true,status:"ignored"});const result=addCreditsForPaidPurchase(purchase.id,String(req.body.provider_ref||eventId));
+audit(purchase.user_id,`payment_${provider}_${req.body.status||"unknown"}`,req.requestId);
+res.json({ok:true,credited:result.credits,already:result.already});});
+
+app.post("/api/admin/login", rateLimit({windowMs:15*60*1000,max:10,standardHeaders:true,legacyHeaders:false}),(req,res)=>{const username=String(req.body.username||"");const password=String(req.body.password||"");if(!ADMIN_USERNAME||!ADMIN_PASSWORD_HASH||username!==ADMIN_USERNAME||!bcrypt.compareSync(password,ADMIN_PASSWORD_HASH))return res.status(401).json({error:"اطلاعات مدیر نادرست است"});res.json({token:jwt.sign({admin:true,username},SECRET,{expiresIn:"8h"})});});
+app.get("/api/admin/summary",adminAuth,(req,res)=>{const users=db.prepare("SELECT COUNT(*) c FROM users").get().c;const active=db.prepare("SELECT COUNT(*) c FROM users WHERE active=1").get().c;const checks=db.prepare("SELECT COUNT(*) c FROM verifications").get().c;const sales=db.prepare("SELECT COALESCE(SUM(amount_toman),0) s FROM purchases WHERE status='paid'").get().s;const pending=db.prepare("SELECT COUNT(*) c FROM purchases WHERE status='pending'").get().c;res.json({users,active,verifications:checks,sales_toman:sales,pending_purchases:pending});});
+app.get("/api/admin/users",adminAuth,(req,res)=>res.json(db.prepare("SELECT id,public_id,username,credits,active,created_at FROM users ORDER BY id DESC LIMIT 500").all()));
+app.post("/api/admin/users/:id/credits",adminAuth,(req,res)=>{const amount=Number(req.body.amount||0);if(!Number.isInteger(amount)||amount===0||Math.abs(amount)>1000000)return res.status(400).json({error:"invalid_amount"});db.prepare("UPDATE users SET credits=MAX(0,credits+?) WHERE id=?").run(amount,req.params.id);res.json({ok:true});});
+app.post("/api/admin/users/:id/status",adminAuth,(req,res)=>{db.prepare("UPDATE users SET active=? WHERE id=?").run(req.body.active?1:0,req.params.id);res.json({ok:true});});
+app.get("/api/admin/packages",adminAuth,(req,res)=>res.json(db.prepare("SELECT * FROM packages ORDER BY price_toman").all()));
+app.post("/api/admin/packages",adminAuth,(req,res)=>{const title=String(req.body.title||"").trim();const credits=Number(req.body.credits);const price=Number(req.body.price_toman);if(!title||!Number.isInteger(credits)||credits<1||!Number.isInteger(price)||price<0)return res.status(400).json({error:"invalid"});const info=db.prepare("INSERT INTO packages(title,credits,price_toman) VALUES(?,?,?)").run(title,credits,price);res.json({id:info.lastInsertRowid});});
+app.patch("/api/admin/packages/:id",adminAuth,(req,res)=>{const p=db.prepare("SELECT * FROM packages WHERE id=?").get(Number(req.params.id));if(!p)return res.status(404).json({error:"not_found"});const title=String(req.body.title??p.title);const credits=Number(req.body.credits??p.credits);const price=Number(req.body.price_toman??p.price_toman);const active=req.body.active===undefined?p.active:(req.body.active?1:0);if(!title||!Number.isInteger(credits)||credits<1||!Number.isInteger(price)||price<0)return res.status(400).json({error:"invalid"});db.prepare("UPDATE packages SET title=?,credits=?,price_toman=?,active=? WHERE id=?").run(title,credits,price,active,p.id);res.json({ok:true});});
+app.get("/api/admin/channels",adminAuth,(req,res)=>res.json(db.prepare("SELECT * FROM sales_channels ORDER BY id").all()));
+app.patch("/api/admin/channels/:code",adminAuth,(req,res)=>{const c=db.prepare("SELECT * FROM sales_channels WHERE code=?").get(String(req.params.code));if(!c)return res.status(404).json({error:"channel_not_found"});const enabled=req.body.enabled===undefined?c.enabled:(req.body.enabled?1:0);const purchase=req.body.purchase_enabled===undefined?c.purchase_enabled:(req.body.purchase_enabled?1:0);const download=req.body.app_download_enabled===undefined?c.app_download_enabled:(req.body.app_download_enabled?1:0);const webhook=req.body.webhook_enabled===undefined?c.webhook_enabled:(req.body.webhook_enabled?1:0);const notes=String(req.body.notes??c.notes);db.prepare("UPDATE sales_channels SET enabled=?,purchase_enabled=?,app_download_enabled=?,webhook_enabled=?,notes=?,updated_at=? WHERE code=?").run(enabled,purchase,download,webhook,notes,now(),c.code);res.json({ok:true});});
+app.get("/api/admin/sales-by-channel",adminAuth,(req,res)=>res.json(db.prepare("SELECT store,COUNT(*) orders,COALESCE(SUM(CASE WHEN status='paid' THEN amount_toman ELSE 0 END),0) sales_toman FROM purchases GROUP BY store ORDER BY sales_toman DESC").all()));
+app.get("/api/admin/purchases",adminAuth,(req,res)=>res.json(db.prepare("SELECT p.id,p.order_id,p.store,p.amount_toman,p.status,p.provider_ref,p.created_at,p.paid_at,u.username FROM purchases p LEFT JOIN users u ON u.id=p.user_id ORDER BY p.id DESC LIMIT 500").all()));
+app.get("/api/admin/verifications",adminAuth,(req,res)=>res.json(db.prepare("SELECT v.id,v.type,v.input_masked,v.result,v.created_at,u.username FROM verifications v LEFT JOIN users u ON u.id=v.user_id ORDER BY v.id DESC LIMIT 500").all()));
+app.get("/api/admin/devices",adminAuth,(req,res)=>res.json(db.prepare("SELECT d.id,d.user_id,u.username,d.channel,d.app_version,d.active,d.created_at FROM devices d LEFT JOIN users u ON u.id=d.user_id ORDER BY d.id DESC LIMIT 500").all()));
+app.post("/api/admin/devices/:id/status",adminAuth,(req,res)=>{db.prepare("UPDATE devices SET active=? WHERE id=?").run(req.body.active?1:0,Number(req.params.id));res.json({ok:true});});
+app.get("/api/admin/api-status",adminAuth,(req,res)=>{const checks=[
+  {key:"national_id",title:"صحت‌سنجی کد ملی",status:"ready",detail:"الگوریتم رقم کنترلی"},
+  {key:"card",title:"کارت بانکی",status:"ready",detail:"Luhn + BIN محلی"},
+  {key:"iban",title:"شبا",status:"ready",detail:"MOD-97 + کد بانک"},
+  {key:"saman",title:"درگاه سامان",status:process.env.SAMAN_TERMINAL_ID?"configured":"not_configured",detail:process.env.SAMAN_TERMINAL_ID?"Credential تنظیم شده":"نیازمند تنظیم Terminal ID"},
+  {key:"bazaar",title:"کافه‌بازار",status:process.env.PAYMENT_BAZAAR_WEBHOOK_SECRET?"configured":"not_configured",detail:"Webhook"},
+  {key:"myket",title:"مایکت",status:process.env.PAYMENT_MYKET_WEBHOOK_SECRET?"configured":"not_configured",detail:"Webhook"}
+];res.json({appVersion:APP_VERSION,apiBase:process.env.PUBLIC_API_URL||"",checks});});
+app.get("/api/admin/settings",adminAuth,(req,res)=>res.json(Object.fromEntries(db.prepare("SELECT key,value FROM settings").all().map(x=>[x.key,x.value]))));
+app.put("/api/admin/settings",adminAuth,(req,res)=>{db.transaction(()=>{for(const [k,v] of Object.entries(req.body||{}))db.prepare("INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(String(k),String(v));})();res.json({ok:true});});
+app.listen(PORT,()=>console.log(`AmnaYar API running on :${PORT}`));

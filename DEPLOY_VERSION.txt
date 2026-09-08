@@ -1,0 +1,4 @@
+AmnaYar Free Deploy 1.0.0
+Source Android/backend version: 5.10.0
+Web release: 1.2.0
+Prepared: 2026-09-07

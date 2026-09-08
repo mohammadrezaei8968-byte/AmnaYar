@@ -1,0 +1,63 @@
+services:
+  - type: web
+    runtime: static
+    name: amnayar-web
+    rootDir: web
+    buildCommand: "echo AmnaYar static site"
+    staticPublishPath: .
+    plan: free
+    domains:
+      - amnayar.ir
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN
+
+  - type: web
+    runtime: node
+    name: amnayar-api
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free
+    healthCheckPath: /api/health
+    domains:
+      - api.amnayar.ir
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        sync: false
+      - key: ADMIN_USERNAME
+        value: amna
+      - key: ADMIN_PASSWORD_HASH
+        sync: false
+      - key: CORS_ORIGINS
+        value: https://amnayar.ir,https://www.amnayar.ir,https://amnayar-admin.onrender.com
+      - key: PUBLIC_API_URL
+        value: https://api.amnayar.ir
+      - key: MAX_ACTIVE_DEVICES
+        value: "2"
+      - key: INITIAL_CREDITS
+        value: "100"
+      - key: DB_FILE
+        value: /tmp/amnayar.db
+      - key: GOOGLE_PLAY_INTEGRITY_ENABLED
+        value: "false"
+
+  - type: web
+    runtime: node
+    name: amnayar-admin
+    rootDir: admin
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free
+    envVars:
+      - key: API_BASE
+        value: https://api.amnayar.ir/api
