@@ -76,6 +76,12 @@ if (!db.prepare("SELECT id FROM packages LIMIT 1").get()) {
   if(!db.prepare("SELECT id FROM packages WHERE credits=500 LIMIT 1").get()) seed.run("بسته 500 اعتبار",500,500000);
   if(!db.prepare("SELECT id FROM packages WHERE credits=1000 LIMIT 1").get()) seed.run("بسته 1000 اعتبار",1000,1000000);
 }
+// Repair migration for existing databases with zero package prices.
+const commercialPackagePrices = {100:100000, 500:500000, 1000:1000000};
+for (const [credits, price] of Object.entries(commercialPackagePrices)) {
+  db.prepare("UPDATE packages SET price_toman=? WHERE credits=? AND price_toman<=0")
+    .run(price, Number(credits));
+}
 
 function now(){ return new Date().toISOString(); }
 function deviceDigest(value){ return crypto.createHmac("sha256", SECRET).update(String(value)).digest("hex"); }
