@@ -65,25 +65,33 @@ if (!db.prepare("SELECT id FROM sales_channels LIMIT 1").get()) {
   const t=now(); for (const c of defaultChannels) stmt.run(...c,t,t);
 }
 
-// Commercial packages: repair existing zero/invalid prices and create missing packages.
+// Commercial packages: repair existing zero/invalid prices
+// and create missing packages.
 const packageDefaults = [
   [100, 100000, "بسته 100 اعتبار"],
   [500, 500000, "بسته 500 اعتبار"],
   [1000, 1000000, "بسته 1000 اعتبار"]
 ];
 
-const insertPackage = db.prepare(
-  "INSERT INTO packages(title,credits,price_toman,active) VALUES(?,?,?,1)"
-);
+const insertPackage = db.prepare(`
+  INSERT INTO packages(title, credits, price_toman, active)
+  VALUES (?, ?, ?, 1)
+`);
 
-const updatePackagePrice = db.prepare(
-  "UPDATE packages SET price_toman=? WHERE credits=? AND (price_toman IS NULL OR price_toman<=0)"
-);
+const updatePackagePrice = db.prepare(`
+  UPDATE packages
+  SET price_toman = ?
+  WHERE credits = ?
+    AND (price_toman IS NULL OR price_toman <= 0)
+`);
 
 for (const [credits, price, title] of packageDefaults) {
-  const existing = db.prepare(
-    "SELECT id FROM packages WHERE credits=? LIMIT 1"
-  ).get(credits);
+  const existing = db.prepare(`
+    SELECT id
+    FROM packages
+    WHERE credits = ?
+    LIMIT 1
+  `).get(credits);
 
   if (!existing) {
     insertPackage.run(title, credits, price);
@@ -91,7 +99,6 @@ for (const [credits, price, title] of packageDefaults) {
     updatePackagePrice.run(price, credits);
   }
 }
-
 function now(){ return new Date().toISOString(); }
 function deviceDigest(value){ return crypto.createHmac("sha256", SECRET).update(String(value)).digest("hex"); }
 function audit(userId, action, requestId){ db.prepare("INSERT INTO audit_logs(user_id,action,request_id,created_at) VALUES(?,?,?,?)").run(userId||null,action,requestId||null,now()); }
