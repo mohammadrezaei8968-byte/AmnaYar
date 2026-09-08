@@ -65,16 +65,31 @@ if (!db.prepare("SELECT id FROM sales_channels LIMIT 1").get()) {
   const t=now(); for (const c of defaultChannels) stmt.run(...c,t,t);
 }
 
-// Commercial default package: 100 credits for 100,000 toman. Prices remain editable in admin.
-if (!db.prepare("SELECT id FROM packages LIMIT 1").get()) {
-  const seed = db.prepare("INSERT INTO packages(title,credits,price_toman,active) VALUES(?,?,?,1)");
-  seed.run("بسته 100 اعتبار",100,100000);
-  seed.run("بسته 500 اعتبار",500,500000);
-  seed.run("بسته 1000 اعتبار",1000,1000000);
-} else {
-  const seed = db.prepare("INSERT INTO packages(title,credits,price_toman,active) VALUES(?,?,?,1)");
-  if(!db.prepare("SELECT id FROM packages WHERE credits=500 LIMIT 1").get()) seed.run("بسته 500 اعتبار",500,500000);
-  if(!db.prepare("SELECT id FROM packages WHERE credits=1000 LIMIT 1").get()) seed.run("بسته 1000 اعتبار",1000,1000000);
+// Commercial packages: repair existing zero/invalid prices and create missing packages.
+const packageDefaults = [
+  [100, 100000, "بسته 100 اعتبار"],
+  [500, 500000, "بسته 500 اعتبار"],
+  [1000, 1000000, "بسته 1000 اعتبار"]
+];
+
+const insertPackage = db.prepare(
+  "INSERT INTO packages(title,credits,price_toman,active) VALUES(?,?,?,1)"
+);
+
+const updatePackagePrice = db.prepare(
+  "UPDATE packages SET price_toman=? WHERE credits=? AND (price_toman IS NULL OR price_toman<=0)"
+);
+
+for (const [credits, price, title] of packageDefaults) {
+  const existing = db.prepare(
+    "SELECT id FROM packages WHERE credits=? LIMIT 1"
+  ).get(credits);
+
+  if (!existing) {
+    insertPackage.run(title, credits, price);
+  } else {
+    updatePackagePrice.run(price, credits);
+  }
 }
 
 function now(){ return new Date().toISOString(); }
@@ -114,7 +129,7 @@ function addCreditsForPaidPurchase(purchaseId, providerRef){return db.transactio
 app.get("/api/app/version",(req,res)=>res.json({version:APP_VERSION,channel:String(req.query.channel||"direct"),url:process.env.APP_DOWNLOAD_URL||"",notes:"امنا یار با طراحی بانکی جدید و اتصال سرویس استعلام بانکی"}));
 app.get("/api/health",(req,res)=>res.json({ok:true,service:"amnayar",version:APP_VERSION,environment:NODE_ENV,max_active_devices:Number(process.env.MAX_ACTIVE_DEVICES||2),timestamp:now()}));
 app.get("/api/app/config",(req,res)=>res.json({name:"امنا یار",version:APP_VERSION,minSupportedVersion:process.env.MIN_SUPPORTED_APP_VERSION||"5.0.0",apiBase:"https://api.amnayar.ir/api",support:{email:"mohammad.rezaei8968@gmail.com"},channels:db.prepare("SELECT code,title,enabled,app_download_enabled FROM sales_channels WHERE enabled=1 ORDER BY id").all()}));
-app.post("/api/auth/register",(req,res)=>{const username=String(req.body.username||"").trim().toLowerCase();const password=String(req.body.password||"");if(!/^[a-z0-9_.-]{3,40}$/.test(username)||password.length<8)return res.status(400).json({error:"نام کاربری یا رمز عبور نامعتبر است"});if(db.prepare("SELECT id FROM users WHERE username=?").get(username))return res.status(409).json({error:"کاربر قبلاً ثبت شده است"});const publicId=crypto.randomUUID();const hash=bcrypt.hashSync(password,12);const initial=0; const info=db.prepare("INSERT INTO users(public_id,username,password_hash,credits,created_at) VALUES(?,?,?,?,?)").run(publicId,username,hash,initial,now());const user=db.prepare("SELECT * FROM users WHERE id=?").get(info.lastInsertRowid);res.json({token:sign(user),user:{public_id:user.public_id,credits:user.credits}});});
+app.post("/api/auth/register",(req,res)=>{const username=String(req.body.username||"").trim().toLowerCase();const password=String(req.body.password||"");if(!/^[a-z0-9_.-]{3,40}$/.test(username)||password.length<8)return res.status(400).json({error:"نام کاربری یا رمز عبور نامعتبر است"});if(db.prepare("SELECT id FROM users WHERE username=?").get(username))return res.status(409).json({error:"کاربر قبلاً ثبت شده است"});const publicId=crypto.randomUUID();const hash=bcrypt.hashSync(password,12);const initial=2; const info=db.prepare("INSERT INTO users(public_id,username,password_hash,credits,created_at) VALUES(?,?,?,?,?)").run(publicId,username,hash,initial,now());const user=db.prepare("SELECT * FROM users WHERE id=?").get(info.lastInsertRowid);res.json({token:sign(user),user:{public_id:user.public_id,credits:user.credits}});});
 app.post("/api/auth/login",(req,res)=>{const u=db.prepare("SELECT * FROM users WHERE username=?").get(String(req.body.username||"").trim().toLowerCase());if(!u||!bcrypt.compareSync(String(req.body.password||""),u.password_hash)||!u.active)return res.status(401).json({error:"اطلاعات ورود نادرست است"});res.json({token:sign(u),user:{public_id:u.public_id,credits:u.credits}});});
 app.get("/api/me",auth,(req,res)=>{const u=db.prepare("SELECT public_id,username,credits,active,created_at FROM users WHERE id=?").get(req.user.uid);if(!u)return res.status(404).json({error:"user_not_found"});res.json(u);});
 app.post("/api/device/register",auth,(req,res)=>{const deviceKey=String(req.body.deviceKey||"").trim();if(deviceKey.length<16||deviceKey.length>200)return res.status(400).json({error:"device_key_invalid"});const channel=String(req.body.channel||"other").slice(0,30);const appVersion=String(req.body.appVersion||"").slice(0,40);const count=db.prepare("SELECT COUNT(*) c FROM devices WHERE user_id=? AND active=1").get(req.user.uid).c;const digest=deviceDigest(deviceKey);
