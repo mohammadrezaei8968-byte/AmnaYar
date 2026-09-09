@@ -46,7 +46,7 @@ services:
       - key: MAX_ACTIVE_DEVICES
         value: "2"
       - key: INITIAL_CREDITS
-        value: "0"
+        value: "2"
       - key: DB_FILE
         value: /tmp/amnayar.db
       - key: GOOGLE_PLAY_INTEGRITY_ENABLED
