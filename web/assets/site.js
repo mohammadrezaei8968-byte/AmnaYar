@@ -185,7 +185,31 @@ async function dashboard(){
 ```
 
 const accountLink=document.createElement('button');accountLink.className='account-floating';accountLink.style.display='none';
-window.openAmnaDashboard=dashboard;packages();loadMe();
+const navDashboardBtn=$('#navDashboardBtn');
+const navLoginBtn=$('#navLoginBtn');
+const navRegisterBtn=$('#navRegisterBtn');
+
+function refreshAuthUI(){
+  if(token){
+    navLoginBtn.style.display='none';
+    navRegisterBtn.style.display='none';
+    navDashboardBtn.style.display='inline-flex';
+  }else{
+    navLoginBtn.style.display='';
+    navRegisterBtn.style.display='';
+    navDashboardBtn.style.display='none';
+  }
+}
+
+navDashboardBtn.onclick=dashboard;
+
+const oldLoadMe=loadMe;
+loadMe=async function(){
+  await oldLoadMe();
+  refreshAuthUI();
+};
+
+refreshAuthUI();window.openAmnaDashboard=dashboard;packages();loadMe();
 ```css
 /* =========================
    AmnaYar User Dashboard
