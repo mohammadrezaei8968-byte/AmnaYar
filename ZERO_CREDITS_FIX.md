@@ -1,7 +1,7 @@
-# Zero initial credits fix
+# Initial credits configuration
 
-Newly registered users always start with **0 credits** in the backend, regardless of any stale Render environment override.
+Newly registered users start with **2 free credits**.
 
 Existing users are NOT modified, so previously purchased credits are preserved.
 
-After deploying the backend, create a brand-new test account. It must show 0 credits.
+The Render configuration and backend are aligned to use 2 initial credits for new registrations.
