@@ -1,27 +1,577 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 180" role="img" aria-labelledby="title desc">
-<title id="title">امنا یار | AmnaYar</title>
-<desc id="desc">لوگوی سه‌بعدی امنا یار با نماد سپر و تیک تأیید</desc>
-<defs>
-  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#123A72"/><stop offset="0.55" stop-color="#1469A8"/><stop offset="1" stop-color="#18A67A"/></linearGradient>
-  <linearGradient id="shine" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffffff" stop-opacity=".95"/><stop offset=".45" stop-color="#dffcff" stop-opacity=".7"/><stop offset="1" stop-color="#8ee1cf" stop-opacity=".25"/></linearGradient>
-  <linearGradient id="text" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#0B2A55"/><stop offset="1" stop-color="#159078"/></linearGradient>
-  <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="10" stdDeviation="8" flood-color="#0b2a55" flood-opacity=".22"/></filter>
-  <filter id="soft" x="-30%" y="-30%" width="160%" height="170%"><feGaussianBlur stdDeviation="3"/></filter>
-</defs>
-<!-- white premium background -->
-<rect width="640" height="180" rx="30" fill="#fff"/>
-<!-- 3D security emblem -->
-<g transform="translate(22 18)" filter="url(#shadow)">
-  <rect x="8" y="8" width="144" height="144" rx="38" fill="#082650" opacity=".18" filter="url(#soft)"/>
-  <rect x="0" y="0" width="144" height="144" rx="38" fill="url(#bg)"/>
-  <path d="M72 18 112 33v31c0 29-17 48-40 59C49 112 32 93 32 64V33z" fill="url(#shine)" opacity=".95"/>
-  <path d="M72 28 103 40v24c0 23-12 38-31 48-19-10-31-25-31-48V40z" fill="#0B2A55" opacity=".82"/>
-  <path d="m48 70 16 16 33-37" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="116" cy="27" r="9" fill="#fff" opacity=".75"/>
-</g>
-<!-- bilingual brand lockup -->
-<g font-family="Tahoma, Arial, sans-serif">
-  <text x="610" y="92" text-anchor="end" direction="rtl" fill="url(#text)" font-size="46" font-weight="800">امنا یار</text>
-  <text x="610" y="132" text-anchor="end" fill="#42627f" font-size="25" font-weight="700" letter-spacing="1">AmnaYar</text>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 512 512"
+     width="512"
+     height="512"
+     role="img"
+     aria-labelledby="title desc">
+
+  <title id="title">امنا یار | amnayar</title>
+  <desc id="desc">لوگوی متحرک امنیت و استعلام اطلاعات امنا یار</desc>
+
+  <defs>
+
+    <!-- پس زمینه اصلی -->
+    <linearGradient id="bg"
+                    x1="0"
+                    y1="0"
+                    x2="1"
+                    y2="1">
+
+      <stop offset="0%" stop-color="#071B63"/>
+      <stop offset="45%" stop-color="#0758C9"/>
+      <stop offset="100%" stop-color="#16DDBD"/>
+
+    </linearGradient>
+
+
+    <!-- نور بالای لوگو -->
+    <radialGradient id="topGlow"
+                    cx="75%"
+                    cy="5%"
+                    r="75%">
+
+      <stop offset="0%" stop-color="#21F2D2" stop-opacity=".65"/>
+      <stop offset="45%" stop-color="#0B8FEA" stop-opacity=".22"/>
+      <stop offset="100%" stop-color="#06195C" stop-opacity="0"/>
+
+    </radialGradient>
+
+
+    <!-- گرادیان سپر -->
+    <linearGradient id="shieldGradient"
+                    x1="0"
+                    y1="0"
+                    x2="1"
+                    y2="1">
+
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="20%" stop-color="#B8F7FF"/>
+      <stop offset="48%" stop-color="#19A5F3"/>
+      <stop offset="75%" stop-color="#13DCC2"/>
+      <stop offset="100%" stop-color="#08B99D"/>
+
+    </linearGradient>
+
+
+    <!-- گرادیان نوشته -->
+    <linearGradient id="brandGradient"
+                    x1="0"
+                    y1="0"
+                    x2="1"
+                    y2="0">
+
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="48%" stop-color="#DDF9FF"/>
+      <stop offset="72%" stop-color="#35E7C0"/>
+      <stop offset="100%" stop-color="#08D2A7"/>
+
+    </linearGradient>
+
+
+    <!-- گرادیان ذره بین -->
+    <linearGradient id="searchGradient"
+                    x1="0"
+                    y1="0"
+                    x2="1"
+                    y2="1">
+
+      <stop offset="0%" stop-color="#29F1D0"/>
+      <stop offset="100%" stop-color="#08B9E7"/>
+
+    </linearGradient>
+
+
+    <!-- سایه -->
+    <filter id="shadow"
+            x="-50%"
+            y="-50%"
+            width="200%"
+            height="200%">
+
+      <feDropShadow
+        dx="0"
+        dy="14"
+        stdDeviation="14"
+        flood-color="#00154D"
+        flood-opacity=".48"/>
+
+    </filter>
+
+
+    <!-- درخشش -->
+    <filter id="glow"
+            x="-100%"
+            y="-100%"
+            width="300%"
+            height="300%">
+
+      <feGaussianBlur stdDeviation="8"/>
+
+    </filter>
+
+
+    <!-- درخشش متن -->
+    <filter id="textGlow"
+            x="-50%"
+            y="-50%"
+            width="200%"
+            height="200%">
+
+      <feDropShadow
+        dx="0"
+        dy="0"
+        stdDeviation="5"
+        flood-color="#1DE2C0"
+        flood-opacity=".45"/>
+
+    </filter>
+
+
+    <!-- برش گوشه های لوگو -->
+    <clipPath id="rounded">
+
+      <rect
+        x="0"
+        y="0"
+        width="512"
+        height="512"
+        rx="95"/>
+
+    </clipPath>
+
+  </defs>
+
+
+  <!-- ================================================= -->
+  <!-- پس زمینه -->
+  <!-- ================================================= -->
+
+  <rect
+    x="0"
+    y="0"
+    width="512"
+    height="512"
+    rx="95"
+    fill="url(#bg)"/>
+
+
+  <!-- نور متحرک پس زمینه -->
+
+  <rect
+    x="-200"
+    y="-100"
+    width="300"
+    height="700"
+    fill="#FFFFFF"
+    opacity=".05"
+    transform="rotate(25 256 256)">
+
+    <animateTransform
+      attributeName="transform"
+      type="translate"
+      from="-500 0"
+      to="700 0"
+      dur="6s"
+      repeatCount="indefinite"/>
+
+  </rect>
+
+
+  <ellipse
+    cx="380"
+    cy="65"
+    rx="230"
+    ry="150"
+    fill="url(#topGlow)">
+
+    <animate
+      attributeName="opacity"
+      values=".65;1;.65"
+      dur="4s"
+      repeatCount="indefinite"/>
+
+  </ellipse>
+
+
+  <!-- ================================================= -->
+  <!-- سپر امنیتی -->
+  <!-- ================================================= -->
+
+  <g filter="url(#shadow)">
+
+    <!-- حرکت آرام کل نماد -->
+
+    <animateTransform
+      attributeName="transform"
+      type="translate"
+      values="0 0;0 -6;0 0"
+      dur="4s"
+      repeatCount="indefinite"/>
+
+
+    <!-- سپر بیرونی -->
+
+    <path
+      d="
+      M256 35
+      L414 97
+      L414 212
+      C414 306 354 376 256 424
+      C158 376 98 306 98 212
+      L98 97
+      Z"
+      fill="url(#shieldGradient)"/>
+
+
+    <!-- سپر داخلی -->
+
+    <path
+      d="
+      M256 58
+      L388 109
+      L388 207
+      C388 285 336 341 256 382
+      C176 341 124 285 124 207
+      L124 109
+      Z"
+      fill="#06236F"
+      opacity=".94"/>
+
+
+    <!-- درخشش روی سپر -->
+
+    <path
+      d="
+      M256 35
+      L414 97
+      L414 212
+      C414 306 354 376 256 424"
+      fill="none"
+      stroke="#FFFFFF"
+      stroke-width="8"
+      opacity=".55">
+
+      <animate
+        attributeName="opacity"
+        values=".25;.85;.25"
+        dur="3s"
+        repeatCount="indefinite"/>
+
+    </path>
+
+
+    <!-- ================================================= -->
+    <!-- سند / اطلاعات -->
+    <!-- ================================================= -->
+
+    <path
+      d="
+      M168 135
+      Q168 121 182 121
+      L294 121
+      Q308 121 308 135
+      L308 265
+      L168 315
+      Z"
+      fill="#FFFFFF"
+      opacity=".98"/>
+
+
+    <!-- خطوط سند -->
+
+    <rect
+      x="191"
+      y="157"
+      width="76"
+      height="10"
+      rx="5"
+      fill="#087BC8"/>
+
+    <rect
+      x="191"
+      y="184"
+      width="95"
+      height="10"
+      rx="5"
+      fill="#087BC8"/>
+
+    <rect
+      x="191"
+      y="211"
+      width="66"
+      height="10"
+      rx="5"
+      fill="#087BC8"/>
+
+
+    <!-- ================================================= -->
+    <!-- شخص / هویت -->
+    <!-- ================================================= -->
+
+    <circle
+      cx="220"
+      cy="270"
+      r="25"
+      fill="#FFFFFF"/>
+
+
+    <path
+      d="
+      M165 340
+      C174 303
+      198 285
+      220 285
+      C242 285
+      266 303
+      275 340
+      Z"
+      fill="#FFFFFF"/>
+
+
+    <!-- ================================================= -->
+    <!-- ذره بین -->
+    <!-- ================================================= -->
+
+    <g>
+
+      <!-- حلقه بیرونی -->
+
+      <circle
+        cx="326"
+        cy="217"
+        r="65"
+        fill="url(#searchGradient)"
+        stroke="#073B91"
+        stroke-width="8"/>
+
+
+      <!-- داخل ذره بین -->
+
+      <circle
+        cx="326"
+        cy="217"
+        r="48"
+        fill="#082B76"/>
+
+
+      <!-- تیک -->
+
+      <path
+        d="
+        M296 217
+        L317 239
+        L359 190"
+        fill="none"
+        stroke="#FFFFFF"
+        stroke-width="15"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-dasharray="120"
+        stroke-dashoffset="120">
+
+        <animate
+          attributeName="stroke-dashoffset"
+          values="120;0;0;120"
+          keyTimes="0;.28;.72;1"
+          dur="4s"
+          repeatCount="indefinite"/>
+
+      </path>
+
+
+      <!-- دسته -->
+
+      <rect
+        x="368"
+        y="257"
+        width="80"
+        height="27"
+        rx="13"
+        fill="#13DCC0"
+        transform="rotate(45 368 257)"/>
+
+
+      <!-- نور ذره بین -->
+
+      <circle
+        cx="302"
+        cy="191"
+        r="11"
+        fill="#FFFFFF"
+        opacity=".35">
+
+        <animate
+          attributeName="opacity"
+          values=".1;.7;.1"
+          dur="2s"
+          repeatCount="indefinite"/>
+
+      </circle>
+
+    </g>
+
+
+    <!-- ================================================= -->
+    <!-- نقطه نور -->
+    <!-- ================================================= -->
+
+    <circle
+      cx="382"
+      cy="78"
+      r="9"
+      fill="#FFFFFF">
+
+      <animate
+        attributeName="r"
+        values="6;12;6"
+        dur="2s"
+        repeatCount="indefinite"/>
+
+      <animate
+        attributeName="opacity"
+        values=".4;1;.4"
+        dur="2s"
+        repeatCount="indefinite"/>
+
+    </circle>
+
+  </g>
+
+
+  <!-- ================================================= -->
+  <!-- نوشته انگلیسی AMNAYAR -->
+  <!-- ================================================= -->
+
+  <g filter="url(#textGlow)">
+
+    <text
+      x="256"
+      y="452"
+      text-anchor="middle"
+      font-family="Arial, Helvetica, sans-serif"
+      font-size="58"
+      font-weight="900"
+      letter-spacing="-3"
+      fill="url(#brandGradient)">
+
+      amnayar
+
+      <!-- حرکت بالا و پایین -->
+
+      <animateTransform
+        attributeName="transform"
+        type="translate"
+        values="0 3;0 -3;0 3"
+        dur="3s"
+        repeatCount="indefinite"/>
+
+      <!-- درخشش -->
+
+      <animate
+        attributeName="opacity"
+        values=".72;1;.72"
+        dur="2.5s"
+        repeatCount="indefinite"/>
+
+    </text>
+
+  </g>
+
+
+  <!-- ================================================= -->
+  <!-- نوشته فارسی امنا یار -->
+  <!-- ================================================= -->
+
+  <text
+    x="256"
+    y="492"
+    text-anchor="middle"
+    direction="rtl"
+    font-family="Tahoma, Arial, sans-serif"
+    font-size="28"
+    font-weight="bold"
+    fill="#FFFFFF">
+
+    امنا یار
+
+    <!-- حرکت فارسی -->
+
+    <animateTransform
+      attributeName="transform"
+      type="translate"
+      values="0 2;0 -2;0 2"
+      dur="2.8s"
+      repeatCount="indefinite"/>
+
+    <!-- ظاهر و محو شدن بسیار نرم -->
+
+    <animate
+      attributeName="opacity"
+      values=".65;1;.65"
+      dur="2.8s"
+      repeatCount="indefinite"/>
+
+  </text>
+
+
+  <!-- ================================================= -->
+  <!-- خطوط تزئینی -->
+  <!-- ================================================= -->
+
+  <rect
+    x="48"
+    y="474"
+    width="65"
+    height="5"
+    rx="2.5"
+    fill="#22E3C1">
+
+    <animate
+      attributeName="width"
+      values="45;75;45"
+      dur="3s"
+      repeatCount="indefinite"/>
+
+  </rect>
+
+
+  <rect
+    x="399"
+    y="474"
+    width="65"
+    height="5"
+    rx="2.5"
+    fill="#22E3C1">
+
+    <animate
+      attributeName="width"
+      values="45;75;45"
+      dur="3s"
+      repeatCount="indefinite"/>
+
+  </rect>
+
+
+  <!-- ================================================= -->
+  <!-- برق عبوری روی لوگو -->
+  <!-- ================================================= -->
+
+  <rect
+    x="-100"
+    y="0"
+    width="35"
+    height="512"
+    fill="#FFFFFF"
+    opacity=".12"
+    transform="skewX(-20)">
+
+    <animate
+      attributeName="x"
+      from="-150"
+      to="650"
+      dur="5s"
+      repeatCount="indefinite"/>
+
+  </rect>
+
 </svg>
