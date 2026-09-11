@@ -122,10 +122,13 @@ function showOwnerLogin(message=''){
   };
 }
 (async()=>{
-  const me=await api('/api/me');
-  if(me?.user?.role==='owner'||me?.role==='owner'){
+  const token=ownerToken();
+  if(!token){showOwnerLogin('');return;}
+  const me=await api('/api/owner/me');
+  if(me?.role==='owner'){
     loadStats();loadSystem();loadAnalytics();refreshOwnerDashboard();return;
   }
+  localStorage.removeItem(OWNER_TOKEN_KEY);
   showOwnerLogin(me?.error||'');
 })();
 </script></body></html>

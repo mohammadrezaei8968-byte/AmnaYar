@@ -47,6 +47,64 @@ CREATE TABLE IF NOT EXISTS payment_events(id INTEGER PRIMARY KEY AUTOINCREMENT, 
 CREATE TABLE IF NOT EXISTS sales_channels(id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT UNIQUE NOT NULL, title TEXT NOT NULL, enabled INTEGER NOT NULL DEFAULT 1, purchase_enabled INTEGER NOT NULL DEFAULT 1, app_download_enabled INTEGER NOT NULL DEFAULT 1, webhook_enabled INTEGER NOT NULL DEFAULT 0, notes TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
 `);
 
+// Owner dashboard storage. These tables are intentionally additive so existing
+// production data is preserved.
+function ensureColumn(table, column, definition){
+  const cols=db.prepare(`PRAGMA table_info(${table})`).all().map(x=>x.name);
+  if(!cols.includes(column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+}
+ensureColumn('users','role',"TEXT NOT NULL DEFAULT 'user'");
+ensureColumn('users','email_verified','INTEGER NOT NULL DEFAULT 0');
+db.exec(`
+CREATE TABLE IF NOT EXISTS organizations(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  code TEXT UNIQUE NOT NULL,
+  hr_email TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS owner_tools(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  slug TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  category TEXT NOT NULL DEFAULT 'عمومی',
+  sort_order INTEGER NOT NULL DEFAULT 100,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS owner_notices(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  body TEXT NOT NULL DEFAULT '',
+  type TEXT NOT NULL DEFAULT 'info',
+  is_active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS owner_audit_logs(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  owner_username TEXT NOT NULL,
+  action TEXT NOT NULL,
+  target_type TEXT NOT NULL DEFAULT '',
+  target_id TEXT NOT NULL DEFAULT '',
+  details TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL
+);`);
+const DEFAULT_OWNER_TOOLS=[
+ ['car','محاسبه‌گر خودرو','مقایسه قیمت کارخانه و بازار و سود یا زیان','محاسبات'],
+ ['gold','محاسبه‌گر طلا و سکه','خرید، فروش، اجرت، مالیات و ارزش سکه','محاسبات'],
+ ['currency','محاسبه‌گر ارز','تبدیل ارز و محاسبه سود یا زیان','محاسبات'],
+ ['rent','محاسبه‌گر رهن و اجاره','تبدیل تقریبی رهن و اجاره','املاک'],
+ ['invoice','فاکتور‌ساز فارسی','ساخت و دریافت فاکتور PDF رایگان','اداری'],
+ ['pdf','ادغام و جداسازی PDF','ترکیب PDF یا جداسازی صفحات','اداری'],
+ ['date','تبدیل تاریخ','تبدیل شمسی و میلادی','تاریخ'],
+ ['calculator','محاسبات روزمره','درصد، تخفیف، قسط، سود و اضافه‌کاری','محاسبات'],
+ ['text','ابزار متن','شمارش، پاکسازی و تبدیل اعداد','متن']
+];
+const seedTool=db.prepare("INSERT OR IGNORE INTO owner_tools(slug,name,description,category,sort_order,enabled,created_at) VALUES(?,?,?,?,?,?,?)");
+DEFAULT_OWNER_TOOLS.forEach((x,i)=>seedTool.run(x[0],x[1],x[2],x[3],i+1,1,now()));
+
+
 // Lightweight migrations for existing databases.
 const userCols = db.prepare("PRAGMA table_info(users)").all().map(x => x.name);
 if (!userCols.includes("email")) db.exec("ALTER TABLE users ADD COLUMN email TEXT");
@@ -165,6 +223,19 @@ function auth(req,res,next){
   } catch { res.status(401).json({error:"unauthorized"}); }
 }
 function adminAuth(req,res,next){ try { const h=req.headers.authorization||""; const x=jwt.verify(h.startsWith("Bearer ")?h.slice(7):"",SECRET); if(x.admin!==true) throw 0; req.admin=x; next(); } catch { res.status(401).json({error:"admin_unauthorized"}); } }
+
+function ownerAuth(req,res,next){
+  try{
+    const h=req.headers.authorization||"";
+    const x=jwt.verify(h.startsWith("Bearer ")?h.slice(7):"",SECRET);
+    if(x.admin!==true || x.owner!==true) throw 0;
+    req.owner=x; next();
+  }catch{res.status(401).json({error:"owner_unauthorized"});}
+}
+function ownerAudit(req,action,targetType='',targetId='',details={}){
+  try{db.prepare("INSERT INTO owner_audit_logs(owner_username,action,target_type,target_id,details,created_at) VALUES(?,?,?,?,?,?)").run(String(req.owner?.username||OWNER_EMAIL||'owner'),action,targetType,String(targetId||''),JSON.stringify(details||{}),now());}catch{}
+}
+
 function normalizeDigits(s){return String(s||"").replace(/[۰-۹]/g,c=>String("۰۱۲۳۴۵۶۷۸۹".indexOf(c))).replace(/[٠-٩]/g,c=>String("٠١٢٣٤٥٦٧٨٩".indexOf(c)));}
 function validCard(s){ s=normalizeDigits(s).replace(/\D/g,""); if(s.length!==16 || /^(\d)\1+$/.test(s)) return false; let sum=0; for(let i=0;i<16;i++){let n=+s[i];if(i%2===0){n*=2;if(n>9)n-=9;}sum+=n;} return sum%10===0; }
 function validNationalId(s){ s=normalizeDigits(s).replace(/\D/g,""); if(s.length!==10 || /^(\d)\1+$/.test(s)) return false; let sum=0;for(let i=0;i<9;i++)sum+=(+s[i])*(10-i);const r=sum%11,c=+s[9];return r<2?c===r:c===11-r; }
@@ -315,6 +386,65 @@ res.json({ok:true,credited:result.credits,already:result.already});});
 app.post("/api/admin/login", rateLimit({windowMs:15*60*1000,max:10,standardHeaders:true,legacyHeaders:false}),(req,res)=>{const username=String(req.body.username||req.body.email||"").trim();const password=String(req.body.password||"");const ownerLogin=!!OWNER_EMAIL&&!!OWNER_PASSWORD&&username.toLowerCase()===OWNER_EMAIL&&password===OWNER_PASSWORD;const legacyLogin=!!ADMIN_USERNAME&&!!ADMIN_PASSWORD_HASH&&username===ADMIN_USERNAME&&bcrypt.compareSync(password,ADMIN_PASSWORD_HASH);if(!ownerLogin&&!legacyLogin)return res.status(401).json({error:"اطلاعات مدیر نادرست است"});res.json({token:jwt.sign({admin:true,owner:ownerLogin,username:ownerLogin?OWNER_EMAIL:ADMIN_USERNAME},SECRET,{expiresIn:"8h"}),role:ownerLogin?"owner":"admin"});});
 
 app.post("/api/owner/login", rateLimit({windowMs:15*60*1000,max:10,standardHeaders:true,legacyHeaders:false}),(req,res)=>{const email=String(req.body.email||req.body.identifier||req.body.username||"").trim().toLowerCase();const password=String(req.body.password||"");if(!OWNER_EMAIL||!OWNER_PASSWORD||email!==OWNER_EMAIL||password!==OWNER_PASSWORD)return res.status(401).json({error:"اطلاعات مالک نادرست است"});res.json({token:jwt.sign({admin:true,owner:true,username:OWNER_EMAIL},SECRET,{expiresIn:"8h"}),role:"owner"});});
+
+app.get("/api/owner/me",ownerAuth,(req,res)=>res.json({ok:true,role:"owner",email:OWNER_EMAIL,username:req.owner.username}));
+app.get("/api/owner/system",ownerAuth,(req,res)=>res.json({ok:true,db:!!db,version:APP_VERSION,node:process.version}));
+app.get("/api/owner/stats",ownerAuth,(req,res)=>{
+ const users=db.prepare("SELECT COUNT(*) c FROM users").get().c;
+ const activeUsers=db.prepare("SELECT COUNT(*) c FROM users WHERE active=1").get().c;
+ const checks=db.prepare("SELECT COUNT(*) c FROM verifications").get().c;
+ const conversations=0;
+ const organizations=db.prepare("SELECT COUNT(*) c FROM organizations").get().c;
+ res.json({users,activeUsers,checks,conversations,organizations});
+});
+app.get("/api/owner/dashboard",ownerAuth,(req,res)=>{
+ const users=db.prepare("SELECT username,email,created_at FROM users ORDER BY id DESC LIMIT 8").all();
+ const checks=db.prepare("SELECT u.username,COALESCE(u.email,'') email,v.type kind,v.result,v.created_at FROM verifications v LEFT JOIN users u ON u.id=v.user_id ORDER BY v.id DESC LIMIT 8").all();
+ const stats=db.prepare("SELECT COUNT(*) users,SUM(CASE WHEN active=1 THEN 1 ELSE 0 END) activeUsers FROM users").get();
+ const newUsers7=db.prepare("SELECT COUNT(*) c FROM users WHERE created_at>=datetime('now','-7 days')").get().c;
+ const checksCount=db.prepare("SELECT COUNT(*) c FROM verifications").get().c;
+ const organizations=db.prepare("SELECT COUNT(*) c FROM organizations").get().c;
+ const hr=db.prepare("SELECT COUNT(*) c FROM users WHERE role='hr'").get().c;
+ const days=db.prepare("SELECT substr(created_at,1,10) day,COUNT(*) views FROM verifications WHERE created_at>=datetime('now','-6 days') GROUP BY substr(created_at,1,10) ORDER BY day").all();
+ const tools=db.prepare("SELECT name,slug tool_slug,0 uses FROM owner_tools WHERE enabled=1 ORDER BY sort_order LIMIT 10").all();
+ res.json({stats:{users:stats.users||0,newUsers7,activeUsers:stats.activeUsers||0,viewsToday:0,views7:days.reduce((a,x)=>a+Number(x.views||0),0),toolUses30:0,checks:checksCount,organizations,hr},days,tools,checks,users});
+});
+app.get("/api/owner/users",ownerAuth,(req,res)=>{
+ const q=String(req.query.search||'').trim().toLowerCase(); const role=String(req.query.role||'').trim(); const status=String(req.query.status||'').trim();
+ let sql="SELECT id,username,email,role,active is_active,email_verified,created_at,(SELECT COUNT(*) FROM verifications v WHERE v.user_id=users.id) check_count,0 conversation_count FROM users WHERE 1=1"; const args=[];
+ if(q){sql+=" AND (LOWER(username) LIKE ? OR LOWER(COALESCE(email,'')) LIKE ?)";args.push('%'+q+'%','%'+q+'%');}
+ if(role){sql+=" AND role=?";args.push(role)}
+ if(status==='active'){sql+=" AND active=1"} else if(status==='inactive'){sql+=" AND active=0"}
+ sql+=" ORDER BY id DESC LIMIT 500";
+ res.json({users:db.prepare(sql).all(...args)});
+});
+app.get("/api/owner/users/:id",ownerAuth,(req,res)=>{const u=db.prepare("SELECT id,username,email,role,active is_active,email_verified,created_at FROM users WHERE id=?").get(req.params.id);if(!u)return res.status(404).json({error:"کاربر پیدا نشد"});res.json({user:u});});
+app.patch("/api/owner/users/:id",ownerAuth,(req,res)=>{
+ const allowed=['role','active','is_active','email_verified']; const body=req.body||{}; let field=null,value=null;
+ if(body.role!==undefined){field='role';value=['user','hr','owner'].includes(String(body.role))?String(body.role):null;if(!value)return res.status(400).json({error:'نقش نامعتبر است'});}
+ else if(body.is_active!==undefined||body.active!==undefined){field='active';value=(body.is_active??body.active)?1:0;}
+ else if(body.email_verified!==undefined){field='email_verified';value=body.email_verified?1:0;}
+ if(!field)return res.status(400).json({error:'تغییری ارسال نشده است'});
+ db.prepare(`UPDATE users SET ${field}=? WHERE id=?`).run(value,req.params.id); ownerAudit(req,'update_user','user',req.params.id,{field,value});
+ const u=db.prepare("SELECT id,username,email,role,active is_active,email_verified,created_at FROM users WHERE id=?").get(req.params.id);res.json({user:u});
+});
+app.get("/api/owner/checks",ownerAuth,(req,res)=>res.json({checks:db.prepare("SELECT u.username,COALESCE(u.email,'') email,v.type kind,v.result,v.created_at FROM verifications v LEFT JOIN users u ON u.id=v.user_id ORDER BY v.id DESC LIMIT 500").all()}));
+app.get("/api/owner/organizations",ownerAuth,(req,res)=>res.json({organizations:db.prepare("SELECT o.*,0 hr_count FROM organizations o ORDER BY o.id DESC").all()}));
+app.post("/api/owner/organizations",ownerAuth,(req,res)=>{const name=String(req.body.name||'').trim(),code=String(req.body.code||'').trim();const hr_email=String(req.body.hr_email||'').trim().toLowerCase();if(!name||!code)return res.status(400).json({error:'نام و کد سازمان الزامی است'});try{const x=db.prepare("INSERT INTO organizations(name,code,hr_email,created_at) VALUES(?,?,?,?)").run(name,code,hr_email,now());ownerAudit(req,'create_organization','organization',x.lastInsertRowid,{name,code});res.json({organization:{id:x.lastInsertRowid,name,code,hr_email,hr_count:0}})}catch(e){if(String(e.message).includes('UNIQUE'))return res.status(409).json({error:'کد سازمان تکراری است'});res.status(500).json({error:'خطای ذخیره سازمان'})}});
+app.get("/api/owner/analytics",ownerAuth,(req,res)=>{const daysN=Math.min(90,Math.max(1,Number(req.query.days)||30));const days=db.prepare("SELECT substr(created_at,1,10) day,COUNT(*) views FROM verifications WHERE created_at>=datetime('now',?) GROUP BY substr(created_at,1,10) ORDER BY day").all(`-${daysN} days`);const paths=db.prepare("SELECT type path,COUNT(*) count FROM verifications WHERE created_at>=datetime('now',?) GROUP BY type ORDER BY count DESC LIMIT 10").all(`-${daysN} days`);const tools=db.prepare("SELECT name,slug tool_slug,0 uses FROM owner_tools ORDER BY sort_order LIMIT 10").all();res.json({days,paths,tools,totals:{views:days.reduce((a,x)=>a+Number(x.views||0),0),tool_uses:0,checks:db.prepare("SELECT COUNT(*) c FROM verifications WHERE created_at>=datetime('now',?)").get(`-${daysN} days`).c}})});
+app.get("/api/owner/settings",ownerAuth,(req,res)=>res.json({settings:db.prepare("SELECT key,value FROM settings ORDER BY key").all()}));
+app.patch("/api/owner/settings",ownerAuth,(req,res)=>{db.transaction(()=>{for(const [k,v] of Object.entries(req.body||{}))db.prepare("INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(String(k),String(v??''));})();ownerAudit(req,'update_settings','settings','',req.body||{});res.json({ok:true})});
+app.get("/api/owner/tools",ownerAuth,(req,res)=>res.json({tools:db.prepare("SELECT slug,name,description,category,sort_order,enabled FROM owner_tools ORDER BY sort_order,id").all()}));
+app.patch("/api/owner/tools/:slug",ownerAuth,(req,res)=>{const t=db.prepare("SELECT * FROM owner_tools WHERE slug=?").get(req.params.slug);if(!t)return res.status(404).json({error:'ابزار پیدا نشد'});const b=req.body||{};db.prepare("UPDATE owner_tools SET name=COALESCE(?,name),description=COALESCE(?,description),category=COALESCE(?,category),sort_order=COALESCE(?,sort_order),enabled=COALESCE(?,enabled) WHERE slug=?").run(b.name??null,b.description??null,b.category??null,b.sort_order===undefined?null:Number(b.sort_order),b.enabled===undefined?null:(b.enabled?1:0),req.params.slug);const tool=db.prepare("SELECT slug,name,description,category,sort_order,enabled FROM owner_tools WHERE slug=?").get(req.params.slug);ownerAudit(req,'update_tool','tool',req.params.slug,b);res.json({tool})});
+app.post("/api/owner/tools/reorder",ownerAuth,(req,res)=>{const items=Array.isArray(req.body?.items)?req.body.items:[];db.transaction(()=>items.forEach((x,i)=>db.prepare("UPDATE owner_tools SET sort_order=? WHERE slug=?").run(i+1,String(x.slug)) ))();ownerAudit(req,'reorder_tools','tools','',{count:items.length});res.json({ok:true})});
+app.get("/api/owner/notices",ownerAuth,(req,res)=>res.json({notices:db.prepare("SELECT * FROM owner_notices ORDER BY id DESC").all()}));
+app.post("/api/owner/notices",ownerAuth,(req,res)=>{const title=String(req.body.title||'').trim(),body=String(req.body.body||''),type=String(req.body.type||'info');if(!title)return res.status(400).json({error:'عنوان اطلاعیه الزامی است'});const x=db.prepare("INSERT INTO owner_notices(title,body,type,is_active,created_at) VALUES(?,?,?,?,?)").run(title,body,type,1,now());ownerAudit(req,'create_notice','notice',x.lastInsertRowid,{title});res.json({notice:db.prepare("SELECT * FROM owner_notices WHERE id=?").get(x.lastInsertRowid)})});
+app.patch("/api/owner/notices/:id",ownerAuth,(req,res)=>{const b=req.body||{};if(b.is_active===undefined)return res.status(400).json({error:'وضعیت نامعتبر است'});db.prepare("UPDATE owner_notices SET is_active=? WHERE id=?").run(b.is_active?1:0,req.params.id);ownerAudit(req,'update_notice','notice',req.params.id,b);res.json({ok:true})});
+app.delete("/api/owner/notices/:id",ownerAuth,(req,res)=>{db.prepare("DELETE FROM owner_notices WHERE id=?").run(req.params.id);ownerAudit(req,'delete_notice','notice',req.params.id,{});res.json({ok:true})});
+app.get("/api/owner/admins",ownerAuth,(req,res)=>{const admins=db.prepare("SELECT id,username,email,role,active is_active FROM users WHERE role<>'user' ORDER BY id DESC").all();admins.unshift({id:'owner',username:OWNER_EMAIL,email:OWNER_EMAIL,role:'owner',is_active:1});res.json({admins})});
+app.get("/api/owner/audit",ownerAuth,(req,res)=>res.json({logs:db.prepare("SELECT owner_username,action,target_type,target_id,details,created_at FROM owner_audit_logs ORDER BY id DESC LIMIT 500").all().map(x=>({...x,details:(()=>{try{return JSON.parse(x.details||'{}')}catch{return {}}})()}))}));
+app.get("/api/owner/export.xlsx",ownerAuth,(req,res)=>{res.status(501).json({error:'خروجی Excel در این نسخه هنوز فعال نشده است'});});
+
 
 app.get("/api/admin/summary",adminAuth,(req,res)=>{const users=db.prepare("SELECT COUNT(*) c FROM users").get().c;const active=db.prepare("SELECT COUNT(*) c FROM users WHERE active=1").get().c;const checks=db.prepare("SELECT COUNT(*) c FROM verifications").get().c;const sales=db.prepare("SELECT COALESCE(SUM(amount_toman),0) s FROM purchases WHERE status='paid'").get().s;const pending=db.prepare("SELECT COUNT(*) c FROM purchases WHERE status='pending'").get().c;res.json({users,active,verifications:checks,sales_toman:sales,pending_purchases:pending});});
 app.get("/api/admin/users",adminAuth,(req,res)=>res.json(db.prepare("SELECT id,public_id,username,credits,active,created_at FROM users ORDER BY id DESC LIMIT 500").all()));
