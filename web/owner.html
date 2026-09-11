@@ -19,7 +19,21 @@
 <section id="system" class="owner-tab"><div class="owner-top"><div><h1>سلامت سامانه</h1><p>وضعیت API، پایگاه داده و محیط اجرا.</p></div><button class="btn primary" onclick="loadSystem()">به‌روزرسانی</button></div><div class="owner-card"><div class="owner-health"><div class="health-box"><span class="health-dot" id="apiDot"></span>API <b id="apiStatus">—</b></div><div class="health-box"><span class="health-dot" id="dbDot"></span>Database <b id="dbStatus">—</b></div><div class="health-box">نسخه <b id="sysVersion">—</b></div><div class="health-box">Node <b id="sysNode">—</b></div></div></div><div class="owner-card"><h2>نکته امنیتی</h2><p class="muted">رمز مالک و مقادیر محرمانه باید فقط در Environment Variables سرویس Render نگهداری شوند و داخل کد سایت قرار نگیرند.</p></div></section>
 </main></div>
 <div id="userModal" class="owner-modal" onclick="if(event.target===this)closeUserModal()"><div class="owner-modal-card"><div class="card-head"><div><h2 id="userModalTitle">جزئیات کاربر</h2><span id="userModalSub">—</span></div><button class="btn soft" onclick="closeUserModal()">بستن</button></div><div id="userModalBody" class="muted">در حال دریافت...</div></div></div><script>
-const $=id=>document.getElementById(id);async function api(u,o){const r=await fetch(u,o);let j={};try{j=await r.json()}catch{}if(!r.ok&&!j.error)j.error='خطای سرور';if(r.status===401||r.status===403){if(u!='/api/me') location.href='/';}return j}
+const $=id=>document.getElementById(id);
+const OWNER_TOKEN_KEY='amnayar_owner_token';
+function ownerToken(){return localStorage.getItem(OWNER_TOKEN_KEY)||''}
+async function api(u,o={}){
+  const opts={...o,headers:{...(o.headers||{})}};
+  const token=ownerToken();
+  if(token) opts.headers.Authorization='Bearer '+token;
+  const r=await fetch(u,opts);
+  let j={};try{j=await r.json()}catch{}
+  if(!r.ok&&!j.error)j.error='خطای سرور';
+  if((r.status===401||r.status===403)&&u!='/api/me'){
+    localStorage.removeItem(OWNER_TOKEN_KEY);location.href='/owner';
+  }
+  return j
+}
 function showTab(id){document.querySelectorAll('.owner-tab').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('.owner-menu button').forEach(x=>x.classList.toggle('active',x.dataset.tab===id));if(id==='users')loadUsers();if(id==='checks')loadChecks();if(id==='orgs')loadOrgs();if(id==='analytics')loadAnalytics();if(id==='tools')loadTools();if(id==='content'){loadSettings();loadNotices();}if(id==='homepage')loadHomepage();if(id==='admins')loadAdmins();if(id==='audit')loadAudit();if(id==='system')loadSystem();if(id==='overview')refreshOwnerDashboard()}
 document.querySelectorAll('.owner-menu button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));document.querySelectorAll('[id^=set_]').forEach(el=>el.addEventListener('input',updateContentPreview));
 function notice(t,error=false){$('notice').textContent=t;$('notice').className='notice show '+(error?'error':'success');setTimeout(()=>$('notice').className='notice',3500)}
@@ -69,6 +83,49 @@ async function createNotice(){const title=$('noticeTitle').value.trim(),body=$('
 async function toggleNotice(id,is_active){const r=await api('/api/owner/notices/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({is_active})});if(r.error){notice(r.error,true);return}loadNotices()}
 async function deleteNotice(id){if(!confirm('این اطلاعیه حذف شود؟'))return;const r=await api('/api/owner/notices/'+id,{method:'DELETE'});if(r.error){notice(r.error,true);return}loadNotices()}
 async function loadAdmins(){const r=await api('/api/owner/admins');$('adminRows').innerHTML=(r.admins||[]).map(u=>`<tr><td><b>${esc(u.username)}</b><div class="owner-mini">#${u.id}</div></td><td>${esc(u.email)}</td><td><span class="owner-badge ${u.role==='owner'?'owner':''}">${roleLabel(u.role)}</span></td><td><span class="owner-badge ${u.is_active?'ok':'off'}">${u.is_active?'فعال':'غیرفعال'}</span></td><td><button class="btn soft" onclick="showTab('users')">مدیریت کاربر</button></td></tr>`).join('')||'<tr><td colspan="5">مدیری ثبت نشده است.</td></tr>'}
-async function logout(){await api('/api/auth/logout',{method:'POST'});location.href='/'}
-(async()=>{const me=await api('/api/me');if(me.error||me.user?.role!=='owner'){location.href='/';return}loadStats();loadSystem();loadAnalytics();refreshOwnerDashboard()})();
+async function logout(){try{await api('/api/auth/logout',{method:'POST'})}catch{}localStorage.removeItem(OWNER_TOKEN_KEY);location.href='/owner'}
+function showOwnerLogin(message=''){
+  document.body.innerHTML=`<main style="min-height:100vh;display:grid;place-items:center;padding:24px;background:#f6f8fb">
+    <section style="width:min(440px,100%);background:#fff;border:1px solid #e7ebf0;border-radius:20px;padding:28px;box-shadow:0 12px 40px rgba(16,24,40,.08);direction:rtl">
+      <div style="text-align:center;margin-bottom:22px">
+        <img src="/assets/logo-amnayar.png" style="width:72px;height:72px;object-fit:contain" onerror="this.style.display='none'">
+        <h1 style="margin:10px 0 6px">ورود به پنل مالک</h1>
+        <p style="margin:0;color:#667085">دسترسی مدیریت امنا یار</p>
+      </div>
+      <div id="ownerLoginNotice" class="notice ${message?'show error':''}" style="margin-bottom:14px">${message}</div>
+      <form id="ownerLoginForm" style="display:grid;gap:12px">
+        <label style="display:grid;gap:6px">ایمیل مالک
+          <input id="ownerLoginEmail" type="email" autocomplete="username" required style="padding:12px;border:1px solid #d8dee8;border-radius:10px;font:inherit">
+        </label>
+        <label style="display:grid;gap:6px">رمز عبور
+          <input id="ownerLoginPassword" type="password" autocomplete="current-password" required style="padding:12px;border:1px solid #d8dee8;border-radius:10px;font:inherit">
+        </label>
+        <button id="ownerLoginButton" class="btn primary" type="submit" style="padding:12px;margin-top:4px">ورود به پنل مالک</button>
+      </form>
+      <div style="text-align:center;margin-top:16px"><a href="/" style="color:#1456a0">بازگشت به سایت</a></div>
+    </section>
+  </main>`;
+  $('ownerLoginForm').onsubmit=async e=>{
+    e.preventDefault();
+    const btn=$('ownerLoginButton'),n=$('ownerLoginNotice');
+    btn.disabled=true;btn.textContent='در حال ورود...';n.className='notice';
+    try{
+      const r=await fetch('/api/owner/login',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({email:$('ownerLoginEmail').value.trim(),password:$('ownerLoginPassword').value})});
+      let j={};try{j=await r.json()}catch{}
+      if(!r.ok||!j.token)throw new Error(j.error||'اطلاعات ورود مالک نادرست است');
+      localStorage.setItem(OWNER_TOKEN_KEY,j.token);location.reload();
+    }catch(err){
+      n.textContent=err.message||'ورود انجام نشد.';n.className='notice show error';
+      btn.disabled=false;btn.textContent='ورود به پنل مالک';
+    }
+  };
+}
+(async()=>{
+  const me=await api('/api/me');
+  if(me?.user?.role==='owner'||me?.role==='owner'){
+    loadStats();loadSystem();loadAnalytics();refreshOwnerDashboard();return;
+  }
+  showOwnerLogin(me?.error||'');
+})();
 </script></body></html>
