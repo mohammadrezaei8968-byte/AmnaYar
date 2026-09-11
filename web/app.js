@@ -8,7 +8,7 @@ async function login(e){e.preventDefault();const btn=e.submitter;if(btn){btn.dis
 async function api(url,method='GET',body){const r=await fetch(url,{method,credentials:'include',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined,cache:'no-store'});let j={};try{j=await r.json()}catch{}if(!r.ok&&!j.error)j.error=`خطای سرور (${r.status})`;return j}
 async function startCheck(kind){location.href='/?check='+encodeURIComponent(kind)+'#quick-check'}
 
-async function loadNavUser(){const box=document.getElementById('navActions');if(!box)return;const me=await api('/api/me');if(me.error)return;box.innerHTML=`<span class="user-chip">${me.user.username}</span><a class="btn soft" href="/dashboard.html">داشبورد</a><button class="btn ghost" onclick="logoutNav()">خروج</button>`}
+async function loadNavUser(){const box=document.getElementById('navActions');if(!box)return;const me=await api('/api/me');if(me.error)return;box.innerHTML=`<span class="user-chip">${me.username||me.user?.username||me.email||me.user?.email||"کاربر"}</span><a class="btn soft" href="${(me.role||me.user?.role)==="owner"?"/owner":"/dashboard.html"}">${(me.role||me.user?.role)==="owner"?"پنل مالک":"داشبورد"}</a><button class="btn ghost" onclick="logoutNav()">خروج</button>`}
 async function logoutNav(){await api('/api/auth/logout','POST');location.reload()}
 loadNavUser();
 
