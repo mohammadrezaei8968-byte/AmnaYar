@@ -14,7 +14,10 @@ const NODE_ENV = process.env.NODE_ENV || "development";
 if (NODE_ENV === "production") app.use((req,res,next)=>{ if (req.secure || req.headers["x-forwarded-proto"] === "https") return next(); return res.status(400).json({error:"https_required"}); });
 app.use(helmet());
 const allowedOrigins = (process.env.CORS_ORIGINS || "").split(",").map(x => x.trim()).filter(Boolean);
-app.use(cors({ origin: allowedOrigins.length ? allowedOrigins : false }));
+app.use(cors({
+  origin: allowedOrigins.length ? allowedOrigins : false,
+  credentials: true
+}));
 app.use(express.json({limit:"64kb"}));
 app.use((req,res,next)=>{ req.requestId=crypto.randomUUID(); res.setHeader("X-Request-ID",req.requestId); next(); });
 app.use("/api/", rateLimit({windowMs:60*1000,max:120,standardHeaders:true,legacyHeaders:false}));
