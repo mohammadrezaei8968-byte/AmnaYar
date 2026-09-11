@@ -11,6 +11,8 @@ const rateLimit = require("express-rate-limit");
 const app = express();
 app.set("trust proxy", 1);
 const NODE_ENV = process.env.NODE_ENV || "development";
+const OWNER_EMAIL = String(process.env.OWNER_EMAIL || "").trim().toLowerCase();
+const OWNER_PASSWORD = String(process.env.OWNER_PASSWORD || "");
 if (NODE_ENV === "production") app.use((req,res,next)=>{ if (req.secure || req.headers["x-forwarded-proto"] === "https") return next(); return res.status(400).json({error:"https_required"}); });
 app.use(helmet());
 const allowedOrigins = (process.env.CORS_ORIGINS || "").split(",").map(x => x.trim()).filter(Boolean);
@@ -28,10 +30,8 @@ const SECRET = process.env.JWT_SECRET || "";
 const APP_VERSION = "5.16.0";
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "";
 const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || "";
-const OWNER_EMAIL = String(process.env.OWNER_EMAIL || "").trim().toLowerCase();
-const OWNER_PASSWORD = String(process.env.OWNER_PASSWORD || "");
 if (!SECRET || SECRET.length < 32) { if (NODE_ENV === "production") throw new Error("JWT_SECRET must be at least 32 characters in production"); console.warn("WARNING: set JWT_SECRET to a random secret of at least 32 characters."); }
-if (!ADMIN_PASSWORD_HASH && (!OWNER_EMAIL || !OWNER_PASSWORD)) { if (NODE_ENV === "production") throw new Error("OWNER_EMAIL/OWNER_PASSWORD or ADMIN_PASSWORD_HASH is required in production admin login"); console.warn("WARNING: configure OWNER_EMAIL/OWNER_PASSWORD or ADMIN_PASSWORD_HASH for production admin login."); }
+if (!ADMIN_PASSWORD_HASH) { if (NODE_ENV === "production") throw new Error("ADMIN_PASSWORD_HASH is required in production"); console.warn("WARNING: set ADMIN_PASSWORD_HASH (bcrypt) for production admin login."); }
 const db = new Database(process.env.DB_FILE || "amnayar.db");
 db.pragma("journal_mode = WAL");
 
@@ -312,7 +312,9 @@ if(req.body.amount_toman!==undefined && Number(req.body.amount_toman)!==Number(p
 audit(purchase.user_id,`payment_${provider}_${req.body.status||"unknown"}`,req.requestId);
 res.json({ok:true,credited:result.credits,already:result.already});});
 
-app.post("/api/admin/login", rateLimit({windowMs:15*60*1000,max:10,standardHeaders:true,legacyHeaders:false}),(req,res)=>{const identifier=String(req.body.identifier??req.body.username??req.body.email??"").trim().toLowerCase();const password=String(req.body.password||"");const ownerOk=!!OWNER_EMAIL&&identifier===OWNER_EMAIL&&!!OWNER_PASSWORD&&password===OWNER_PASSWORD;const legacyOk=!!ADMIN_USERNAME&&!!ADMIN_PASSWORD_HASH&&identifier===String(ADMIN_USERNAME).trim().toLowerCase()&&bcrypt.compareSync(password,ADMIN_PASSWORD_HASH);if(!ownerOk&&!legacyOk)return res.status(401).json({error:"اطلاعات مدیر نادرست است"});const loginName=ownerOk?OWNER_EMAIL:ADMIN_USERNAME;res.json({token:jwt.sign({admin:true,owner:ownerOk,username:loginName,email:ownerOk?OWNER_EMAIL:undefined},SECRET,{expiresIn:"8h"})});});
+app.post("/api/admin/login", rateLimit({windowMs:15*60*1000,max:10,standardHeaders:true,legacyHeaders:false}),(req,res)=>{const username=String(req.body.username||req.body.email||"").trim();const password=String(req.body.password||"");const ownerLogin=!!OWNER_EMAIL&&!!OWNER_PASSWORD&&username.toLowerCase()===OWNER_EMAIL&&password===OWNER_PASSWORD;const legacyLogin=!!ADMIN_USERNAME&&!!ADMIN_PASSWORD_HASH&&username===ADMIN_USERNAME&&bcrypt.compareSync(password,ADMIN_PASSWORD_HASH);if(!ownerLogin&&!legacyLogin)return res.status(401).json({error:"اطلاعات مدیر نادرست است"});res.json({token:jwt.sign({admin:true,owner:ownerLogin,username:ownerLogin?OWNER_EMAIL:ADMIN_USERNAME},SECRET,{expiresIn:"8h"}),role:ownerLogin?"owner":"admin"});});
+
+app.post("/api/owner/login", rateLimit({windowMs:15*60*1000,max:10,standardHeaders:true,legacyHeaders:false}),(req,res)=>{const email=String(req.body.email||req.body.identifier||req.body.username||"").trim().toLowerCase();const password=String(req.body.password||"");if(!OWNER_EMAIL||!OWNER_PASSWORD||email!==OWNER_EMAIL||password!==OWNER_PASSWORD)return res.status(401).json({error:"اطلاعات مالک نادرست است"});res.json({token:jwt.sign({admin:true,owner:true,username:OWNER_EMAIL},SECRET,{expiresIn:"8h"}),role:"owner"});});
 
 app.get("/api/admin/summary",adminAuth,(req,res)=>{const users=db.prepare("SELECT COUNT(*) c FROM users").get().c;const active=db.prepare("SELECT COUNT(*) c FROM users WHERE active=1").get().c;const checks=db.prepare("SELECT COUNT(*) c FROM verifications").get().c;const sales=db.prepare("SELECT COALESCE(SUM(amount_toman),0) s FROM purchases WHERE status='paid'").get().s;const pending=db.prepare("SELECT COUNT(*) c FROM purchases WHERE status='pending'").get().c;res.json({users,active,verifications:checks,sales_toman:sales,pending_purchases:pending});});
 app.get("/api/admin/users",adminAuth,(req,res)=>res.json(db.prepare("SELECT id,public_id,username,credits,active,created_at FROM users ORDER BY id DESC LIMIT 500").all()));
