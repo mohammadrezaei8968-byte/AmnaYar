@@ -41,6 +41,8 @@ const siteSearchItems = [
   {title:'محاسبات روزمره', desc:'درصد، تخفیف، قسط، سود و اضافه‌کاری', href:'/tools.html?tool=calculator', tags:'درصد تخفیف قسط سود اضافه کاری'},
   {title:'ابزار متن', desc:'شمارش، پاکسازی و تبدیل اعداد', href:'/tools.html?tool=text', tags:'متن کلمات اعداد فارسی انگلیسی'},
   {title:'ابزار تصویر', desc:'تغییر اندازه، فشرده‌سازی و تبدیل فرمت', href:'/tools.html?tool=image', tags:'تصویر عکس resize compression'},
+  {title:'ترجمه فارسی و انگلیسی', desc:'ترجمه رایگان فارسی ↔ انگلیسی', href:'/tools.html?tool=translate', tags:'ترجمه مترجم فارسی انگلیسی زبان translate'},
+
   {title:'سامانه‌های رسمی', desc:'دسترسی مستقیم به مراجع رسمی', href:'#official', tags:'سامانه رسمی استعلام'},
   {title:'چرا امنا یار؟', desc:'ویژگی‌ها و رویکرد سایت', href:'#why', tags:'امنا یار رایگان امنیت'}
 ];
