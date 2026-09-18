@@ -1,32 +1,12 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>سامانه حقوق و دستمزد | امنا یار</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#f4f7fb;color:#172033}
-button,input,select{font-family:inherit}.app{display:flex;min-height:100vh}.sidebar{width:240px;background:#172554;color:#fff;padding:20px;position:fixed;right:0;top:0;bottom:0;overflow:auto}
-.logo{display:flex;align-items:center;gap:10px;margin-bottom:25px}.logo img{width:46px;height:46px;border-radius:12px;object-fit:contain;background:#fff}.logo-text{font-size:18px;font-weight:bold}.logo-text small{display:block;font-size:11px;opacity:.75;margin-top:3px}
-.nav button{width:100%;border:0;background:transparent;color:#dbeafe;text-align:right;padding:12px 13px;border-radius:10px;margin:3px 0;cursor:pointer;font-size:14px}.nav button:hover,.nav button.active{background:#2563eb;color:#fff}
-.main{margin-right:240px;width:calc(100% - 240px);padding:25px}.topbar{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:22px}.topbar h1{margin:0;font-size:24px}.badge{background:#e0ecff;color:#1d4ed8;padding:8px 12px;border-radius:20px;font-size:12px}
-.section{display:none}.section.active{display:block}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-bottom:20px}.card,.panel{background:#fff;border-radius:16px;box-shadow:0 4px 18px rgba(20,35,70,.06)}.card{padding:20px}.card .label{font-size:13px;color:#64748b}.card .value{font-size:22px;font-weight:bold;margin-top:8px}.panel{padding:20px;margin-bottom:20px}.panel h2{font-size:18px;margin:0 0 18px}
-.form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.field label{display:block;font-size:13px;color:#475569;margin-bottom:6px}.field input,.field select{width:100%;padding:11px;border:1px solid #dbe3ef;border-radius:9px;outline:none;background:#fff}.field input:focus,.field select:focus{border-color:#2563eb}
-.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.btn{border:0;border-radius:9px;padding:10px 16px;cursor:pointer;font-size:13px}.btn-primary{background:#2563eb;color:#fff}.btn-success{background:#16a34a;color:#fff}.btn-warning{background:#f59e0b;color:#fff}.btn-danger{background:#dc2626;color:#fff}.btn-secondary{background:#e2e8f0;color:#1e293b}
-.excel-box{border:2px dashed #bfdbfe;background:#eff6ff;padding:18px;border-radius:12px;margin-top:18px}.excel-box strong{display:block;margin-bottom:7px}.file-name{font-size:12px;color:#475569;margin-top:8px}
-.message{padding:11px;border-radius:9px;margin-top:12px;font-size:13px;display:none}.message.show{display:block}.message.success{background:#dcfce7;color:#166534}.message.error{background:#fee2e2;color:#991b1b}
-.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:760px}th,td{padding:11px 9px;border-bottom:1px solid #eef2f7;text-align:right;font-size:13px}th{background:#f8fafc;color:#475569}.empty{text-align:center;color:#94a3b8;padding:25px}.employee-actions{display:flex;gap:5px;flex-wrap:wrap}
-.result-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.result{padding:15px;background:#f8fafc;border-radius:11px}.result span{display:block;color:#64748b;font-size:12px;margin-bottom:5px}.result strong{font-size:17px}
-.notice{background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;padding:12px;border-radius:10px;font-size:12px;line-height:1.9}
-.modal{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:100;align-items:center;justify-content:center;padding:15px}.modal.show{display:flex}.modal-box{background:#fff;border-radius:16px;width:min(700px,100%);max-height:90vh;overflow:auto;padding:22px}.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.modal-head h3{margin:0}.close{border:0;background:#f1f5f9;border-radius:8px;padding:8px 12px;cursor:pointer}
-@media(max-width:900px){.sidebar{width:190px}.main{margin-right:190px;width:calc(100% - 190px)}.cards{grid-template-columns:repeat(2,1fr)}.form-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:600px){.sidebar{position:relative;width:100%;bottom:auto}.app{display:block}.main{margin-right:0;width:100%;padding:14px}.cards,.form-grid,.result-grid{grid-template-columns:1fr}.topbar{align-items:flex-start;flex-direction:column}}
-</style>
-
-<style>
-/* V11 professional dashboard/reports/payslip */
-.dashboard-hero{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:22px;border-radius:18px;background:linear-gradient(135deg,#172554,#1d4ed8);color:#fff;margin-bottom:18px}.dashboard-hero h2{margin:0 0 6px;font-size:21px}.dashboard-hero p{margin:0;font-size:12px;opacity:.9}.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}.kpi{background:#fff;border:1px solid #e2e8f0;border-radius:15px;padding:17px;box-shadow:0 5px 20px rgba(15,23,42,.05)}.kpi-label{font-size:12px;color:#64748b}.kpi-value{font-size:20px;font-weight:800;margin-top:7px}.kpi-sub{font-size:10px;color:#94a3b8;margin-top:5px}.dash-grid{display:grid;grid-template-columns:1.4fr .6fr;gap:18px}.dash-row{display:flex;justify-content:space-between;align-items:center;padding:12px;border:1px solid #eef2f7;border-radius:10px;margin-bottom:8px}.dash-row small{display:block;color:#64748b;margin-top:3px}.report-filter{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.report-summary{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:16px 0}.report-card{background:#fff;border:1px solid #e2e8f0;border-radius:13px;padding:14px}.report-card span{display:block;font-size:11px;color:#64748b}.report-card strong{display:block;margin-top:7px;font-size:16px}.report-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.report-table{min-width:1000px}.report-empty{text-align:center;padding:28px!important;color:#94a3b8}.official-payslip{border:1px solid #b8c2d1!important;background:#fff!important;box-shadow:0 10px 30px rgba(15,23,42,.08)!important}.official-payslip .official-head{display:grid;grid-template-columns:1fr 1.5fr 1fr;align-items:center;border-bottom:3px double #172554;padding-bottom:13px}.official-payslip .company{text-align:right;font-weight:800}.official-payslip .title{text-align:center;font-size:20px;font-weight:900}.official-payslip .meta{text-align:left;font-size:10px;line-height:1.9}.official-payslip .box-title{background:#f1f5f9;border-right:4px solid #172554;padding:8px;margin-top:12px;font-weight:800}.official-payslip table{width:100%;border-collapse:collapse}.official-payslip th,.official-payslip td{border:1px solid #cbd5e1;padding:7px;font-size:10px}.official-payslip th{background:#f8fafc}.official-payslip .net-box{display:flex;justify-content:space-between;align-items:center;border:2px solid #172554;padding:12px;margin-top:13px;font-weight:900}.official-payslip .signs{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:34px}.official-payslip .sign{min-height:65px;text-align:center;border-top:1px solid #94a3b8;padding-top:8px;font-size:10px}.official-payslip .stamp{border:1px dashed #94a3b8;min-height:65px;padding:8px;text-align:center;font-size:10px}.report-print-only{display:none}@media(max-width:900px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.dash-grid{grid-template-columns:1fr}.report-filter{grid-template-columns:repeat(2,1fr)}.report-summary{grid-template-columns:repeat(3,1fr)}}@media(max-width:600px){.dashboard-hero{display:block}.kpi-grid{grid-template-columns:1fr 1fr}.report-filter,.report-summary{grid-template-columns:1fr}.official-payslip .official-head{grid-template-columns:1fr;text-align:center;gap:6px}.official-payslip .company,.official-payslip .meta{text-align:center}}@media print{.sidebar,.topbar,.no-print,.report-actions{display:none!important}.main{margin:0!important;width:100%!important;padding:0!important}.section{display:none!important}.section.active{display:block!important}.panel{box-shadow:none!important;padding:0!important}.official-payslip{box-shadow:none!important;border:0!important}.report-print-only{display:block!important}@page{size:A4 portrait;margin:8mm}}
+*{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#f4f7fb;color:#172033}button,input,select{font:inherit}.app{min-height:100vh}.sidebar{position:fixed;right:0;top:0;bottom:0;width:245px;padding:20px;background:#172554;color:#fff;overflow:auto}.logo{display:flex;align-items:center;gap:10px;margin-bottom:25px}.logo img{width:46px;height:46px;border-radius:12px;background:#fff;object-fit:contain}.logo-text{font-size:18px;font-weight:800}.logo-text small{display:block;font-size:11px;opacity:.75;margin-top:3px}.nav button{width:100%;border:0;background:transparent;color:#dbeafe;text-align:right;padding:12px;border-radius:10px;margin:3px 0;cursor:pointer;font-size:14px}.nav button:hover,.nav button.active{background:#2563eb;color:#fff}.main{margin-right:245px;padding:24px;max-width:1600px}.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.topbar h1{margin:0;font-size:24px}.badge{background:#e0ecff;color:#1d4ed8;padding:8px 12px;border-radius:20px;font-size:12px}.section{display:none}.section.active{display:block}.panel,.kpi{background:#fff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 5px 20px rgba(15,23,42,.05)}.panel{padding:20px;margin-bottom:18px}.panel h2{margin:0 0 17px;font-size:18px}.dashboard-hero{padding:22px;border-radius:18px;background:linear-gradient(135deg,#172554,#1d4ed8);color:#fff;margin-bottom:18px}.dashboard-hero h2{margin:0 0 6px}.dashboard-hero p{margin:0;font-size:12px;opacity:.9}.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}.kpi{padding:17px}.kpi-label{font-size:12px;color:#64748b}.kpi-value{font-size:20px;font-weight:800;margin-top:7px}.kpi-sub{font-size:10px;color:#94a3b8;margin-top:5px}.dash-grid{display:grid;grid-template-columns:1.4fr .6fr;gap:18px}.dash-row{display:flex;justify-content:space-between;align-items:center;padding:12px;border:1px solid #eef2f7;border-radius:10px;margin-bottom:8px}.dash-row small{display:block;color:#64748b;margin-top:3px}.form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.field label{display:block;font-size:13px;color:#475569;margin-bottom:6px}.field input,.field select{width:100%;padding:11px;border:1px solid #dbe3ef;border-radius:9px;background:#fff;outline:none}.field input:focus,.field select:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.08)}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.btn{border:0;border-radius:9px;padding:10px 16px;cursor:pointer;font-size:13px}.btn-primary{background:#2563eb;color:#fff}.btn-success{background:#16a34a;color:#fff}.btn-warning{background:#f59e0b;color:#fff}.btn-danger{background:#dc2626;color:#fff}.btn-secondary{background:#e2e8f0;color:#1e293b}.excel-box{border:2px dashed #bfdbfe;background:#eff6ff;padding:18px;border-radius:12px;margin-top:18px}.excel-box strong{display:block;margin-bottom:7px}.file-name{font-size:12px;color:#475569;margin-top:8px}.message{padding:11px;border-radius:9px;margin-top:12px;font-size:13px;display:none}.message.show{display:block}.message.success{background:#dcfce7;color:#166534}.message.error{background:#fee2e2;color:#991b1b}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:760px}th,td{padding:10px 9px;border-bottom:1px solid #eef2f7;text-align:right;font-size:12px}th{background:#f8fafc;color:#475569}.empty{text-align:center;color:#94a3b8;padding:25px}.employee-actions{display:flex;gap:5px;flex-wrap:wrap}.result-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.result{padding:15px;background:#f8fafc;border-radius:11px}.result span{display:block;color:#64748b;font-size:12px;margin-bottom:5px}.result strong{font-size:17px}.notice{background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;padding:12px;border-radius:10px;font-size:12px;line-height:1.9}.report-filter{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.report-summary{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:16px 0}.report-card{background:#fff;border:1px solid #e2e8f0;border-radius:13px;padding:14px}.report-card span{display:block;font-size:11px;color:#64748b}.report-card strong{display:block;margin-top:7px;font-size:16px}.official-payslip{background:#fff;border:1px solid #b8c2d1;border-radius:14px;padding:22px;box-shadow:0 10px 30px rgba(15,23,42,.08)}.payslip-head{display:flex;justify-content:space-between;align-items:center;gap:20px;border-bottom:3px double #172554;padding-bottom:14px}.payslip-brand{display:flex;align-items:center;gap:12px}.payslip-brand img{width:58px;height:58px;object-fit:contain}.payslip-brand strong{font-size:20px}.payslip-meta{text-align:left;font-size:11px;line-height:2}.payslip-title{text-align:center;font-size:21px;font-weight:900;margin:17px}.payslip-section-title{background:#f1f5f9;border-right:5px solid #2563eb;padding:8px 10px;font-weight:800;margin-top:13px}.official-payslip table{width:100%;border-collapse:collapse}.official-payslip th,.official-payslip td{border:1px solid #cbd5e1;padding:7px;font-size:10px}.official-payslip th{background:#f8fafc;width:18%}.payslip-net{display:flex;justify-content:space-between;border:2px solid #172554;padding:12px;margin-top:13px;font-weight:900}.payslip-net strong{font-size:18px}.payslip-sign{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:35px}.payslip-sign>div{min-height:70px;text-align:center;border-top:1px solid #94a3b8;padding-top:8px;font-size:10px}.payslip-foot{text-align:center;border-top:1px solid #e2e8f0;margin-top:18px;padding-top:8px;font-size:9px;color:#64748b}.extra-panel{background:#fafafa;border:1px solid #e2e8f0;border-radius:14px;padding:18px;margin-top:18px}.extra-panel h3{margin:0 0 14px}.extra-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.extra-grid label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#475569}.extra-grid input,.extra-grid select{padding:9px;border:1px solid #dbe3ef;border-radius:9px}.status-pill{display:inline-block;padding:5px 9px;border-radius:999px;font-size:11px;background:#dcfce7;color:#166534}.modal{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:100;align-items:center;justify-content:center;padding:15px}.modal.show{display:flex}.modal-box{background:#fff;border-radius:16px;width:min(720px,100%);max-height:90vh;overflow:auto;padding:22px}.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.modal-head h3{margin:0}.close{border:0;background:#f1f5f9;border-radius:8px;padding:8px 12px;cursor:pointer}@media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.dash-grid{grid-template-columns:1fr}.form-grid{grid-template-columns:repeat(2,1fr)}.report-filter{grid-template-columns:repeat(2,1fr)}.report-summary{grid-template-columns:repeat(3,1fr)}.extra-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:700px){.sidebar{position:relative;width:100%;bottom:auto}.app{display:block}.main{margin:0;padding:14px}.topbar{align-items:flex-start;gap:10px;flex-direction:column}.kpi-grid,.form-grid,.result-grid,.report-filter,.report-summary,.extra-grid{grid-template-columns:1fr}.payslip-head{align-items:flex-start;flex-direction:column}.payslip-meta{text-align:right}.payslip-sign{gap:6px}.official-payslip{padding:12px}.official-payslip th,.official-payslip td{padding:6px;font-size:9px}}@media print{body{background:#fff}.sidebar,.topbar,.no-print,.report-actions,.notice{display:none!important}.main{margin:0!important;padding:0!important;max-width:none}.section{display:none!important}.section.active{display:block!important}.panel{box-shadow:none!important;border:0!important;padding:0!important;margin:0!important}.official-payslip{box-shadow:none!important;border:0!important;border-radius:0!important;padding:0!important}.payslip-sign{break-inside:avoid}@page{size:A4 portrait;margin:8mm}}
 </style>
 </head>
 <body>
@@ -34,637 +14,192 @@ button,input,select{font-family:inherit}.app{display:flex;min-height:100vh}.side
 <aside class="sidebar">
 <div class="logo"><img src="/assets/logo-amnayar.png" alt="امنا یار" onerror="this.style.display='none'"><div class="logo-text">امنا یار<small>سامانه حقوق و دستمزد</small></div></div>
 <nav class="nav">
-<button class="active" data-section="dashboard">📊 داشبورد</button><button data-section="employees">👥 پرسنل</button><button data-section="payroll">🧮 محاسبه حقوق</button><button data-section="insurance">🛡️ بیمه و مالیات</button><button data-section="payslips">🧾 فیش حقوقی</button><button data-section="reports">📈 گزارش‌ها</button><button data-section="settings">⚙️ تنظیمات قانونی</button><button onclick="location.href='/'">🏠 بازگشت به سایت</button>
+<button class="active" data-section="dashboard">📊 داشبورد</button>
+<button data-section="employees">👥 پرسنل</button>
+<button data-section="payroll">🧮 محاسبه حقوق</button>
+<button data-section="insurance">🛡️ بیمه و مالیات</button>
+<button data-section="payslips">🧾 فیش حقوقی</button>
+<button data-section="reports">📈 گزارش‌ها</button>
+<button data-section="settings">⚙️ تنظیمات</button>
+<button onclick="location.href='/'">🏠 بازگشت به سایت</button>
 </nav>
 </aside>
 <main class="main">
-<header class="topbar"><h1 id="pageTitle">داشبورد حقوق و دستمزد</h1><div class="badge">امنا یار</div></header>
+<header class="topbar"><h1 id="pageTitle">داشبورد حقوق و دستمزد</h1><div id="companyIdentity" class="badge">شرکت جاری: در حال شناسایی</div></header>
 
 <section id="dashboard" class="section active">
-<div class="dashboard-hero"><div><h2>داشبورد مدیریت حقوق و دستمزد</h2><p>نمای مدیریتی شرکت جاری؛ اطلاعات شرکت‌های دیگر در این داشبورد نمایش داده نمی‌شود.</p></div></div>
-<div class="kpi-grid"><div class="kpi"><div class="kpi-label">تعداد پرسنل</div><div class="kpi-value" id="dashEmployees">۰</div><div class="kpi-sub">پرسنل شرکت جاری</div></div><div class="kpi"><div class="kpi-label">مجموع ناخالص</div><div class="kpi-value" id="dashGross">۰ ریال</div><div class="kpi-sub">بر اساس محاسبات ثبت‌شده</div></div><div class="kpi"><div class="kpi-label">مجموع بیمه</div><div class="kpi-value" id="dashInsurance">۰ ریال</div><div class="kpi-sub">سهم ثبت‌شده</div></div><div class="kpi"><div class="kpi-label">خالص پرداختی</div><div class="kpi-value" id="dashNet">۰ ریال</div><div class="kpi-sub">پس از کسورات</div></div></div>
-<div class="dash-grid"><div class="panel"><h2>آخرین محاسبات</h2><div id="dashboardRecent"><div class="empty">هنوز محاسبه‌ای ثبت نشده است.</div></div></div><div class="panel"><h2>خلاصه کسورات</h2><div class="dash-row"><div><b>مالیات</b><small>مجموع</small></div><b id="dashTax">۰ ریال</b></div><div class="dash-row"><div><b>وام</b><small>اقساط</small></div><b id="dashLoan">۰ ریال</b></div><div class="dash-row"><div><b>مساعده</b><small>مبالغ ثبت‌شده</small></div><b id="dashAdvance">۰ ریال</b></div></div></div>
+<div class="dashboard-hero"><h2>داشبورد مدیریت حقوق و دستمزد</h2><p>اطلاعات فقط در محدوده شرکت/حساب جاری نگهداری و نمایش داده می‌شود.</p></div>
+<div class="kpi-grid">
+<div class="kpi"><div class="kpi-label">تعداد پرسنل</div><div class="kpi-value" id="dashEmployees">۰</div><div class="kpi-sub">پرسنل جاری</div></div>
+<div class="kpi"><div class="kpi-label">مجموع ناخالص</div><div class="kpi-value" id="dashGross">۰ ریال</div><div class="kpi-sub">محاسبات ثبت‌شده</div></div>
+<div class="kpi"><div class="kpi-label">مجموع بیمه</div><div class="kpi-value" id="dashInsurance">۰ ریال</div><div class="kpi-sub">سهم کارمند</div></div>
+<div class="kpi"><div class="kpi-label">خالص پرداختی</div><div class="kpi-value" id="dashNet">۰ ریال</div><div class="kpi-sub">پس از کسورات</div></div>
+</div>
+<div class="dash-grid">
+<div class="panel"><h2>آخرین محاسبات</h2><div id="dashboardRecent" class="empty">هنوز محاسبه‌ای ثبت نشده است.</div></div>
+<div class="panel"><h2>خلاصه کسورات</h2>
+<div class="dash-row"><div><b>مالیات</b><small>مجموع</small></div><b id="dashTax">۰ ریال</b></div>
+<div class="dash-row"><div><b>وام</b><small>اقساط</small></div><b id="dashLoan">۰ ریال</b></div>
+<div class="dash-row"><div><b>مساعده</b><small>ثبت‌شده</small></div><b id="dashAdvance">۰ ریال</b></div>
+</div></div>
 </section>
 
 <section id="employees" class="section">
 <div class="panel">
-<h2>👤 ثبت دستی پرسنل</h2>
+<h2>👤 ثبت و مدیریت پرسنل</h2>
 <form id="employeeForm"><div class="form-grid">
-<div class="field"><label>کد پرسنلی</label><input id="empCode" required></div><div class="field"><label>نام</label><input id="empFirstName" required></div><div class="field"><label>نام خانوادگی</label><input id="empLastName" required></div><div class="field"><label>کد ملی</label><input id="empNationalId" inputmode="numeric" maxlength="10"></div><div class="field"><label>سمت</label><input id="empPosition"></div><div class="field"><label>حقوق پایه ماهانه (ریال)</label><input id="empBaseSalary" inputmode="numeric" required></div>
-</div><div class="actions"><button class="btn btn-primary" type="submit">➕ افزودن پرسنل</button><button class="btn btn-secondary" type="reset">پاک کردن فرم</button></div><div id="manualMessage" class="message"></div></form>
-
-<div class="excel-box"><strong>📥 ورود گروهی پرسنل از Excel</strong><div>پشتیبانی از اعداد فارسی و انگلیسی، حقوق با جداکننده (مثل 100,000,000 یا ۱۰۰٬۰۰۰٬۰۰۰) و کد ملی ۱۰ رقمی با صفر اول</div><input type="file" id="excelFile" accept=".xlsx,.xls"><div id="excelFileName" class="file-name"></div><div class="actions"><button class="btn btn-success" type="button" id="importExcelBtn">📤 وارد کردن Excel</button><button class="btn btn-secondary" type="button" id="downloadTemplateBtn">📄 دانلود فایل نمونه Excel</button></div><div id="excelMessage" class="message"></div></div>
+<div class="field"><label>کد پرسنلی *</label><input id="empCode" required></div>
+<div class="field"><label>نام *</label><input id="empFirstName" required></div>
+<div class="field"><label>نام خانوادگی *</label><input id="empLastName" required></div>
+<div class="field"><label>کد ملی</label><input id="empNationalId" inputmode="numeric" maxlength="10"></div>
+<div class="field"><label>سمت</label><input id="empPosition"></div>
+<div class="field"><label>حقوق پایه ماهانه (ریال) *</label><input id="empBaseSalary" inputmode="numeric" required></div>
+</div><div class="actions"><button class="btn btn-primary">➕ افزودن پرسنل</button><button class="btn btn-secondary" type="reset">پاک کردن</button></div><div id="manualMessage" class="message"></div></form>
+<div class="excel-box"><strong>📥 ورود گروهی از Excel</strong><div>ستون‌های ضروری: کد پرسنلی، نام، نام خانوادگی، حقوق پایه ماهانه. اعداد فارسی/انگلیسی و جداکننده پشتیبانی می‌شود.</div><input type="file" id="excelFile" accept=".xlsx,.xls"><div id="excelFileName" class="file-name"></div><div class="actions"><button class="btn btn-success" type="button" id="importExcelBtn">📤 وارد کردن Excel</button><button class="btn btn-secondary" type="button" id="downloadTemplateBtn">📄 فایل نمونه</button></div><div id="excelMessage" class="message"></div></div>
 </div>
-<div class="panel"><h2>📋 فهرست پرسنل</h2><div class="table-wrap"><table><thead><tr><th>کد پرسنلی</th><th>نام</th><th>نام خانوادگی</th><th>کد ملی</th><th>سمت</th><th>حقوق پایه</th><th>عملیات</th></tr></thead><tbody id="employeesTable"></tbody></table></div></div>
+<div class="panel"><h2>📋 فهرست پرسنل</h2><div class="table-wrap"><table><thead><tr><th>کد</th><th>نام</th><th>نام خانوادگی</th><th>کد ملی</th><th>سمت</th><th>حقوق پایه</th><th>عملیات</th></tr></thead><tbody id="employeesTable"></tbody></table></div></div>
 </section>
 
-<section id="payroll" class="section"><div class="panel"><h2>🧮 محاسبه حقوق</h2><div class="form-grid">
-<div class="field"><label>انتخاب پرسنل</label><select id="payEmployee"></select></div><div class="field"><label>روزهای کارکرد</label><input id="workDays" type="number" value="30" min="0" max="31"></div><div class="field"><label>حقوق پایه ماهانه</label><input id="payBase" readonly></div>
-<div class="field"><label>حق مسکن</label><input id="housing" type="number" value="30000000"></div><div class="field"><label>بن کارگری</label><input id="food" type="number" value="22000000"></div><div class="field"><label>حق تأهل</label><input id="marriage" type="number" value="0"></div><div class="field"><label>تعداد فرزند</label><input id="childrenCount" type="number" value="0" min="0"></div><div class="field"><label>حق اولاد هر فرزند</label><input id="childAllowance" type="number" value="0"></div><div class="field"><label>سنوات</label><input id="seniority" type="number" value="0"></div><div class="field"><label>اضافه‌کاری (ساعت)</label><input id="overtimeHours" type="number" value="0" step="0.01"></div><div class="field"><label>مبلغ دستی اضافه‌کاری</label><input id="overtimeManual" type="number" value="0"></div><div class="field"><label>شب‌کاری / نوبت‌کاری</label><input id="shiftPay" type="number" value="0"></div><div class="field"><label>تعطیل‌کاری</label><input id="holidayPay" type="number" value="0"></div><div class="field"><label>مأموریت</label><input id="mission" type="number" value="0"></div><div class="field"><label>پاداش</label><input id="bonus" type="number" value="0"></div><div class="field"><label>سایر مزایا</label><input id="otherBenefits" type="number" value="0"></div><div class="field"><label>سایر کسورات</label><input id="deductions" type="number" value="0"></div>
-</div><div class="actions"><button class="btn btn-primary" id="calculateBtn">🧮 محاسبه حقوق</button></div></div>
-<div class="panel"><h2>نتیجه محاسبه</h2><div class="result-grid"><div class="result"><span>حقوق پایه</span><strong id="rBase">0 ریال</strong></div><div class="result"><span>اضافه‌کاری</span><strong id="rOvertime">0 ریال</strong></div><div class="result"><span>مزایا</span><strong id="rBenefits">0 ریال</strong></div><div class="result"><span>ناخالص</span><strong id="rGross">0 ریال</strong></div><div class="result"><span>بیمه سهم کارمند</span><strong id="rInsurance">0 ریال</strong></div><div class="result"><span>مالیات</span><strong id="rTax">0 ریال</strong></div><div class="result"><span>سایر کسورات</span><strong id="rDeductions">0 ریال</strong></div><div class="result"><span>خالص پرداختی</span><strong id="rNet">0 ریال</strong></div></div></div></section>
+<section id="payroll" class="section">
+<div class="panel"><h2>🧮 محاسبه حقوق</h2><div class="form-grid">
+<div class="field"><label>پرسنل</label><select id="payEmployee"></select></div>
+<div class="field"><label>ماه محاسبه</label><input id="payrollMonth" placeholder="مثلاً شهریور ۱۴۰۵"></div>
+<div class="field"><label>روزهای کارکرد</label><input id="workDays" type="number" value="30" min="0" max="31"></div>
+<div class="field"><label>حقوق پایه ماهانه</label><input id="payBase" readonly></div>
+<div class="field"><label>حق مسکن</label><input id="housing" type="number" value="30000000"></div>
+<div class="field"><label>بن کارگری</label><input id="food" type="number" value="22000000"></div>
+<div class="field"><label>حق تأهل</label><input id="marriage" type="number" value="0"></div>
+<div class="field"><label>تعداد فرزند</label><input id="childrenCount" type="number" value="0" min="0"></div>
+<div class="field"><label>حق اولاد هر فرزند</label><input id="childAllowance" type="number" value="0"></div>
+<div class="field"><label>سنوات</label><input id="seniority" type="number" value="0"></div>
+<div class="field"><label>اضافه‌کاری (ساعت)</label><input id="overtimeHours" type="number" value="0" step=".01"></div>
+<div class="field"><label>مبلغ دستی اضافه‌کاری</label><input id="overtimeManual" type="number" value="0"></div>
+<div class="field"><label>شب‌کاری / نوبت‌کاری</label><input id="shiftPay" type="number" value="0"></div>
+<div class="field"><label>تعطیل‌کاری</label><input id="holidayPay" type="number" value="0"></div>
+<div class="field"><label>مأموریت</label><input id="mission" type="number" value="0"></div>
+<div class="field"><label>پاداش</label><input id="bonus" type="number" value="0"></div>
+<div class="field"><label>سایر مزایا</label><input id="otherBenefits" type="number" value="0"></div>
+<div class="field"><label>سایر کسورات</label><input id="deductions" type="number" value="0"></div>
+</div><div class="actions"><button class="btn btn-primary" id="calculateBtn" type="button">🧮 محاسبه و ثبت</button><button class="btn btn-secondary" id="resetPayrollBtn" type="button">پاک کردن محاسبات</button></div>
+<div class="extra-panel"><h3>اطلاعات تکمیلی پرسنل و فیش</h3><div class="extra-grid">
+<label>شماره بیمه<input id="extraInsuranceNumber"></label>
+<label>تاریخ استخدام<input id="extraHireDate" type="date"></label>
+<label>سابقه کار<input id="extraWorkExperience" placeholder="مثلاً ۵ سال و ۳ ماه"></label>
+<label>وضعیت تأهل<select id="extraMarital"><option value="">انتخاب</option><option>مجرد</option><option>متأهل</option></select></label>
+<label>شماره کارت بانکی<input id="extraBankCard" inputmode="numeric" placeholder="۱۶ رقم"></label>
+<label>نام بانک<input id="extraBankName" readonly></label>
+<label>شماره شبا<input id="extraIban" placeholder="IR..."></label>
+<label>شماره حساب<input id="extraAccount"></label>
+<label>کل وام<input id="extraLoanTotal" type="number" value="0"></label>
+<label>قسط ماهانه وام<input id="extraLoanInstallment" type="number" value="0"></label>
+<label>مانده وام<input id="extraLoanRemain" type="number" value="0"></label>
+<label>مساعده<input id="extraAdvance" type="number" value="0"></label>
+<label>مانده مرخصی (روز)<input id="extraLeave" type="number" value="0"></label>
+<label>غیبت (روز)<input id="extraAbsence" type="number" value="0"></label>
+<label>کسر کار<input id="extraDeductionLeave" type="number" value="0"></label>
+<label>تاریخ پرداخت<input id="extraPaymentDate" type="date"></label>
+<label>تهیه‌کننده فیش<input id="extraPreparer"></label>
+<label>تأیید مدیر<input id="extraManager"></label>
+<label>مهر شرکت<input id="extraStamp"></label>
+</div><div class="actions"><button class="btn btn-secondary" id="saveExtraBtn" type="button">💾 ذخیره اطلاعات تکمیلی</button><span id="validationStatus"></span></div><div id="extraMessage" class="message"></div></div>
+</div>
+<div class="panel"><h2>نتیجه محاسبه</h2><div class="result-grid">
+<div class="result"><span>حقوق پایه</span><strong id="rBase">۰ ریال</strong></div><div class="result"><span>اضافه‌کاری</span><strong id="rOvertime">۰ ریال</strong></div><div class="result"><span>مزایا</span><strong id="rBenefits">۰ ریال</strong></div><div class="result"><span>ناخالص</span><strong id="rGross">۰ ریال</strong></div><div class="result"><span>بیمه سهم کارمند</span><strong id="rInsurance">۰ ریال</strong></div><div class="result"><span>مالیات</span><strong id="rTax">۰ ریال</strong></div><div class="result"><span>کل کسورات</span><strong id="rDeductions">۰ ریال</strong></div><div class="result"><span>خالص پرداختی</span><strong id="rNet">۰ ریال</strong></div>
+</div></div>
+</section>
 
-<section id="insurance" class="section"><div class="panel"><h2>🛡️ پارامترهای بیمه و مالیات</h2><div class="form-grid"><div class="field"><label>حداقل مزد روزانه</label><input id="minDaily" type="number" value="5541850"></div><div class="field"><label>پایه سنوات روزانه</label><input id="dailySeniority" type="number" value="166667"></div><div class="field"><label>بن کارگری ماهانه</label><input id="monthlyFood" type="number" value="22000000"></div><div class="field"><label>بیمه سهم کارمند (%)</label><input id="insuranceRate" type="number" value="7"></div><div class="field"><label>معافیت مالیاتی ماهانه</label><input id="taxFree" type="number" value="400000000"></div></div><div class="actions"><button class="btn btn-success" id="saveSettingsBtn">💾 ذخیره تنظیمات</button></div></div></section>
-<section id="payslips" class="section"><div class="panel"><h2>🧾 فیش حقوقی حرفه‌ای</h2><div class="notice">فیش را بررسی کنید و سپس «دانلود PDF / چاپ» را بزنید. در گوشی نیز می‌توانید از پنجره چاپ، گزینه «Save as PDF / ذخیره به‌صورت PDF» را انتخاب کنید.</div><div id="payslipPreview" style="margin-top:16px"></div><div class="actions no-print"><button class="btn btn-primary" type="button" id="generatePayslipBtn">🧾 نمایش فیش</button><button class="btn btn-success" type="button" id="downloadPayslipBtn">📥 دانلود PDF / چاپ</button></div><div id="payslipMsg" class="message"></div></div></section>
-<section id="reports" class="section">
-<div class="panel"><h2>📈 گزارش جامع حقوق و دستمزد</h2><div class="report-filter"><div class="field"><label>ماه محاسبه</label><input id="reportMonth" placeholder="مثلاً شهریور ۱۴۰۵"></div><div class="field"><label>پرسنل</label><select id="reportEmployee"><option value="">همه پرسنل</option></select></div><div class="field"><label>از تاریخ ثبت</label><input id="reportFrom" type="date"></div><div class="field"><label>تا تاریخ ثبت</label><input id="reportTo" type="date"></div></div><div class="report-actions"><button class="btn btn-primary" id="generateReportBtn" type="button">🔎 تولید گزارش</button><button class="btn btn-success" id="exportReportBtn" type="button">📊 خروجی Excel</button><button class="btn btn-secondary" id="printReportBtn" type="button">🖨️ چاپ گزارش</button><button class="btn btn-secondary" id="clearReportBtn" type="button">پاک کردن</button></div></div>
+<section id="insurance" class="section"><div class="panel"><h2>🛡️ پارامترهای بیمه و مالیات</h2><div class="notice">پارامترها قابل ویرایش‌اند؛ قبل از پرداخت رسمی، مقادیر را با بخشنامه‌های جاری تطبیق دهید.</div><div class="form-grid" style="margin-top:14px">
+<div class="field"><label>حداقل مزد روزانه (ریال)</label><input id="minDaily" type="number"></div>
+<div class="field"><label>پایه سنوات روزانه (ریال)</label><input id="dailySeniority" type="number"></div>
+<div class="field"><label>بن کارگری ماهانه (ریال)</label><input id="monthlyFood" type="number"></div>
+<div class="field"><label>بیمه سهم کارمند (%)</label><input id="insuranceRate" type="number" step=".01"></div>
+<div class="field"><label>معافیت مالیاتی ماهانه (ریال)</label><input id="taxFree" type="number"></div>
+</div><div class="actions"><button class="btn btn-success" id="saveSettingsBtn" type="button">💾 ذخیره تنظیمات</button></div><div id="settingsMessage" class="message"></div></div></section>
+
+<section id="payslips" class="section"><div class="panel"><h2>🧾 فیش حقوقی حرفه‌ای</h2><div class="notice">ابتدا حقوق را محاسبه کنید؛ سپس فیش را نمایش داده و از گزینه چاپ، «Save as PDF» را انتخاب کنید.</div><div id="payslipPreview" style="margin-top:16px"></div><div class="actions no-print"><button class="btn btn-primary" id="generatePayslipBtn" type="button">🧾 نمایش فیش</button><button class="btn btn-success" id="printPayslipBtn" type="button">📥 چاپ / PDF</button></div><div id="payslipMsg" class="message"></div></div></section>
+
+<section id="reports" class="section"><div class="panel"><h2>📈 گزارش جامع حقوق و دستمزد</h2><div class="report-filter">
+<div class="field"><label>ماه</label><input id="reportMonth" placeholder="مثلاً شهریور ۱۴۰۵"></div>
+<div class="field"><label>پرسنل</label><select id="reportEmployee"><option value="">همه پرسنل</option></select></div>
+<div class="field"><label>از تاریخ ثبت</label><input id="reportFrom" type="date"></div>
+<div class="field"><label>تا تاریخ ثبت</label><input id="reportTo" type="date"></div>
+</div><div class="actions report-actions"><button class="btn btn-primary" id="generateReportBtn" type="button">🔎 تولید گزارش</button><button class="btn btn-success" id="exportReportBtn" type="button">📊 Excel</button><button class="btn btn-secondary" id="printReportBtn" type="button">🖨️ چاپ</button><button class="btn btn-secondary" id="clearReportBtn" type="button">پاک کردن فیلتر</button></div></div>
 <div class="report-summary"><div class="report-card"><span>تعداد محاسبات</span><strong id="repCount">۰</strong></div><div class="report-card"><span>مجموع ناخالص</span><strong id="repGross">۰ ریال</strong></div><div class="report-card"><span>مجموع بیمه</span><strong id="repInsurance">۰ ریال</strong></div><div class="report-card"><span>مجموع مالیات</span><strong id="repTax">۰ ریال</strong></div><div class="report-card"><span>خالص پرداختی</span><strong id="repNet">۰ ریال</strong></div></div>
-<div class="panel"><h2>جزئیات گزارش</h2><div class="table-wrap"><table class="report-table"><thead><tr><th>تاریخ</th><th>ماه</th><th>کد پرسنلی</th><th>نام و نام خانوادگی</th><th>ناخالص</th><th>بیمه</th><th>مالیات</th><th>وام</th><th>مساعده</th><th>سایر کسورات</th><th>خالص</th></tr></thead><tbody id="reportsTableBody"><tr><td colspan="11" class="report-empty">برای مشاهده گزارش، تولید گزارش را بزنید.</td></tr></tbody></table></div></div>
-</section>
-<section id="settings" class="section"><div class="panel"><h2>⚙️ تنظیمات قانونی سال ۱۴۰۵</h2><div class="notice">مقادیر پیش‌فرض این صفحه برای استفاده اولیه تنظیم شده‌اند و پیش از استفاده رسمی در پرداخت حقوق باید با مقررات و بخشنامه‌های جاری تطبیق داده شوند.</div></div></section>
+<div class="panel"><h2>جزئیات</h2><div class="table-wrap"><table><thead><tr><th>تاریخ</th><th>ماه</th><th>کد</th><th>نام</th><th>ناخالص</th><th>بیمه</th><th>مالیات</th><th>وام</th><th>مساعده</th><th>سایر کسورات</th><th>خالص</th></tr></thead><tbody id="reportsTableBody"></tbody></table></div></div></section>
+
+<section id="settings" class="section"><div class="panel"><h2>⚙️ تنظیمات سامانه</h2><div class="notice">اطلاعات حقوق و دستمزد این صفحه در حساب/شرکت جاری نگهداری می‌شود. تنظیمات قانونی در بخش «بیمه و مالیات» قابل تغییر است.</div><div style="margin-top:15px"><span class="status-pill">نسخه یکپارچه و بدون اسکریپت‌های تکراری</span></div></div></section>
 </main></div>
 
-<div class="modal" id="editModal"><div class="modal-box"><div class="modal-head"><h3>✏️ ویرایش اطلاعات پرسنل</h3><button class="close" id="closeModal">✕</button></div><form id="editForm"><input type="hidden" id="editIndex"><div class="form-grid">
-<div class="field"><label>کد پرسنلی</label><input id="editCode" required></div><div class="field"><label>نام</label><input id="editFirstName" required></div><div class="field"><label>نام خانوادگی</label><input id="editLastName" required></div><div class="field"><label>کد ملی</label><input id="editNationalId" inputmode="numeric" maxlength="10"></div><div class="field"><label>سمت</label><input id="editPosition"></div><div class="field"><label>حقوق پایه ماهانه (ریال)</label><input id="editBaseSalary" inputmode="numeric" required></div>
-</div><div class="actions"><button class="btn btn-primary" type="submit">💾 ذخیره تغییرات</button><button class="btn btn-secondary" type="button" id="cancelEdit">انصراف</button></div><div id="editMessage" class="message"></div></form></div></div>
+<div class="modal" id="editModal"><div class="modal-box"><div class="modal-head"><h3>✏️ ویرایش پرسنل</h3><button class="close" id="closeModal">✕</button></div><form id="editForm"><input type="hidden" id="editIndex"><div class="form-grid">
+<div class="field"><label>کد پرسنلی *</label><input id="editCode" required></div><div class="field"><label>نام *</label><input id="editFirstName" required></div><div class="field"><label>نام خانوادگی *</label><input id="editLastName" required></div><div class="field"><label>کد ملی</label><input id="editNationalId" maxlength="10"></div><div class="field"><label>سمت</label><input id="editPosition"></div><div class="field"><label>حقوق پایه ماهانه *</label><input id="editBaseSalary" required inputmode="numeric"></div>
+</div><div class="actions"><button class="btn btn-primary">💾 ذخیره</button><button class="btn btn-secondary" type="button" id="cancelEdit">انصراف</button></div><div id="editMessage" class="message"></div></form></div></div>
 
 <script>
-const STORAGE_KEY="amnayar_payroll_employees_v2",SETTINGS_KEY="amnayar_payroll_settings_v2";
-let employees=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
-let settings=Object.assign({minDaily:5541850,dailySeniority:166667,monthlyFood:22000000,insuranceRate:7,taxFree:400000000},JSON.parse(localStorage.getItem(SETTINGS_KEY)||"{}"));
+"use strict";
+const DEFAULT_SETTINGS={minDaily:5541850,dailySeniority:166667,monthlyFood:22000000,insuranceRate:7,taxFree:400000000};
+const TOKEN_KEY="amnayar_token";
+const baseKey="amnayar_payroll_v12";
+let company={id:"local",name:"امنا یار"},employees=[],settings={},history=[],lastPayroll=null;
+
 const $=id=>document.getElementById(id);
-function saveEmployees(){localStorage.setItem(STORAGE_KEY,JSON.stringify(employees))}
-function money(n){return Math.round(Number(n)||0).toLocaleString("fa-IR")+" ریال"}
-function normalizeDigits(v){
-  return String(v ?? "")
-    .replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d))
-    .replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d));
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+function digits(v){return String(v??"").replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d))}
+function num(v){let s=digits(v).replace(/[٬,،\s]/g,"").replace(/[^\d.-]/g,"");return Number(s)||0}
+function money(v){return Math.round(Number(v)||0).toLocaleString("fa-IR")+" ریال"}
+function cleanDigits(v){return digits(v).replace(/\D/g,"")}
+function nationalValid(v){let s=cleanDigits(v);if(s.length!==10||/^(\d)\1{9}$/.test(s))return false;let sum=0;for(let i=0;i<9;i++)sum+=+s[i]*(10-i);let r=sum%11;return (r<2?+s[9]===r:+s[9]===11-r)}
+function cardValid(v){let s=cleanDigits(v);if(s.length!==16||/^(\d)\1{15}$/.test(s))return false;let sum=0;for(let i=0;i<16;i++){let n=+s[i];if(i%2===0){n*=2;if(n>9)n-=9}sum+=n}return sum%10===0}
+function ibanValid(v){let s=String(v||"").replace(/[\s-]/g,"").toUpperCase();s=s.startsWith("IR")?s:"IR"+s;if(!/^IR\d{24}$/.test(s))return false;let x=s.slice(4)+"1827"+s.slice(2,4),r=0;for(const c of x)r=(r*10+Number(c))%97;return r===1}
+const bins={"603799":"بانک ملی ایران","589210":"بانک سپه","627648":"بانک توسعه صادرات","627961":"بانک صنعت و معدن","603770":"بانک کشاورزی","628023":"بانک مسکن","627760":"پست بانک ایران","502229":"بانک پاسارگاد","610433":"بانک ملت","603769":"بانک صادرات ایران","627353":"بانک تجارت","627412":"بانک اقتصاد نوین","622106":"بانک پارسیان","621986":"بانک سامان","639346":"بانک سینا","639607":"بانک سرمایه","502806":"بانک شهر","504172":"بانک رسالت","505785":"بانک ایران زمین"};
+function bankName(card){return bins[cleanDigits(card).slice(0,6)]||"بانک شناسایی نشد"}
+function show(el,type,msg){el.className="message show "+type;el.textContent=msg}
+function token(){return localStorage.getItem(TOKEN_KEY)||localStorage.getItem("token")||""}
+function scopeKey(){let t=token();let scope=company.id||"local";if(!t)return baseKey+"_"+scope;let h=0;for(let i=0;i<t.length;i++)h=((h<<5)-h+t.charCodeAt(i))|0;return baseKey+"_"+scope+"_"+Math.abs(h)}
+function loadStore(){try{let x=JSON.parse(localStorage.getItem(scopeKey())||"{}");employees=Array.isArray(x.employees)?x.employees:[];settings=Object.assign({},DEFAULT_SETTINGS,x.settings||{});history=Array.isArray(x.history)?x.history:[]}catch(e){employees=[];settings={...DEFAULT_SETTINGS};history=[]}}
+function saveStore(){localStorage.setItem(scopeKey(),JSON.stringify({employees,settings,history}))}
+async function detectCompany(){const api=(window.AMNAYAR_API_BASE||"https://api.amnayar.ir/api").replace(/\/$/,"");if(!token()){company={id:"local",name:"امنا یار"};loadStore();return}try{let r=await fetch(api+"/company/me",{headers:{Authorization:"Bearer "+token()}});if(r.ok){let c=await r.json();company={id:String(c.id||c.public_id||c.name||"account"),name:c.name||"شرکت جاری"};}}catch(e){}loadStore();$("companyIdentity").textContent="شرکت جاری: "+company.name}
+function payrollExtraKey(){return scopeKey()+"_extra_"+(employees[Number($("payEmployee").value)]?.code||"")}
+function getExtra(){try{return JSON.parse(localStorage.getItem(payrollExtraKey())||"{}")}catch(e){return {}}}
+function saveExtra(){let e=readExtra();localStorage.setItem(payrollExtraKey(),JSON.stringify(e));return e}
+function readExtra(){return {insuranceNumber:$("extraInsuranceNumber").value.trim(),hireDate:$("extraHireDate").value,workExperience:$("extraWorkExperience").value.trim(),maritalStatus:$("extraMarital").value,bankCard:cleanDigits($("extraBankCard").value),bankName:$("extraBankName").value,sheba:$("extraIban").value.trim().toUpperCase(),accountNumber:$("extraAccount").value.trim(),loanTotal:num($("extraLoanTotal").value),loanInstallment:num($("extraLoanInstallment").value),loanRemain:num($("extraLoanRemain").value),advance:num($("extraAdvance").value),leaveRemain:num($("extraLeave").value),absence:num($("extraAbsence").value),deductionLeave:num($("extraDeductionLeave").value),paymentDate:$("extraPaymentDate").value,preparer:$("extraPreparer").value.trim(),managerSignature:$("extraManager").value.trim(),companyStamp:$("extraStamp").value.trim()}}
+function fillExtra(){let e=getExtra();const set=(id,v)=>$(id).value=v??"";set("extraInsuranceNumber",e.insuranceNumber);set("extraHireDate",e.hireDate);set("extraWorkExperience",e.workExperience);set("extraMarital",e.maritalStatus);set("extraBankCard",e.bankCard);set("extraBankName",e.bankName);set("extraIban",e.sheba);set("extraAccount",e.accountNumber);set("extraLoanTotal",e.loanTotal||0);set("extraLoanInstallment",e.loanInstallment||0);set("extraLoanRemain",e.loanRemain||0);set("extraAdvance",e.advance||0);set("extraLeave",e.leaveRemain||0);set("extraAbsence",e.absence||0);set("extraDeductionLeave",e.deductionLeave||0);set("extraPaymentDate",e.paymentDate);set("extraPreparer",e.preparer);set("extraManager",e.managerSignature);set("extraStamp",e.companyStamp);$("validationStatus").innerHTML=""}
+function validateExtra(){let e=readExtra();if(e.bankCard&&!cardValid(e.bankCard))return{ok:false,msg:"شماره کارت بانکی صحیح نیست."};if(e.sheba&&!ibanValid(e.sheba))return{ok:false,msg:"شماره شبا صحیح نیست."};return{ok:true,msg:"اطلاعات بانکی معتبر است."}}
+function renderEmployees(){let b=$("employeesTable");if(!employees.length){b.innerHTML='<tr><td colspan="7" class="empty">هنوز پرسنلی ثبت نشده است.</td></tr>'}else b.innerHTML=employees.map((e,i)=>'<tr><td>'+esc(e.code)+'</td><td>'+esc(e.firstName)+'</td><td>'+esc(e.lastName)+'</td><td>'+esc(e.nationalId||"-")+'</td><td>'+esc(e.position||"-")+'</td><td>'+money(e.baseSalary)+'</td><td><div class="employee-actions"><button class="btn btn-warning" onclick="openEdit('+i+')">✏️ ویرایش</button><button class="btn btn-danger" onclick="deleteEmployee('+i+')">🗑️ حذف</button></div></td></tr>').join("");updateSelects()}
+function updateSelects(){let old=$("payEmployee").value; $("payEmployee").innerHTML=employees.length?employees.map((e,i)=>'<option value="'+i+'">'+esc(e.code)+" - "+esc(e.firstName+" "+e.lastName)+'</option>').join():'<option value="">پرسنلی وجود ندارد</option>';if([...$("payEmployee").options].some(o=>o.value===old))$("payEmployee").value=old;setPayBase();populateReportEmployees();fillExtra()}
+function setPayBase(){let e=employees[Number($("payEmployee").value)];$("payBase").value=e?Number(e.baseSalary||0).toLocaleString("fa-IR"):"0"}
+function resetPayroll(){["workDays","housing","food","marriage","childrenCount","childAllowance","seniority","overtimeHours","overtimeManual","shiftPay","holidayPay","mission","bonus","otherBenefits","deductions"].forEach(id=>{$(id).value={workDays:30,housing:30000000,food:22000000,marriage:0,childrenCount:0,childAllowance:0,seniority:0,overtimeHours:0,overtimeManual:0,shiftPay:0,holidayPay:0,mission:0,bonus:0,otherBenefits:0,deductions:0}[id]});["rBase","rOvertime","rBenefits","rGross","rInsurance","rTax","rDeductions","rNet"].forEach(id=>$(id).textContent="۰ ریال");lastPayroll=null}
+function taxCalc(taxable){let x=Math.max(0,taxable-settings.taxFree),tax=0;for(const [limit,rate] of [[400000000,.1],[200000000,.15],[200000000,.2],[200000000,.25]]){let p=Math.min(x,limit);tax+=p*rate;x-=p;if(x<=0)break}return tax+(x>0?x*.3:0)}
+function calculate(){let i=Number($("payEmployee").value),e=employees[i];if(!e){alert("ابتدا پرسنل را ثبت و انتخاب کنید.");return}let days=Math.min(31,Math.max(0,num($("workDays").value))),bm=num(e.baseSalary),base=bm*days/30,housing=num($("housing").value)*days/30,food=num($("food").value)*days/30,marriage=num($("marriage").value)*days/30,children=num($("childrenCount").value)*num($("childAllowance").value)*days/30,seniority=num($("seniority").value)*days/30,shift=num($("shiftPay").value),holiday=num($("holidayPay").value),mission=num($("mission").value),bonus=num($("bonus").value),other=num($("otherBenefits").value),hourly=bm/30/7.3333333333,overtime=Math.max(hourly*1.4*num($("overtimeHours").value),num($("overtimeManual").value)),benefits=housing+food+marriage+children+seniority+shift+holiday+mission+bonus+other,gross=base+benefits+overtime,insuranceBase=base+housing+food+marriage+children+seniority+shift+holiday+overtime,insurance=insuranceBase*settings.insuranceRate/100,tax=taxCalc(gross-insurance),extra=saveExtra(),deductions=num($("deductions").value),loan=num(extra.loanInstallment),advance=num(extra.advance),net=Math.max(0,gross-insurance-tax-deductions-loan-advance);
+lastPayroll={companyId:company.id,companyName:company.name,employeeIndex:i,personnelCode:String(e.code),fullName:e.firstName+" "+e.lastName,position:e.position||"",payrollMonth:$("payrollMonth").value.trim(),workDays:days,base,overtime,benefits,housing,food,marriage,children,seniority,shiftPay,holidayPay,mission,bonus,otherBenefits,gross,insurance,tax,otherDeductions:deductions,loanInstallment:loan,advance,net,createdAt:new Date().toISOString(),...extra};
+$("rBase").textContent=money(base);$("rOvertime").textContent=money(overtime);$("rBenefits").textContent=money(benefits);$("rGross").textContent=money(gross);$("rInsurance").textContent=money(insurance);$("rTax").textContent=money(tax);$("rDeductions").textContent=money(deductions+loan+advance);$("rNet").textContent=money(net);
+history.push({...lastPayroll});history=history.slice(-1000);saveStore();updateDashboard();renderReport();show($("extraMessage"),"success","محاسبه انجام شد و در گزارش‌ها ثبت شد.")}
+function renderDashboard(){let h=history.filter(r=>!r.companyId||r.companyId===company.id),sum=k=>h.reduce((a,r)=>a+num(r[k]),0);$("dashEmployees").textContent=employees.length.toLocaleString("fa-IR");$("dashGross").textContent=money(sum("gross"));$("dashInsurance").textContent=money(sum("insurance"));$("dashNet").textContent=money(sum("net"));$("dashTax").textContent=money(sum("tax"));$("dashLoan").textContent=money(sum("loanInstallment"));$("dashAdvance").textContent=money(sum("advance"));let rows=h.slice(-6).reverse();$("dashboardRecent").innerHTML=rows.length?rows.map(r=>'<div class="dash-row"><div><b>'+esc(r.fullName)+'</b><small>'+esc(r.payrollMonth||"بدون دوره")+" · "+esc(r.personnelCode)+'</small></div><b>'+money(r.net)+'</b></div>').join():'<div class="empty">هنوز محاسبه‌ای ثبت نشده است.</div>'}
+function reportRows(){let m=$("reportMonth").value.trim(),ei=$("reportEmployee").value,f=$("reportFrom").value,t=$("reportTo").value;return history.filter(r=>{if(r.companyId&&r.companyId!==company.id)return false;if(m&&String(r.payrollMonth||"").trim()!==m)return false;if(ei!==""&&String(r.employeeIndex)!==ei)return false;let d=String(r.createdAt||"").slice(0,10);return !(f&&d<f)&&!(t&&d>t)})}
+function populateReportEmployees(){let s=$("reportEmployee"),old=s.value;s.innerHTML='<option value="">همه پرسنل</option>'+employees.map((e,i)=>'<option value="'+i+'">'+esc(e.code+" - "+e.firstName+" "+e.lastName)+'</option>').join();if([...s.options].some(o=>o.value===old))s.value=old}
+function renderReport(){populateReportEmployees();let rows=reportRows(),sum=k=>rows.reduce((a,r)=>a+num(r[k]),0);$("repCount").textContent=rows.length.toLocaleString("fa-IR");$("repGross").textContent=money(sum("gross"));$("repInsurance").textContent=money(sum("insurance"));$("repTax").textContent=money(sum("tax"));$("repNet").textContent=money(sum("net"));$("reportsTableBody").innerHTML=rows.length?rows.map(r=>'<tr><td>'+esc(new Date(r.createdAt).toLocaleDateString("fa-IR"))+'</td><td>'+esc(r.payrollMonth||"—")+'</td><td>'+esc(r.personnelCode)+'</td><td>'+esc(r.fullName)+'</td><td>'+money(r.gross)+'</td><td>'+money(r.insurance)+'</td><td>'+money(r.tax)+'</td><td>'+money(r.loanInstallment)+'</td><td>'+money(r.advance)+'</td><td>'+money(r.otherDeductions)+'</td><td><b>'+money(r.net)+'</b></td></tr>').join():'<tr><td colspan="11" class="empty">داده‌ای برای فیلتر انتخاب‌شده وجود ندارد.</td></tr>'}
+function openEdit(i){let e=employees[i];if(!e)return;$("editIndex").value=i;$("editCode").value=e.code||"";$("editFirstName").value=e.firstName||"";$("editLastName").value=e.lastName||"";$("editNationalId").value=e.nationalId||"";$("editPosition").value=e.position||"";$("editBaseSalary").value=e.baseSalary||0;$("editMessage").className="message";$("editModal").classList.add("show")}
+function closeEdit(){$("editModal").classList.remove("show")}
+window.openEdit=openEdit;window.deleteEmployee=function(i){let e=employees[i];if(e&&confirm("آیا از حذف «"+e.firstName+" "+e.lastName+"» مطمئن هستید؟")){employees.splice(i,1);history=history.filter(r=>r.employeeIndex!==i);history.forEach(r=>{if(r.employeeIndex>i)r.employeeIndex--});saveStore();renderEmployees();renderDashboard();renderReport()}}
+function normalizeHeader(k){return digits(k).toLowerCase().replace(/\s+/g,"").replace(/ي/g,"ی").replace(/ى/g,"ی").replace(/ك/g,"ک")}
+function findHeader(row,cands){for(const k of Object.keys(row)){let n=normalizeHeader(k);if(cands.some(c=>n===normalizeHeader(c)||n.includes(normalizeHeader(c))))return k}return null}
+function importExcel(){let file=$("excelFile").files[0];if(!file){show($("excelMessage"),"error","ابتدا فایل Excel را انتخاب کنید.");return}if(typeof XLSX==="undefined"){show($("excelMessage"),"error","کتابخانه Excel بارگذاری نشده است.");return}let reader=new FileReader();reader.onload=e=>{try{let wb=XLSX.read(new Uint8Array(e.target.result),{type:"array"}),ws=wb.Sheets[wb.SheetNames[0]],rows=XLSX.utils.sheet_to_json(ws,{defval:""});if(!rows.length)throw Error("فایل خالی است.");let r=rows[0],h={code:findHeader(r,["کد پرسنلی","کد پرسنل","personnelcode","employeeid","code"]),firstName:findHeader(r,["نام","firstname","name"]),lastName:findHeader(r,["نام خانوادگی","نامخانوادگی","lastname","surname"]),nationalId:findHeader(r,["کد ملی","کدملی","nationalid","nationalcode"]),position:findHeader(r,["سمت","position","jobtitle"]),baseSalary:findHeader(r,["حقوق پایه ماهانه","حقوقپایهماهانه","حقوق پایه","حقوقپایه","basesalary","monthlysalary","salary"])};if(!h.code||!h.firstName||!h.lastName||!h.baseSalary)throw Error("ستون‌های ضروری پیدا نشدند.");let codes=new Set(employees.map(e=>String(e.code))),added=0,skip=0;for(const row of rows){let code=String(row[h.code]??"").trim(),first=String(row[h.firstName]??"").trim(),last=String(row[h.lastName]??"").trim(),salary=num(row[h.baseSalary]);if(!code||!first||!last||!salary||codes.has(code)){skip++;continue}let nid=h.nationalId?cleanDigits(row[h.nationalId]):"";if(nid&&nid.length<10)nid=nid.padStart(10,"0");employees.push({code,firstName:first,lastName:last,nationalId:nid,position:h.position?String(row[h.position]??"").trim():"",baseSalary:salary});codes.add(code);added++}saveStore();renderEmployees();renderDashboard();show($("excelMessage"),"success","ورود Excel: "+added+" نفر اضافه شد و "+skip+" ردیف رد شد.")}catch(err){show($("excelMessage"),"error","خطا در Excel: "+err.message)}};reader.readAsArrayBuffer(file)}
+function downloadTemplate(){if(typeof XLSX==="undefined"){alert("کتابخانه Excel بارگذاری نشده است.");return}let ws=XLSX.utils.json_to_sheet([{"کد پرسنلی":"1001","نام":"علی","نام خانوادگی":"احمدی","کد ملی":"0012345678","سمت":"کارشناس","حقوق پایه ماهانه":100000000},{"کد پرسنلی":"1002","نام":"مریم","نام خانوادگی":"محمدی","کد ملی":"0023456789","سمت":"حسابدار","حقوق پایه ماهانه":120000000}]);let wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"پرسنل");XLSX.writeFile(wb,"AmnaYar-Personnel-Template.xlsx")}
+function buildPayslip(d){let totalD=num(d.insurance)+num(d.tax)+num(d.otherDeductions)+num(d.loanInstallment)+num(d.advance);return '<div class="official-payslip"><div class="payslip-head"><div class="payslip-brand"><img src="/assets/logo-amnayar.png" alt="امنا یار"><div><strong>'+esc(d.companyName||company.name)+'</strong><br><span>سامانه حقوق و دستمزد</span></div></div><div class="payslip-meta">ماه حقوق: '+esc(d.payrollMonth||"—")+'<br>تاریخ پرداخت: '+esc(d.paymentDate?new Date(d.paymentDate).toLocaleDateString("fa-IR"):"—")+'</div></div><div class="payslip-title">فیش حقوق و دستمزد</div><div class="payslip-section-title">اطلاعات پرسنلی</div><table><tr><th>کد پرسنلی</th><td>'+esc(d.personnelCode)+'</td><th>کد ملی</th><td>'+esc(d.nationalId||"—")+'</td></tr><tr><th>نام و نام خانوادگی</th><td>'+esc(d.fullName)+'</td><th>سمت</th><td>'+esc(d.position||"—")+'</td></tr><tr><th>شماره بیمه</th><td>'+esc(d.insuranceNumber||"—")+'</td><th>تاریخ استخدام</th><td>'+esc(d.hireDate||"—")+'</td></tr><tr><th>تأهل</th><td>'+esc(d.maritalStatus||"—")+'</td><th>فرزند</th><td>'+esc(d.childrenCount??0)+'</td></tr></table><div class="payslip-section-title">اطلاعات بانکی</div><table><tr><th>بانک</th><td>'+esc(d.bankName||"—")+'</td><th>شماره حساب</th><td>'+esc(d.accountNumber||"—")+'</td></tr><tr><th>شماره کارت</th><td>'+esc(d.bankCard||"—")+'</td><th>شماره شبا</th><td>'+esc(d.sheba||"—")+'</td></tr></table><div class="payslip-section-title">مزایا و دریافتی‌ها</div><table><tr><th>حقوق پایه</th><td>'+money(d.base)+'</td><th>مزد شغل</th><td>'+money(d.jobWage)+'</td></tr><tr><th>حق مسکن</th><td>'+money(d.housing)+'</td><th>بن کارگری</th><td>'+money(d.food)+'</td></tr><tr><th>حق تأهل</th><td>'+money(d.marriage)+'</td><th>حق اولاد</th><td>'+money(d.children)+'</td></tr><tr><th>سنوات</th><td>'+money(d.seniority)+'</td><th>اضافه‌کاری</th><td>'+money(d.overtime)+'</td></tr><tr><th>نوبت‌کاری</th><td>'+money(d.shiftPay)+'</td><th>تعطیل‌کاری</th><td>'+money(d.holidayPay)+'</td></tr><tr><th>مأموریت</th><td>'+money(d.mission)+'</td><th>پاداش</th><td>'+money(d.bonus)+'</td></tr><tr><th>سایر مزایا</th><td>'+money(d.otherBenefits)+'</td><th>ناخالص پرداختی</th><td><b>'+money(d.gross)+'</b></td></tr></table><div class="payslip-section-title">کسورات</div><table><tr><th>بیمه</th><td>'+money(d.insurance)+'</td><th>مالیات</th><td>'+money(d.tax)+'</td></tr><tr><th>مساعده</th><td>'+money(d.advance)+'</td><th>قسط وام</th><td>'+money(d.loanInstallment)+'</td></tr><tr><th>سایر کسورات</th><td>'+money(d.otherDeductions)+'</td><th>جمع کسورات</th><td><b>'+money(totalD)+'</b></td></tr></table><div class="payslip-net"><span>خالص پرداختی</span><strong>'+money(d.net)+'</strong></div><div class="payslip-section-title">سوابق و وضعیت</div><table><tr><th>کل وام</th><td>'+money(d.loanTotal)+'</td><th>مانده وام</th><td>'+money(d.loanRemain)+'</td></tr><tr><th>مرخصی باقی‌مانده</th><td>'+esc(d.leaveRemain??0)+' روز</td><th>سابقه کار</th><td>'+esc(d.workExperience||"—")+'</td></tr><tr><th>غیبت</th><td>'+esc(d.absence??0)+'</td><th>کسر کار</th><td>'+esc(d.deductionLeave??0)+'</td></tr></table><div class="payslip-sign"><div>تهیه‌کننده فیش<br><br>'+esc(d.preparer||"")+'</div><div>تأیید مدیر<br><br>'+esc(d.managerSignature||"")+'</div><div>مهر و امضای شرکت<br><br>'+esc(d.companyStamp||"")+'</div></div><div class="payslip-foot">این فیش توسط سامانه حقوق و دستمزد امنا یار تهیه شده است.</div></div>'}
+function currentPayslip(){if(!lastPayroll){alert("ابتدا حقوق را محاسبه و ثبت کنید.");return null}let e=employees[lastPayroll.employeeIndex]||{};return {...lastPayroll,nationalId:e.nationalId||"",childrenCount:num($("childrenCount").value),jobWage:num(e.jobWage),companyName:company.name}}
+function showPayslip(){let d=currentPayslip();if(!d)return;$("payslipPreview").innerHTML=buildPayslip(d);show($("payslipMsg"),"success","فیش آماده نمایش و چاپ است.")}
+function printPayslip(){let d=currentPayslip();if(!d)return;let w=window.open("","_blank","width=900,height=1000");if(!w){alert("پنجره چاپ توسط مرورگر مسدود شده است.");return}w.document.write('<!doctype html><html lang="fa" dir="rtl"><head><meta charset="UTF-8"><title>فیش حقوقی - '+esc(d.fullName)+'</title><style>'+document.querySelector("style").textContent+'</style></head><body>'+buildPayslip(d)+'</body></html>');w.document.close();setTimeout(()=>{w.focus();w.print()},400)}
+function exportReport(){let rows=reportRows();if(!rows.length){alert("گزارشی برای خروجی وجود ندارد.");return}let data=rows.map(r=>({"تاریخ":new Date(r.createdAt).toLocaleDateString("fa-IR"),"ماه":r.payrollMonth||"","کد پرسنلی":r.personnelCode,"نام و نام خانوادگی":r.fullName,"ناخالص":num(r.gross),"بیمه":num(r.insurance),"مالیات":num(r.tax),"وام":num(r.loanInstallment),"مساعده":num(r.advance),"سایر کسورات":num(r.otherDeductions),"خالص پرداختی":num(r.net)})),ws=XLSX.utils.json_to_sheet(data),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"گزارش حقوق");XLSX.writeFile(wb,"AmnaYar-Payroll-Report.xlsx")}
+function printReport(){let rows=reportRows();if(!rows.length){alert("ابتدا گزارش دارای داده تولید کنید.");return}let body=rows.map(r=>'<tr><td>'+esc(new Date(r.createdAt).toLocaleDateString("fa-IR"))+'</td><td>'+esc(r.payrollMonth||"")+'</td><td>'+esc(r.personnelCode)+'</td><td>'+esc(r.fullName)+'</td><td>'+money(r.gross)+'</td><td>'+money(r.insurance)+'</td><td>'+money(r.tax)+'</td><td>'+money(r.loanInstallment)+'</td><td>'+money(r.advance)+'</td><td>'+money(r.otherDeductions)+'</td><td>'+money(r.net)+'</td></tr>').join(),w=window.open("","_blank");if(!w){alert("پنجره چاپ مسدود شده است.");return}w.document.write('<!doctype html><html lang="fa" dir="rtl"><head><meta charset="UTF-8"><title>گزارش حقوق</title><style>body{font-family:Tahoma;padding:18px}h1{text-align:center}table{width:100%;border-collapse:collapse}th,td{border:1px solid #aaa;padding:6px;font-size:9px}th{background:#eee}@page{size:A4 landscape;margin:8mm}</style></head><body><h1>گزارش حقوق و دستمزد</h1><p style="text-align:center">'+esc(company.name)+'</p><table><thead><tr><th>تاریخ</th><th>ماه</th><th>کد</th><th>نام</th><th>ناخالص</th><th>بیمه</th><th>مالیات</th><th>وام</th><th>مساعده</th><th>کسورات</th><th>خالص</th></tr></thead><tbody>'+body+'</tbody></table></body></html>');w.document.close();setTimeout(()=>w.print(),300)}
+function loadSettings(){for(const k of Object.keys(DEFAULT_SETTINGS))$(k).value=settings[k]}
+function wire(){document.querySelectorAll(".nav button[data-section]").forEach(btn=>btn.onclick=()=>{document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));btn.classList.add("active");document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));$(btn.dataset.section).classList.add("active");const t={dashboard:"داشبورد حقوق و دستمزد",employees:"مدیریت پرسنل",payroll:"محاسبه حقوق",insurance:"بیمه و مالیات",payslips:"فیش حقوقی",reports:"گزارش‌ها",settings:"تنظیمات"};$("pageTitle").textContent=t[btn.dataset.section];if(btn.dataset.section==="dashboard")renderDashboard();if(btn.dataset.section==="reports")renderReport()});
+$("employeeForm").onsubmit=e=>{e.preventDefault();let code=$("empCode").value.trim(),nid=cleanDigits($("empNationalId").value);if(nid&&nid.length===10&&!nationalValid(nid)){show($("manualMessage"),"error","کد ملی صحیح نیست.");return}if(employees.some(x=>String(x.code)===code)){show($("manualMessage"),"error","کد پرسنلی تکراری است.");return}employees.push({code,firstName:$("empFirstName").value.trim(),lastName:$("empLastName").value.trim(),nationalId:nid,position:$("empPosition").value.trim(),baseSalary:num($("empBaseSalary").value)});saveStore();renderEmployees();renderDashboard();e.target.reset();show($("manualMessage"),"success","پرسنل با موفقیت اضافه شد.")};
+$("editForm").onsubmit=e=>{e.preventDefault();let i=Number($("editIndex").value),code=$("editCode").value.trim(),nid=cleanDigits($("editNationalId").value);if(nid&&nid.length===10&&!nationalValid(nid)){show($("editMessage"),"error","کد ملی صحیح نیست.");return}if(employees.some((x,j)=>j!==i&&String(x.code)===code)){show($("editMessage"),"error","کد پرسنلی تکراری است.");return}employees[i]={...employees[i],code,firstName:$("editFirstName").value.trim(),lastName:$("editLastName").value.trim(),nationalId:nid,position:$("editPosition").value.trim(),baseSalary:num($("editBaseSalary").value)};saveStore();renderEmployees();renderDashboard();closeEdit()};
+$("closeModal").onclick=closeEdit;$("cancelEdit").onclick=closeEdit;$("editModal").onclick=e=>{if(e.target===$("editModal"))closeEdit()};
+$("payEmployee").onchange=()=>{setPayBase();fillExtra();lastPayroll=null};$("calculateBtn").onclick=calculate;$("resetPayrollBtn").onclick=resetPayroll;$("importExcelBtn").onclick=importExcel;$("downloadTemplateBtn").onclick=downloadTemplate;$("excelFile").onchange=()=>{$("excelFileName").textContent=$("excelFile").files[0]?"فایل انتخاب‌شده: "+$("excelFile").files[0].name:""};
+$("extraBankCard").oninput=e=>{let c=cleanDigits(e.target.value);e.target.value=c;$("extraBankName").value=c.length>=6?bankName(c):""};$("saveExtraBtn").onclick=()=>{let v=validateExtra();if(!v.ok){show($("extraMessage"),"error",v.msg);return}saveExtra();$("validationStatus").innerHTML='<span class="status-pill">'+esc(v.msg)+'</span>';show($("extraMessage"),"success","اطلاعات تکمیلی ذخیره شد.")};
+$("generatePayslipBtn").onclick=showPayslip;$("printPayslipBtn").onclick=printPayslip;$("generateReportBtn").onclick=renderReport;$("exportReportBtn").onclick=exportReport;$("printReportBtn").onclick=printReport;$("clearReportBtn").onclick=()=>{$("reportMonth").value="";$("reportEmployee").value="";$("reportFrom").value="";$("reportTo").value="";renderReport()};
+$("saveSettingsBtn").onclick=()=>{settings={minDaily:num($("minDaily").value),dailySeniority:num($("dailySeniority").value),monthlyFood:num($("monthlyFood").value),insuranceRate:Number($("insuranceRate").value)||0,taxFree:num($("taxFree").value)};saveStore();show($("settingsMessage"),"success","تنظیمات ذخیره شد.")};
 }
-function num(v){
-  let s=normalizeDigits(v).trim()
-    .replace(/[٬,،]/g,"")
-    .replace(/\s+/g,"")
-    .replace(/[^\d.-]/g,"");
-  return Number(s)||0;
-}
-function nationalIdText(v){
-  let s=normalizeDigits(v).trim()
-    .replace(/[٬,،\s-]/g,"")
-    .replace(/[^\d]/g,"");
-  if(!s) return "";
-  // اگر Excel صفر اول را حذف کرده باشد، برای کد ملی 10 رقمی صفر تکمیل می‌شود.
-  if(s.length<10) s=s.padStart(10,"0");
-  return s;
-}
-function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
-function showMessage(el,type,text){el.className="message show "+type;el.textContent=text}
-function normalizeKey(k){return String(k||"").toLowerCase().trim().replace(/\s+/g,"").replace(/ي/g,"ی").replace(/ى/g,"ی").replace(/ك/g,"ک")}
-function findHeader(row,candidates){for(const key of Object.keys(row)){const n=normalizeKey(key);if(candidates.some(c=>n===normalizeKey(c)||n.includes(normalizeKey(c))))return key}return null}
-
-document.querySelectorAll(".nav button[data-section]").forEach(btn=>btn.onclick=()=>{document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));btn.classList.add("active");document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));$(btn.dataset.section).classList.add("active");const t={dashboard:"داشبورد حقوق و دستمزد",employees:"مدیریت پرسنل",payroll:"محاسبه حقوق",insurance:"بیمه و مالیات",payslips:"فیش حقوقی",reports:"گزارش‌ها",settings:"تنظیمات قانونی"};$("pageTitle").textContent=t[btn.dataset.section]||"سامانه حقوق و دستمزد";if(btn.dataset.section==="dashboard")updateDashboard()});
-
-function renderEmployees(){const body=$("employeesTable");if(!employees.length){body.innerHTML='<tr><td colspan="7" class="empty">هنوز پرسنلی ثبت نشده است.</td></tr>';return}body.innerHTML=employees.map((e,i)=>`<tr><td>${escapeHtml(e.code)}</td><td>${escapeHtml(e.firstName)}</td><td>${escapeHtml(e.lastName)}</td><td>${escapeHtml(e.nationalId||"-")}</td><td>${escapeHtml(e.position||"-")}</td><td>${money(e.baseSalary)}</td><td><div class="employee-actions"><button class="btn btn-warning" onclick="openEdit(${i})">✏️ ویرایش</button><button class="btn btn-danger" onclick="deleteEmployee(${i})">🗑️ حذف</button></div></td></tr>`).join("");updateEmployeeSelect()}
-function updateEmployeeSelect(){$("payEmployee").innerHTML=employees.length?employees.map((e,i)=>`<option value="${i}">${escapeHtml(e.code)} - ${escapeHtml(e.firstName)} ${escapeHtml(e.lastName)}</option>`).join(""):'<option value="">پرسنلی وجود ندارد</option>';setPayBase()}
-function setPayBase(){const i=Number($("payEmployee").value);$("payBase").value=employees[i]?Number(employees[i].baseSalary||0).toLocaleString("fa-IR"):"0"}
-$("payEmployee").onchange=setPayBase;
-
-$("employeeForm").onsubmit=e=>{e.preventDefault();const code=$("empCode").value.trim();if(employees.some(x=>String(x.code)===code)){showMessage($("manualMessage"),"error","این کد پرسنلی قبلاً ثبت شده است.");return}employees.push({code,firstName:$("empFirstName").value.trim(),lastName:$("empLastName").value.trim(),nationalId:nationalIdText($("empNationalId").value),position:$("empPosition").value.trim(),baseSalary:num($("empBaseSalary").value)});saveEmployees();renderEmployees();updateDashboard();e.target.reset();showMessage($("manualMessage"),"success","پرسنل با موفقیت اضافه شد.")};
-
-window.openEdit=i=>{const e=employees[i];if(!e)return;$("editIndex").value=i;$("editCode").value=e.code||"";$("editFirstName").value=e.firstName||"";$("editLastName").value=e.lastName||"";$("editNationalId").value=e.nationalId||"";$("editPosition").value=e.position||"";$("editBaseSalary").value=e.baseSalary||0;$("editMessage").className="message";$("editModal").classList.add("show")};
-function closeEdit(){$("editModal").classList.remove("show")}$("closeModal").onclick=closeEdit;$("cancelEdit").onclick=closeEdit;$("editModal").onclick=e=>{if(e.target===$("editModal"))closeEdit()};
-$("editForm").onsubmit=e=>{e.preventDefault();const i=Number($("editIndex").value),code=$("editCode").value.trim();if(employees.some((x,idx)=>idx!==i&&String(x.code)===code)){showMessage($("editMessage"),"error","این کد پرسنلی برای پرسنل دیگری ثبت شده است.");return}employees[i]={code,firstName:$("editFirstName").value.trim(),lastName:$("editLastName").value.trim(),nationalId:nationalIdText($("editNationalId").value),position:$("editPosition").value.trim(),baseSalary:num($("editBaseSalary").value)};saveEmployees();renderEmployees();updateDashboard();closeEdit()};
-window.deleteEmployee=i=>{const e=employees[i];if(e&&confirm("آیا از حذف «"+e.firstName+" "+e.lastName+"» مطمئن هستید؟")){employees.splice(i,1);saveEmployees();renderEmployees();updateDashboard()}};
-
-$("excelFile").onchange=()=>{const f=$("excelFile").files[0];$("excelFileName").textContent=f?"فایل انتخاب‌شده: "+f.name:""};
-$("importExcelBtn").onclick=()=>{const file=$("excelFile").files[0];if(!file){showMessage($("excelMessage"),"error","ابتدا فایل Excel را انتخاب کنید.");return}if(typeof XLSX==="undefined"){showMessage($("excelMessage"),"error","کتابخانه Excel بارگذاری نشده است. صفحه را دوباره باز کنید.");return}const reader=new FileReader();reader.onload=evt=>{try{const wb=XLSX.read(new Uint8Array(evt.target.result),{type:"array"}),ws=wb.Sheets[wb.SheetNames[0]],rows=XLSX.utils.sheet_to_json(ws,{defval:""});if(!rows.length)throw Error("فایل Excel خالی است.");const sample=rows[0],h={code:findHeader(sample,["کد پرسنلی","کدپرسنلی","کد پرسنل","کدپرسنل","personnelcode","employeecode","employeeid","code"]),firstName:findHeader(sample,["نام","firstname","name"]),lastName:findHeader(sample,["نام خانوادگی","نامخانوادگی","lastname","surname"]),nationalId:findHeader(sample,["کد ملی","کدملی","nationalid","nationalcode"]),position:findHeader(sample,["سمت","position","jobtitle"]),baseSalary:findHeader(sample,["حقوق پایه ماهانه","حقوقپایهماهانه","حقوق پایه","حقوقپایه","basesalary","monthlysalary","salary"])};if(!h.code||!h.firstName||!h.lastName||!h.baseSalary)throw Error("ستون‌های ضروری پیدا نشدند. فایل باید حداقل کد پرسنلی، نام، نام خانوادگی و حقوق پایه ماهانه را داشته باشد.");let added=0,skipped=0;const codes=new Set(employees.map(e=>String(e.code)));rows.forEach(r=>{const code=String(r[h.code]??"").trim(),first=String(r[h.firstName]??"").trim(),last=String(r[h.lastName]??"").trim(),salary=num(r[h.baseSalary]);if(!code||!first||!last||!salary||codes.has(code)){skipped++;return}employees.push({code,firstName:first,lastName:last,nationalId:h.nationalId?nationalIdText(r[h.nationalId]):"",position:h.position?String(r[h.position]??"").trim():"",baseSalary:salary});codes.add(code);added++});saveEmployees();renderEmployees();updateDashboard();showMessage($("excelMessage"),"success",`ورود Excel انجام شد: ${added} نفر اضافه شد و ${skipped} ردیف رد شد.`)}catch(err){showMessage($("excelMessage"),"error","خطا در خواندن Excel: "+err.message)}};reader.readAsArrayBuffer(file)};
-$("downloadTemplateBtn").onclick=()=>{if(typeof XLSX==="undefined"){alert("کتابخانه Excel هنوز بارگذاری نشده است.");return}const ws=XLSX.utils.json_to_sheet([{"کد پرسنلی":"1001","نام":"علی","نام خانوادگی":"احمدی","کد ملی":"0012345678","سمت":"کارشناس","حقوق پایه ماهانه":100000000},{"کد پرسنلی":"1002","نام":"مریم","نام خانوادگی":"محمدی","کد ملی":"0023456789","سمت":"حسابدار","حقوق پایه ماهانه":120000000}]),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"پرسنل");XLSX.writeFile(wb,"AmnaYar-Personnel-Template.xlsx")};
-
-function taxCalc(taxable){let x=Math.max(0,taxable-settings.taxFree),tax=0;for(const [limit,rate] of [[400000000,.1],[200000000,.15],[200000000,.2],[200000000,.25]]){const p=Math.min(x,limit);tax+=p*rate;x-=p;if(x<=0)break}if(x>0)tax+=x*.3;return tax}
-function payrollHistory(){try{const a=JSON.parse(localStorage.getItem("amnayar_payroll_history_v11")||"[]");return Array.isArray(a)?a:[]}catch(e){return []}}
-function savePayrollHistory(a){localStorage.setItem("amnayar_payroll_history_v11",JSON.stringify(a.slice(-1000)))}
-function companyScope(){return String(window.AmnaYarPayrollExtra?.companyName||window.AmnaYarCompany?.name||"امنا یار").trim()}
-function calculatePayroll(){const i=Number($("payEmployee").value),e=employees[i];if(!e){alert("ابتدا یک پرسنل را انتخاب کنید.");return}const days=Math.min(31,Math.max(0,num($("workDays").value))),bm=num(e.baseSalary),base=bm*days/30,housing=num($("housing").value)*days/30,food=num($("food").value)*days/30,marriage=num($("marriage").value)*days/30,children=num($("childrenCount").value)*num($("childAllowance").value)*days/30,seniority=num($("seniority").value)*days/30,shift=num($("shiftPay").value),holiday=num($("holidayPay").value),mission=num($("mission").value),bonus=num($("bonus").value),other=num($("otherBenefits").value),hourly=bm/30/7.3333333333,overtime=Math.max(hourly*1.4*num($("overtimeHours").value),num($("overtimeManual").value)),benefits=housing+food+marriage+children+seniority+shift+holiday+mission+bonus+other,gross=base+benefits+overtime,insuranceBase=base+housing+food+marriage+children+seniority+shift+holiday+overtime,insurance=insuranceBase*settings.insuranceRate/100,tax=taxCalc(gross-insurance),deductions=num($("deductions").value),extra=window.AmnaYarPayrollExtra||{},loan=num(extra.loanInstallment),advance=num(extra.advance),net=gross-insurance-tax-deductions-loan-advance;$("rBase").textContent=money(base);$("rOvertime").textContent=money(overtime);$("rBenefits").textContent=money(benefits);$("rGross").textContent=money(gross);$("rInsurance").textContent=money(insurance);$("rTax").textContent=money(tax);$("rDeductions").textContent=money(deductions+loan+advance);$("rNet").textContent=money(net);window.lastPayroll={base,overtime,benefits,gross,insurance,tax,deductions,loanInstallment:loan,advance,net,employeeIndex:i,createdAt:new Date().toISOString()};const r={companyName:companyScope(),payrollMonth:extra.payrollMonth||"",personnelCode:String(e.code||""),fullName:[e.firstName,e.lastName].filter(Boolean).join(" "),position:e.position||"",employeeIndex:i,createdAt:new Date().toISOString(),base,overtime,benefits,gross,insurance,tax,otherDeductions:deductions,loanInstallment:loan,advance,net};const h=payrollHistory();h.push(r);savePayrollHistory(h);if(window.AmnaYarSavePayrollRecord)window.AmnaYarSavePayrollRecord({employee_id:e.serverId||undefined,personnel_code:String(e.code||""),payroll_month:r.payrollMonth,work_days:days,base_salary:base,benefits,overtime,gross,insurance,tax,deductions:deductions+loan+advance,net}).catch(()=>{});updateDashboard();renderReport();alert("محاسبه انجام شد و در گزارش‌ها ثبت شد.")}
-$("calculateBtn").onclick=calculatePayroll;
-function updateDashboard(){const h=payrollHistory().filter(r=>!r.companyName||r.companyName===companyScope());let gross=0,insurance=0,net=0,tax=0,loan=0,advance=0;h.forEach(r=>{gross+=num(r.gross);insurance+=num(r.insurance);net+=num(r.net);tax+=num(r.tax);loan+=num(r.loanInstallment);advance+=num(r.advance)});$("dashEmployees").textContent=employees.length.toLocaleString("fa-IR");$("dashGross").textContent=money(gross);$("dashInsurance").textContent=money(insurance);$("dashNet").textContent=money(net);if($("dashTax"))$("dashTax").textContent=money(tax);if($("dashLoan"))$("dashLoan").textContent=money(loan);if($("dashAdvance"))$("dashAdvance").textContent=money(advance);const host=$("dashboardRecent");if(host){const rows=h.slice(-6).reverse();host.innerHTML=rows.length?rows.map(r=>`<div class="dash-row"><div><b>${escapeHtml(r.fullName||"—")}</b><small>${escapeHtml(r.payrollMonth||"بدون دوره")} · ${escapeHtml(r.personnelCode||"")}</small></div><b>${money(r.net)}</b></div>`).join(""): '<div class="empty">هنوز محاسبه‌ای ثبت نشده است.</div>'}}
-function reportRows(){const h=payrollHistory().filter(r=>!r.companyName||r.companyName===companyScope());const m=String($("reportMonth")?.value||"").trim(),e=String($("reportEmployee")?.value||""),f=$("reportFrom")?.value||"",t=$("reportTo")?.value||"";return h.filter(r=>{if(m&&String(r.payrollMonth||"").trim()!==m)return false;if(e!==""&&String(r.employeeIndex)!==e)return false;const d=String(r.createdAt||"").slice(0,10);if(f&&d<f)return false;if(t&&d>t)return false;return true})}
-function populateReportEmployees(){const s=$("reportEmployee");if(!s)return;const old=s.value;s.innerHTML='<option value="">همه پرسنل</option>'+employees.map((e,i)=>`<option value="${i}">${escapeHtml(e.code)} - ${escapeHtml((e.firstName||"")+" "+(e.lastName||""))}</option>`).join("");if([...s.options].some(o=>o.value===old))s.value=old}
-function renderReport(){populateReportEmployees();const rows=reportRows();let g=0,ins=0,t=0,n=0;rows.forEach(r=>{g+=num(r.gross);ins+=num(r.insurance);t+=num(r.tax);n+=num(r.net)});$("repCount").textContent=rows.length.toLocaleString("fa-IR");$("repGross").textContent=money(g);$("repInsurance").textContent=money(ins);$("repTax").textContent=money(t);$("repNet").textContent=money(n);const b=$("reportsTableBody");if(!b)return;if(!rows.length){b.innerHTML='<tr><td colspan="11" class="report-empty">داده‌ای برای فیلتر انتخاب‌شده وجود ندارد.</td></tr>';return}b.innerHTML=rows.map(r=>`<tr><td>${new Date(r.createdAt).toLocaleDateString("fa-IR")}</td><td>${escapeHtml(r.payrollMonth||"—")}</td><td>${escapeHtml(r.personnelCode||"—")}</td><td>${escapeHtml(r.fullName||"—")}</td><td>${money(r.gross)}</td><td>${money(r.insurance)}</td><td>${money(r.tax)}</td><td>${money(r.loanInstallment)}</td><td>${money(r.advance)}</td><td>${money(r.otherDeductions)}</td><td><b>${money(r.net)}</b></td></tr>`).join("")}
-function exportPayrollReport(){const rows=reportRows();if(!rows.length){alert("گزارشی برای خروجی وجود ندارد.");return}if(typeof XLSX==="undefined"){alert("کتابخانه Excel بارگذاری نشده است.");return}const data=rows.map(r=>({"تاریخ":new Date(r.createdAt).toLocaleDateString("fa-IR"),"ماه":r.payrollMonth||"","کد پرسنلی":r.personnelCode||"","نام و نام خانوادگی":r.fullName||"","ناخالص":num(r.gross),"بیمه":num(r.insurance),"مالیات":num(r.tax),"وام":num(r.loanInstallment),"مساعده":num(r.advance),"سایر کسورات":num(r.otherDeductions),"خالص پرداختی":num(r.net)}));const ws=XLSX.utils.json_to_sheet(data),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"گزارش حقوق");XLSX.writeFile(wb,"AmnaYar-Payroll-Report.xlsx")}
-function printPayrollReport(){if(!reportRows().length){alert("ابتدا یک گزارش دارای داده تولید کنید.");return}const w=window.open("","_blank");if(!w){alert("مرورگر اجازه چاپ را نداد. از خروجی Excel استفاده کنید.");return}const rows=reportRows();const body=rows.map(r=>`<tr><td>${new Date(r.createdAt).toLocaleDateString("fa-IR")}</td><td>${escapeHtml(r.payrollMonth||"")}</td><td>${escapeHtml(r.personnelCode||"")}</td><td>${escapeHtml(r.fullName||"")}</td><td>${money(r.gross)}</td><td>${money(r.insurance)}</td><td>${money(r.tax)}</td><td>${money(r.loanInstallment)}</td><td>${money(r.advance)}</td><td>${money(r.otherDeductions)}</td><td>${money(r.net)}</td></tr>`).join("");w.document.write(`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="UTF-8"><title>گزارش حقوق</title><style>body{font-family:Tahoma,Arial,sans-serif;padding:18px;color:#172033}h1{text-align:center}p{text-align:center;color:#64748b}table{width:100%;border-collapse:collapse}th,td{border:1px solid #aaa;padding:6px;font-size:10px}th{background:#eee}@page{size:A4 landscape;margin:8mm}</style></head><body><h1>گزارش حقوق و دستمزد</h1><p>${escapeHtml(companyScope())}</p><table><thead><tr><th>تاریخ</th><th>ماه</th><th>کد</th><th>نام</th><th>ناخالص</th><th>بیمه</th><th>مالیات</th><th>وام</th><th>مساعده</th><th>کسورات</th><th>خالص</th></tr></thead><tbody>${body}</tbody></table></body></html>`);w.document.close();w.onload=()=>setTimeout(()=>w.print(),300)}
-function loadSettings(){$("minDaily").value=settings.minDaily;$("dailySeniority").value=settings.dailySeniority;$("monthlyFood").value=settings.monthlyFood;$("insuranceRate").value=settings.insuranceRate;$("taxFree").value=settings.taxFree}
-$("saveSettingsBtn").onclick=()=>{settings.minDaily=num($("minDaily").value);settings.dailySeniority=num($("dailySeniority").value);settings.monthlyFood=num($("monthlyFood").value);settings.insuranceRate=num($("insuranceRate").value);settings.taxFree=num($("taxFree").value);localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));updateDashboard();alert("تنظیمات ذخیره شد.")};
-loadSettings();renderEmployees();updateDashboard();
+(async function(){await detectCompany();loadSettings();wire();renderEmployees();renderDashboard();renderReport();fillExtra()})();
 </script>
-
-<!-- امکانات تکمیلی حقوق و دستمزد -->
-<script>
-/* اعتبارسنجی کد ملی ایران */
-function isValidIranNationalCode(code){
-    code = String(code).replace(/\D/g,'');
-    if(code.length!==10) return false;
-    if(/^(\d)\1{9}$/.test(code)) return false;
-    let sum=0;
-    for(let i=0;i<9;i++) sum += Number(code[i])*(10-i);
-    let r=sum%11;
-    let check = r<2 ? r : 11-r;
-    return check===Number(code[9]);
-}
-
-/* فیلدهای تکمیلی فیش حقوقی */
-const payrollExtraFields={
- companyName:"",
- organizationName:"",
- payrollMonth:"",
- jobWage:0,
- loanTotal:0,
- loanInstallment:0,
- loanRemain:0,
- advance:0,
- leaveRemain:0
-};
-
-function checkEmployeeNationalInput(id){
-    const el=document.getElementById(id);
-    if(!el) return;
-    if(el.value && !isValidIranNationalCode(el.value)){
-        alert("کد ملی وارد شده صحیح نیست.");
-        el.focus();
-    }
-}
-
-/* اطلاعاتی که باید در فیش حقوقی نمایش داده شوند */
-function getPayslipExtra(){
- return {
-   "نام شرکت":payrollExtraFields.companyName,
-   "سازمان":payrollExtraFields.organizationName,
-   "ماه محاسبه":payrollExtraFields.payrollMonth,
-   "مزد شغل":payrollExtraFields.jobWage,
-   "کل وام":payrollExtraFields.loanTotal,
-   "قسط این ماه وام":payrollExtraFields.loanInstallment,
-   "مانده وام":payrollExtraFields.loanRemain,
-   "مساعده":payrollExtraFields.advance,
-   "مانده مرخصی":payrollExtraFields.leaveRemain
- };
-}
-</script>
-
-
-<script>
-/* اعتبارسنجی شماره کارت بانکی ایران (Luhn) */
-function normalizeDigits(v){
- v=String(v||"");
- const fa="۰۱۲۳۴۵۶۷۸۹", ar="٠١٢٣٤٥٦٧٨٩";
- return v.replace(/[۰-۹]/g,d=>fa.indexOf(d)).replace(/[٠-٩]/g,d=>ar.indexOf(d)).replace(/\D/g,"");
-}
-
-function isValidBankCard(card){
- card=normalizeDigits(card);
- if(card.length!==16) return false;
- let sum=0;
- for(let i=0;i<16;i++){
-   let n=Number(card[i]);
-   if(i%2===0){ n*=2; if(n>9)n-=9; }
-   sum+=n;
- }
- return sum%10===0;
-}
-
-/* اعتبارسنجی شبا ایران */
-function isValidSheba(iban){
- iban=String(iban||"").replace(/\s|-/g,"").toUpperCase();
- if(!iban.startsWith("IR")) return false;
- if(iban.length!==26) return false;
- let rearranged=iban.substring(4)+"1827"+iban.substring(2,4);
- let remainder=0;
- for(let c of rearranged){
-   let digits=c.match(/\d/) ? c : (c.charCodeAt(0)-55).toString();
-   for(let d of digits){
-     remainder=(remainder*10+Number(d))%97;
-   }
- }
- return remainder===1;
-}
-
-/* بانک از روی شماره کارت */
-function detectBank(card){
- const c=normalizeDigits(card).substring(0,6);
- const banks={
- "603799":"بانک ملی ایران",
- "589210":"بانک سپه",
- "627648":"بانک توسعه صادرات",
- "627961":"بانک صنعت و معدن",
- "603770":"بانک کشاورزی",
- "628023":"بانک مسکن",
- "627760":"پست بانک ایران",
- "502908":"بانک توسعه تعاون",
- "627353":"بانک تجارت",
- "585983":"بانک تجارت",
- "589463":"بانک رفاه کارگران",
- "603769":"بانک صادرات ایران",
- "627412":"بانک اقتصاد نوین",
- "622106":"بانک پارسیان",
- "639194":"بانک پارسیان",
- "639347":"بانک پاسارگاد",
- "639346":"بانک سینا",
- "639607":"بانک سرمایه"
- };
- return banks[c] || "بانک شناسایی نشد";
-}
-
-/* اطلاعات تکمیلی فیش */
-const payslipAdvanced={
- bankCard:"",
- bankName:"",
- sheba:"",
- socialSecurity:"",
- hireDate:"",
- workExperience:"",
- maritalStatus:"",
- childrenCount:0,
- absence:0,
- deductionLeave:0,
- overtimeHours:0,
- managerSignature:"",
- companyStamp:""
-};
-</script>
-
-
-<style>
-/* فیش حقوقی حرفه‌ای و مناسب چاپ */
-.payslip-pro{max-width:980px;margin:20px auto;padding:26px;background:#fff;border:1px solid #d8dee9;border-radius:18px;font-family:Tahoma,Arial,sans-serif;color:#172033;box-shadow:0 8px 30px rgba(15,23,42,.07)}
-.payslip-head{display:flex;align-items:center;justify-content:space-between;gap:20px;padding-bottom:18px;border-bottom:3px solid #172554;margin-bottom:18px}.payslip-brand{display:flex;align-items:center;gap:12px}.payslip-brand img{width:58px;height:58px;object-fit:contain;border-radius:14px}.payslip-brand strong{font-size:20px}.payslip-meta{text-align:left;font-size:12px;line-height:2;color:#475569}.payslip-title{text-align:center;margin:10px 0 18px;font-size:22px}.payslip-section-title{background:#f1f5f9;border-right:5px solid #2563eb;padding:9px 12px;font-weight:bold;margin-top:14px}.payslip-pro table{width:100%;border-collapse:collapse;margin:0}.payslip-pro th,.payslip-pro td{border:1px solid #d9e0ea;padding:9px 10px;text-align:right;font-size:12px}.payslip-pro th{background:#f8fafc;font-weight:700;width:18%}.payslip-pro td{width:32%}.payslip-pro .total{font-weight:800;font-size:14px}.payslip-net{margin-top:16px;padding:15px;border:2px solid #172554;border-radius:12px;display:flex;justify-content:space-between;align-items:center;font-weight:800}.payslip-net strong{font-size:19px}.payslip-sign{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-top:42px}.payslip-sign>div{min-height:90px;text-align:center;border-top:1px solid #94a3b8;padding-top:10px;font-size:12px}.payslip-foot{margin-top:20px;padding-top:10px;border-top:1px solid #e2e8f0;text-align:center;font-size:10px;color:#64748b}
-@media print{body{background:#fff!important}.sidebar,.topbar,.no-print,.notice{display:none!important}.main{margin:0!important;width:100%!important;padding:0!important}.section{display:none!important}.section.active#payslips{display:block!important}.panel{box-shadow:none!important;padding:0!important;margin:0!important}.payslip-pro{display:block!important;max-width:none!important;margin:0!important;padding:12mm!important;border:0!important;border-radius:0!important;box-shadow:none!important}.payslip-pro *{visibility:visible!important}.payslip-pro{break-inside:avoid} @page{size:A4 portrait;margin:8mm}}
-@media(max-width:600px){.payslip-head{align-items:flex-start;flex-direction:column}.payslip-meta{text-align:right}.payslip-pro{padding:14px}.payslip-pro th,.payslip-pro td{padding:7px 6px;font-size:10px}.payslip-sign{gap:7px}.payslip-title{font-size:18px}}
-</style>
-
-<script>
-function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));}
-function formatMoney(v){return new Intl.NumberFormat("fa-IR").format(Math.round(Number(v)||0))+" ریال";}
-function buildProfessionalPayslip(data={}){
- const gross=Number(data.gross||0), insurance=Number(data.insurance||0), tax=Number(data.tax||0), otherD=Number(data.otherDeductions||data.deductions||0), advance=Number(data.advance||0), loan=Number(data.loanInstallment||0);
- const net=Number(data.net!=null?data.net:gross-insurance-tax-otherD-advance-loan);
- const dateText=data.paymentDate?new Date(data.paymentDate).toLocaleDateString("fa-IR"):"—";
- return `<div id="printPayslip" class="payslip-pro official-payslip">
-  <div class="payslip-head"><div class="payslip-brand"><img src="/assets/logo-amnayar.png" alt="امنا یار"><div><strong>${escapeHtml(data.companyName||"امنا یار")}</strong><br><span>${escapeHtml(data.organizationName||"سامانه حقوق و دستمزد")}</span></div></div><div class="payslip-meta">ماه حقوق: ${escapeHtml(data.payrollMonth||"—")}<br>تاریخ پرداخت: ${escapeHtml(dateText)}</div></div>
-  <div class="payslip-title">فیش حقوق و دستمزد</div>
-  <div class="payslip-section-title">اطلاعات پرسنلی</div><table>
-   <tr><th>کد پرسنلی</th><td>${escapeHtml(data.personnelCode||"—")}</td><th>کد ملی</th><td>${escapeHtml(data.nationalId||"—")}</td></tr>
-   <tr><th>نام و نام خانوادگی</th><td>${escapeHtml(data.fullName||"—")}</td><th>سمت</th><td>${escapeHtml(data.position||"—")}</td></tr>
-   <tr><th>شماره بیمه</th><td>${escapeHtml(data.socialSecurity||"—")}</td><th>تاریخ استخدام</th><td>${escapeHtml(data.hireDate||"—")}</td></tr>
-   <tr><th>وضعیت تأهل</th><td>${escapeHtml(data.maritalStatus||"—")}</td><th>تعداد فرزند</th><td>${escapeHtml(data.childrenCount??0)}</td></tr>
-  </table>
-  <div class="payslip-section-title">اطلاعات بانکی</div><table>
-   <tr><th>بانک</th><td>${escapeHtml(data.bankName||"—")}</td><th>شماره حساب</th><td>${escapeHtml(data.accountNumber||"—")}</td></tr>
-   <tr><th>شماره کارت</th><td>${escapeHtml(data.bankCard||"—")}</td><th>شماره شبا</th><td>${escapeHtml(data.sheba||"—")}</td></tr>
-  </table>
-  <div class="payslip-section-title">مزایا و دریافتی‌ها</div><table>
-   <tr><th>حقوق پایه</th><td>${formatMoney(data.base)}</td><th>مزد شغل</th><td>${formatMoney(data.jobWage)}</td></tr>
-   <tr><th>حق مسکن</th><td>${formatMoney(data.housing)}</td><th>بن کارگری</th><td>${formatMoney(data.food)}</td></tr>
-   <tr><th>حق تأهل</th><td>${formatMoney(data.marriage)}</td><th>حق اولاد</th><td>${formatMoney(data.children)}</td></tr>
-   <tr><th>سنوات</th><td>${formatMoney(data.seniority)}</td><th>اضافه‌کاری</th><td>${formatMoney(data.overtime)}</td></tr>
-   <tr><th>نوبت‌کاری / شب‌کاری</th><td>${formatMoney(data.shiftPay)}</td><th>تعطیل‌کاری</th><td>${formatMoney(data.holidayPay)}</td></tr>
-   <tr><th>مأموریت</th><td>${formatMoney(data.mission)}</td><th>پاداش</th><td>${formatMoney(data.bonus)}</td></tr>
-   <tr><th>سایر مزایا</th><td>${formatMoney(data.otherBenefits||data.other)}</td><th>ناخالص پرداختی</th><td class="total">${formatMoney(gross)}</td></tr>
-  </table>
-  <div class="payslip-section-title">کسورات</div><table>
-   <tr><th>بیمه سهم کارمند</th><td>${formatMoney(insurance)}</td><th>مالیات</th><td>${formatMoney(tax)}</td></tr>
-   <tr><th>مساعده</th><td>${formatMoney(advance)}</td><th>قسط وام</th><td>${formatMoney(loan)}</td></tr>
-   <tr><th>سایر کسورات</th><td>${formatMoney(otherD)}</td><th>جمع کسورات</th><td class="total">${formatMoney(insurance+tax+advance+loan+otherD)}</td></tr>
-  </table>
-  <div class="payslip-net"><span>خالص پرداختی</span><strong>${formatMoney(net)}</strong></div>
-  <div class="payslip-section-title">وضعیت و سوابق</div><table>
-   <tr><th>مانده وام</th><td>${formatMoney(data.loanRemain)}</td><th>کل وام</th><td>${formatMoney(data.loanTotal)}</td></tr>
-   <tr><th>مانده مرخصی</th><td>${escapeHtml(data.leaveRemain??0)} روز</td><th>سابقه کار</th><td>${escapeHtml(data.workExperience||"—")}</td></tr>
-   <tr><th>غیبت</th><td>${escapeHtml(data.absence??0)}</td><th>کسر کار</th><td>${escapeHtml(data.deductionLeave??0)}</td></tr>
-  </table>
-  <div class="payslip-sign"><div>تهیه‌کننده فیش<br><br>${escapeHtml(data.preparer||"")}</div><div>تأیید مدیر<br><br>${escapeHtml(data.managerSignature||"")}</div><div>مهر و امضای شرکت<br><br>${escapeHtml(data.companyStamp||"")}</div></div>
-  <div class="payslip-foot">این فیش توسط سامانه حقوق و دستمزد امنا یار تهیه شده است.</div>
- </div>`;
-}
-function openPayslipPrintWindow(data){
- const html=buildProfessionalPayslip(data);
- const printCss=`<style>
- body{margin:0;background:#fff;font-family:Tahoma,Arial,sans-serif;color:#172033}
- .payslip-pro{max-width:980px;margin:auto;padding:12mm}
- .payslip-head{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #172554;padding-bottom:15px}
- .payslip-brand{display:flex;align-items:center;gap:12px}.payslip-brand img{width:58px;height:58px}.payslip-brand strong{font-size:20px}
- .payslip-meta{text-align:left;font-size:12px;line-height:2}.payslip-title{text-align:center;font-size:22px;font-weight:bold;margin:18px}
- .payslip-section-title{background:#f1f5f9;border-right:5px solid #2563eb;padding:9px;margin-top:14px;font-weight:bold}
- .payslip-pro table{width:100%;border-collapse:collapse}.payslip-pro th,.payslip-pro td{border:1px solid #cbd5e1;padding:8px;text-align:right;font-size:11px}.payslip-pro th{background:#f8fafc;width:18%}.payslip-pro td{width:32%}.total{font-weight:bold}
- .payslip-net{margin-top:15px;padding:14px;border:2px solid #172554;display:flex;justify-content:space-between;font-weight:bold}.payslip-net strong{font-size:18px}
- .payslip-sign{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-top:45px}.payslip-sign>div{text-align:center;border-top:1px solid #94a3b8;padding-top:10px;min-height:70px;font-size:11px}.payslip-foot{text-align:center;margin-top:18px;font-size:9px;color:#64748b}
- @page{size:A4 portrait;margin:8mm}@media print{.payslip-pro{padding:0}.payslip-sign{break-inside:avoid}}
- </style>`;
- // First try a new tab. This works well on desktop and preserves the original page.
- const w=window.open("","_blank","width=900,height=1000");
- if(w){
-   w.document.open();w.document.write(`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>فیش حقوقی - ${escapeHtml(data.fullName||"")}</title>${printCss}</head><body>${html}</body></html>`);w.document.close();
-   setTimeout(()=>{try{w.focus();w.print();}catch(e){}},350);return true;
- }
- // Mobile fallback: print the payslip in the current tab if popups are blocked.
- const original=document.body.innerHTML;
- const originalTitle=document.title;
- document.title="فیش حقوقی - "+(data.fullName||"");
- document.body.innerHTML=html+printCss;
- let restored=false;
- const restore=()=>{if(restored)return;restored=true;document.body.innerHTML=original;document.title=originalTitle;window.removeEventListener("afterprint",restore);};
- window.addEventListener("afterprint",restore);
- setTimeout(()=>{window.print();setTimeout(restore,1500)},150);
- return true;
-}
-</script>
-
-<div class="bank-validation-note">
-  شماره کارت بانکی و شماره شبا قبل از ثبت کنترل می‌شوند. در صورت نادرست بودن، اخطار نمایش داده می‌شود.
-</div>
-
-
-<!-- AMNAYAR_PAYROLL_V5 -->
-<style>
-.amnayar-extra-panel{margin-top:18px;padding:18px;border:1px solid #ddd;border-radius:14px;background:#fafafa}
-.amnayar-extra-panel h3{margin-top:0}
-.amnayar-extra-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
-.amnayar-extra-grid label{display:flex;flex-direction:column;gap:6px;font-size:13px}
-.amnayar-extra-grid input,.amnayar-extra-grid select{padding:9px;border:1px solid #ccc;border-radius:9px}
-.amnayar-msg{margin-top:10px;padding:9px;border-radius:8px;font-size:13px}
-.amnayar-ok{background:#eaf8ee}.amnayar-error{background:#fff0f0}
-.amnayar-print-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
-</style>
-<script>
-(function(){
-  const KEY="amnayar_payroll_v5_extra";
-
-  function faNum(v){
-    return String(v??"").replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d))
-      .replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d));
-  }
-  function cleanCard(v){return faNum(v).replace(/[^0-9]/g,"");}
-  function cleanSheba(v){
-    v=String(v||"").replace(/\s|-/g,"").toUpperCase();
-    return v.startsWith("IR")?v:"IR"+v.replace(/^IR/,"");
-  }
-  function validNational(v){
-    v=cleanCard(v); if(v.length!==10 || /^(\d)\1{9}$/.test(v)) return false;
-    let s=0; for(let i=0;i<9;i++) s+=+v[i]*(10-i);
-    let r=s%11, c=r<2?r:11-r; return c===+v[9];
-  }
-  function validCard(v){
-    v=cleanCard(v); if(v.length!==16 || /^(\d)\1{15}$/.test(v)) return false;
-    let s=0; for(let i=0;i<16;i++){let n=+v[i]; if(i%2===0){n*=2;if(n>9)n-=9}s+=n}
-    return s%10===0;
-  }
-  function validSheba(v){
-    let x=cleanSheba(v); if(!/^IR\d{24}$/.test(x)) return false;
-    let moved=x.slice(4)+"1827"+x.slice(2,4), rem=0;
-    for(const ch of moved) rem=(rem*10+Number(ch))%97;
-    return rem===1;
-  }
-  function bankName(v){
-    const p=cleanCard(v).slice(0,6);
-    const m={
-      "603799":"بانک ملی ایران","589210":"بانک سپه","627648":"بانک توسعه صادرات",
-      "627961":"بانک صنعت و معدن","603770":"بانک کشاورزی","628023":"بانک مسکن",
-      "627760":"پست بانک ایران","502908":"بانک توسعه تعاون","627353":"بانک تجارت",
-      "585983":"بانک تجارت","589463":"بانک رفاه کارگران","603769":"بانک صادرات ایران",
-      "627412":"بانک اقتصاد نوین","622106":"بانک پارسیان","639194":"بانک پارسیان",
-      "639347":"بانک پاسارگاد","639346":"بانک سینا","639607":"بانک سرمایه",
-      "621986":"بانک سامان","639346":"بانک سینا","502229":"بانک پاسارگاد",
-      "505785":"بانک ایران زمین","505416":"بانک گردشگری","636214":"بانک آینده",
-      "505801":"موسسه اعتباری کوثر","504172":"بانک رسالت","505809":"بانک خاورمیانه",
-      "505785":"بانک ایران زمین","502938":"بانک دی","639217":"بانک کشاورزی"
-    };
-    return m[p]||"بانک شناسایی نشد";
-  }
-  function money(v){return new Intl.NumberFormat("fa-IR").format(Number(v||0));}
-
-  function getSaved(){try{return JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){return {}}}
-  function saveExtra(){localStorage.setItem(KEY,JSON.stringify(window.AmnaYarPayrollExtra||{}))}
-
-  window.AmnaYarPayrollExtra = Object.assign({
-    companyName:"",organizationName:"",payrollMonth:"",
-    jobWage:0,socialSecurity:"",hireDate:"",workExperience:"",
-    maritalStatus:"",childrenCount:0,absence:0,deductionLeave:0,
-    bankCard:"",bankName:"",sheba:"",
-    loanTotal:0,loanInstallment:0,loanRemain:0,advance:0,
-    leaveRemain:0,preparer:"",managerSignature:"",companyStamp:"",
-    paymentDate:"",accountNumber:""
-  },getSaved());
-
-  window.AmnaYarPayrollValidate = function(){
-    const e=window.AmnaYarPayrollExtra;
-    const nid=document.querySelector('[name="nationalId"],#nationalId');
-    if(nid && nid.value && !validNational(nid.value)) return {ok:false,message:"کد ملی وارد شده صحیح نیست."};
-    if(e.bankCard && !validCard(e.bankCard)) return {ok:false,message:"شماره کارت بانکی وارد شده صحیح نیست."};
-    if(e.sheba && !validSheba(e.sheba)) return {ok:false,message:"شماره شبا وارد شده صحیح نیست."};
-    return {ok:true,message:"اطلاعات معتبر است."};
-  };
-
-  window.AmnaYarPayrollSaveExtra=function(){
-    const e=window.AmnaYarPayrollExtra;
-    e.bankCard=cleanCard(e.bankCard);
-    if(e.bankCard) e.bankName=bankName(e.bankCard);
-    e.sheba=cleanSheba(e.sheba);
-    const check=window.AmnaYarPayrollValidate();
-    if(!check.ok){alert(check.message);return false}
-    saveExtra(); return true;
-  };
-
-  window.AmnaYarRenderExtraForm=function(container){
-    if(!container) return;
-    const e=window.AmnaYarPayrollExtra;
-    container.innerHTML=`
-      <div class="amnayar-extra-panel">
-       <h3>اطلاعات تکمیلی حقوق و فیش</h3>
-       <div class="amnayar-extra-grid">
-        <label>نام شرکت<input data-a="companyName" value="${e.companyName||""}"></label>
-        <label>نام سازمان<input data-a="organizationName" value="${e.organizationName||""}"></label>
-        <label>ماه محاسبه<input data-a="payrollMonth" placeholder="مثلاً شهریور ۱۴۰۵" value="${e.payrollMonth||""}"></label>
-        <label>مزد شغل<input data-a="jobWage" inputmode="numeric" value="${e.jobWage||0}"></label>
-        <label>شماره بیمه<input data-a="socialSecurity" value="${e.socialSecurity||""}"></label>
-        <label>تاریخ استخدام<input type="date" data-a="hireDate" value="${e.hireDate||""}"></label>
-        <label>سابقه کار<input data-a="workExperience" placeholder="مثلاً ۵ سال و ۳ ماه" value="${e.workExperience||""}"></label>
-        <label>وضعیت تأهل<select data-a="maritalStatus"><option value="">انتخاب</option><option ${e.maritalStatus==="مجرد"?"selected":""}>مجرد</option><option ${e.maritalStatus==="متأهل"?"selected":""}>متأهل</option></select></label>
-        <label>تعداد فرزند<input data-a="childrenCount" inputmode="numeric" value="${e.childrenCount||0}"></label>
-        <label>شماره کارت بانکی<input data-a="bankCard" inputmode="numeric" placeholder="۱۶ رقم" value="${e.bankCard||""}"></label>
-        <label>نام بانک<input data-a="bankName" readonly value="${e.bankName||""}"></label>
-        <label>شماره شبا<input data-a="sheba" placeholder="IR..." value="${e.sheba||""}"></label>
-        <label>شماره حساب<input data-a="accountNumber" value="${e.accountNumber||""}"></label>
-        <label>کل وام<input data-a="loanTotal" inputmode="numeric" value="${e.loanTotal||0}"></label>
-        <label>قسط ماهانه وام<input data-a="loanInstallment" inputmode="numeric" value="${e.loanInstallment||0}"></label>
-        <label>مانده وام<input data-a="loanRemain" inputmode="numeric" value="${e.loanRemain||0}"></label>
-        <label>مساعده<input data-a="advance" inputmode="numeric" value="${e.advance||0}"></label>
-        <label>مانده مرخصی (روز)<input data-a="leaveRemain" inputmode="decimal" value="${e.leaveRemain||0}"></label>
-        <label>غیبت<input data-a="absence" inputmode="decimal" value="${e.absence||0}"></label>
-        <label>کسر کار<input data-a="deductionLeave" inputmode="decimal" value="${e.deductionLeave||0}"></label>
-        <label>تاریخ پرداخت<input type="date" data-a="paymentDate" value="${e.paymentDate||""}"></label>
-        <label>تهیه‌کننده فیش<input data-a="preparer" value="${e.preparer||""}"></label>
-        <label>تأیید مدیر<input data-a="managerSignature" value="${e.managerSignature||""}"></label>
-        <label>مهر شرکت<input data-a="companyStamp" value="${e.companyStamp||""}"></label>
-       </div>
-       <div class="amnayar-print-actions">
-        <button type="button" id="savePayrollExtra">ذخیره اطلاعات</button>
-        <button type="button" id="printPayrollExtra">چاپ فیش</button>
-       </div>
-       <div id="payrollExtraMsg" class="amnayar-msg"></div>
-      </div>`;
-    container.querySelectorAll("[data-a]").forEach(el=>{
-      el.addEventListener("input",()=>{
-        const k=el.dataset.a; window.AmnaYarPayrollExtra[k]=el.value;
-        if(k==="bankCard"){
-          const c=cleanCard(el.value);
-          window.AmnaYarPayrollExtra.bankCard=c;
-          const b=container.querySelector('[data-a="bankName"]');
-          if(b)b.value=c.length>=6?bankName(c):"";
-          window.AmnaYarPayrollExtra.bankName=b?b.value:"";
-        }
-        saveExtra();
-      });
-    });
-    container.querySelector("#savePayrollExtra").onclick=()=>{
-      const ok=window.AmnaYarPayrollSaveExtra();
-      const msg=container.querySelector("#payrollExtraMsg");
-      msg.textContent=ok?"اطلاعات با موفقیت ذخیره شد.":"";
-      msg.className="amnayar-msg "+(ok?"amnayar-ok":"amnayar-error");
-    };
-    container.querySelector("#printPayrollExtra").onclick=()=>{
-      if(!window.AmnaYarPayrollSaveExtra())return;
-      const d=window.AmnaYarGetPayslipData?window.AmnaYarGetPayslipData():window.AmnaYarPayrollExtra;
-      openPayslipPrintWindow(d);
-    };
-  };
-
-  /* اگر فرم‌های اصلی شناخته شوند، پنل به صفحه محاسبه حقوق متصل می‌شود. */
-  function autoMount(){
-    const candidates=[
-      document.querySelector("#payroll"),
-      document.querySelector("#payrollSection"),
-      document.querySelector('[data-section="payroll"]'),
-      document.querySelector(".payroll-section")
-    ].filter(Boolean);
-    const host=candidates[0];
-    if(host && !document.getElementById("amnayar-extra-mount")){
-      const d=document.createElement("div");d.id="amnayar-extra-mount";host.appendChild(d);
-      window.AmnaYarRenderExtraForm(d);
-    }
-  }
-  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",autoMount); else autoMount();
-})();
-</script>
-
-
-<script>
-window.AmnaYarGetPayslipData=function(){
- const e=window.AmnaYarPayrollExtra||{}; const idx=Number($('payEmployee')?.value||-1); const emp=employees[idx]||{};
- const v=id=>$(id)?.value||0; const n=id=>num(v(id));
- const children=n('childrenCount'), childAllowance=n('childAllowance');
- const base=n('payBase')||Number(emp.baseSalary||0); const housing=n('housing'), food=n('food'), marriage=n('marriage'), seniority=n('seniority');
- const overtime=Number(window.lastPayroll?.overtime||0), shiftPay=n('shiftPay'), holidayPay=n('holidayPay'), mission=n('mission'), bonus=n('bonus'), otherBenefits=n('otherBenefits');
- const gross=Number(window.lastPayroll?.gross||0)||base+housing+food+marriage+(children*childAllowance)+seniority+overtime+shiftPay+holidayPay+mission+bonus+otherBenefits;
- const insurance=Number(window.lastPayroll?.insurance||0)||0, tax=Number(window.lastPayroll?.tax||0)||0, deductions=n('deductions');
- const advance=num(e.advance), loan=num(e.loanInstallment); const net=Number(window.lastPayroll?.net); 
- return Object.assign({},e,{companyName:e.companyName||"امنا یار",organizationName:e.organizationName||"سامانه حقوق و دستمزد",personnelCode:emp.code||"",nationalId:emp.nationalId||"",fullName:[emp.firstName,emp.lastName].filter(Boolean).join(" "),position:emp.position||"",base,jobWage:num(e.jobWage),housing,food,marriage,children:children*childAllowance,childrenCount:children,seniority,overtime,shiftPay,holidayPay,mission,bonus,otherBenefits,gross,insurance,tax,otherDeductions:deductions,advance,loanInstallment:loan,net:Number.isFinite(net)?net:gross-insurance-tax-deductions-advance-loan,bankCard:e.bankCard,bankName:e.bankName,sheba:e.sheba,accountNumber:e.accountNumber});
-};
-function showPayslip(){
- const host=$('payslipPreview'); if(!host)return; const d=window.AmnaYarGetPayslipData(); host.innerHTML=buildProfessionalPayslip(d); $('payslipMsg').textContent="فیش آماده چاپ و PDF است."; $('payslipMsg').className="message show success";
-}
-function printCurrentPayslip(){
- const d=window.AmnaYarGetPayslipData();
- if(!d.fullName){alert("ابتدا یک پرسنل را در بخش محاسبه حقوق انتخاب کنید.");return}
- // Mobile-first: stay in the current tab so Android Chrome opens its print/PDF screen directly.
- const html=buildProfessionalPayslip(d);
- const css=`<style id="amnayar-direct-pdf-style">
- body.amnayar-pdf-mode{margin:0!important;background:#fff!important}
- body.amnayar-pdf-mode>*:not(#amnayarPdfPrintHost){display:none!important}
- #amnayarPdfPrintHost{display:block!important;background:#fff!important}
- #amnayarPdfPrintHost .payslip-pro{max-width:980px;margin:auto;padding:12mm;font-family:Tahoma,Arial,sans-serif;color:#172033}
- #amnayarPdfPrintHost .payslip-head{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #172554;padding-bottom:15px}
- #amnayarPdfPrintHost .payslip-brand{display:flex;align-items:center;gap:12px}
- #amnayarPdfPrintHost .payslip-brand img{width:58px;height:58px}
- #amnayarPdfPrintHost .payslip-meta{text-align:left;font-size:12px;line-height:2}
- #amnayarPdfPrintHost .payslip-title{text-align:center;font-size:22px;font-weight:bold;margin:18px}
- #amnayarPdfPrintHost .payslip-section-title{background:#f1f5f9;border-right:5px solid #2563eb;padding:9px;margin-top:14px;font-weight:bold}
- #amnayarPdfPrintHost table{width:100%;border-collapse:collapse}
- #amnayarPdfPrintHost th,#amnayarPdfPrintHost td{border:1px solid #cbd5e1;padding:8px;text-align:right;font-size:11px}
- #amnayarPdfPrintHost th{background:#f8fafc}
- #amnayarPdfPrintHost .payslip-net{margin-top:15px;padding:14px;border:2px solid #172554;display:flex;justify-content:space-between;font-weight:bold}
- #amnayarPdfPrintHost .payslip-sign{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-top:45px}
- #amnayarPdfPrintHost .payslip-sign>div{text-align:center;border-top:1px solid #94a3b8;padding-top:10px;min-height:70px;font-size:11px}
- @page{size:A4 portrait;margin:8mm}
- @media print{#amnayarPdfPrintHost .payslip-pro{padding:0}#amnayarPdfPrintHost .payslip-sign{break-inside:avoid}}
- </style>`;
- let host=document.getElementById("amnayarPdfPrintHost");
- if(!host){host=document.createElement("div");host.id="amnayarPdfPrintHost";document.body.appendChild(host)}
- host.innerHTML=css+html;
- document.body.classList.add("amnayar-pdf-mode");
- const oldTitle=document.title; document.title="فیش حقوقی - "+d.fullName;
- let restored=false;
- const restore=()=>{if(restored)return;restored=true;document.body.classList.remove("amnayar-pdf-mode");host.remove();document.title=oldTitle;window.removeEventListener("afterprint",restore)};
- window.addEventListener("afterprint",restore,{once:true});
- setTimeout(()=>{window.print();setTimeout(restore,4000)},250);
-}
-document.addEventListener('DOMContentLoaded',()=>{setTimeout(()=>{if($('generatePayslipBtn'))$('generatePayslipBtn').onclick=showPayslip;if($('downloadPayslipBtn'))$('downloadPayslipBtn').onclick=printCurrentPayslip;},0)});
-</script>
-
-<!-- AMNAYAR MULTI-COMPANY CLIENT V6 -->
-<script>
-(function(){
- const API=(window.AMNAYAR_API_BASE||"https://api.amnayar.ir/api").replace(/\/$/,"");
- const TOKEN_KEY="amnayar_token";
- function token(){return localStorage.getItem(TOKEN_KEY)||localStorage.getItem("token")||""}
- async function api(path,opt={}){
-   const h=Object.assign({"Content-Type":"application/json"},opt.headers||{});
-   const t=token(); if(t)h.Authorization="Bearer "+t;
-   const r=await fetch(API+path,Object.assign({},opt,{headers:h}));
-   const data=await r.json().catch(()=>({}));
-   if(!r.ok)throw new Error(data.error||"خطا در ارتباط با سرور");
-   return data;
- }
- window.AmnaYarCompanyAPI={api,token};
- window.AmnaYarLoadCompany=async function(){
-   if(!token()) return null;
-   try{
-     const c=await api("/company/me");
-     let box=document.getElementById("companyIdentity");
-     if(!box){
-       box=document.createElement("div");box.id="companyIdentity";
-       box.style="padding:10px 14px;margin:10px 0;border-radius:10px;background:#eff6ff;color:#1e3a8a;font-size:13px";
-       (document.querySelector(".topbar")||document.body).appendChild(box);
-     }
-     box.textContent="شرکت جاری: "+(c.name||"—");
-     return c;
-   }catch(e){console.warn(e);return null}
- };
- window.AmnaYarSyncEmployees=async function(){
-   try{
-     const data=await api("/payroll/employees");
-     if(!Array.isArray(data.employees))return;
-     const mapped=data.employees.map(e=>({
-       code:String(e.personnel_code||""),
-       firstName:e.first_name||"",lastName:e.last_name||"",
-       nationalId:e.national_id||"",position:e.position||"",
-       baseSalary:Number(e.base_salary||0),jobWage:Number(e.job_wage||0),
-       insuranceNumber:e.insurance_number||"",hireDate:e.hire_date||"",
-       workExperience:e.work_experience||"",maritalStatus:e.marital_status||"",
-       childrenCount:Number(e.children_count||0),bankCard:e.bank_card||"",
-       bankName:e.bank_name||"",sheba:e.iban||"",accountNumber:e.account_number||"",
-       leaveRemain:Number(e.leave_balance||0),serverId:e.id
-     }));
-     window.__AMNAYAR_SERVER_EMPLOYEES=mapped;
-     if(typeof employees!=="undefined"){
-       employees.length=0; mapped.forEach(x=>employees.push(x));
-       if(typeof renderEmployees==="function")renderEmployees();
-       if(typeof updateDashboard==="function")updateDashboard();
-     }
-     return mapped;
-   }catch(e){console.warn("sync employees",e);return null}
- };
- window.AmnaYarSaveEmployeeToServer=async function(e){
-   return api("/payroll/employees",{method:"POST",body:JSON.stringify({
-     personnel_code:e.code,first_name:e.firstName,last_name:e.lastName,
-     national_id:e.nationalId,position:e.position,base_salary:Number(e.baseSalary||0),
-     job_wage:Number(e.jobWage||0),insurance_number:e.insuranceNumber||"",
-     hire_date:e.hireDate||"",work_experience:e.workExperience||"",
-     marital_status:e.maritalStatus||"",children_count:Number(e.childrenCount||0),
-     bank_card:e.bankCard||"",bank_name:e.bankName||"",iban:e.sheba||"",
-     account_number:e.accountNumber||"",leave_balance:Number(e.leaveRemain||0)
-   })});
- };
- window.AmnaYarSavePayrollRecord=async function(x){
-   return api("/payroll/records",{method:"POST",body:JSON.stringify(x)});
- };
- document.addEventListener("DOMContentLoaded",()=>window.AmnaYarLoadCompany().then(()=>window.AmnaYarSyncEmployees()));
-})();
-</script>
-
 </body></html>
