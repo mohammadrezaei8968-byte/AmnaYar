@@ -1,0 +1,1291 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b2850">
+<title>سامانه حقوق و دستمزد | امنا یار</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+margin:0;
+font-family:Tahoma,Arial,sans-serif;
+background:#f4f7fb;
+color:#172033;
+}
+
+button,input,select{
+font-family:inherit;
+}
+
+button{
+cursor:pointer;
+}
+
+.layout{
+min-height:100vh;
+display:flex;
+}
+
+/* Sidebar */
+
+.sidebar{
+width:245px;
+background:#081b36;
+color:#fff;
+padding:22px 15px;
+position:fixed;
+right:0;
+top:0;
+bottom:0;
+z-index:10;
+}
+
+.logo{
+display:flex;
+align-items:center;
+gap:10px;
+padding:5px 8px 25px;
+border-bottom:1px solid rgba(255,255,255,.1);
+}
+
+.logo img{
+width:45px;
+height:45px;
+object-fit:contain;
+background:#fff;
+border-radius:11px;
+}
+
+.logo b{
+display:block;
+font-size:16px;
+}
+
+.logo small{
+display:block;
+font-size:10px;
+opacity:.6;
+margin-top:5px;
+}
+
+.menu{
+margin-top:22px;
+}
+
+.menu button,
+.menu a{
+display:flex;
+width:100%;
+border:0;
+background:transparent;
+color:#dce7f5;
+padding:13px 14px;
+border-radius:10px;
+margin-bottom:5px;
+text-align:right;
+font-size:13px;
+text-decoration:none;
+align-items:center;
+gap:10px;
+}
+
+.menu button:hover,
+.menu a:hover,
+.menu button.active{
+background:#1261a8;
+color:#fff;
+}
+
+.menu-icon{
+width:25px;
+font-size:17px;
+text-align:center;
+}
+
+/* Main */
+
+.main{
+margin-right:245px;
+width:calc(100% - 245px);
+min-height:100vh;
+}
+
+.header{
+height:72px;
+background:#fff;
+border-bottom:1px solid #e5eaf1;
+display:flex;
+align-items:center;
+justify-content:space-between;
+padding:0 30px;
+position:sticky;
+top:0;
+z-index:5;
+}
+
+.header-title b{
+font-size:18px;
+}
+
+.header-title small{
+display:block;
+color:#7a8494;
+font-size:11px;
+margin-top:5px;
+}
+
+.user{
+display:flex;
+align-items:center;
+gap:10px;
+}
+
+.avatar{
+width:38px;
+height:38px;
+border-radius:50%;
+background:#1261a8;
+color:#fff;
+display:flex;
+align-items:center;
+justify-content:center;
+font-weight:bold;
+}
+
+.content{
+padding:30px;
+}
+
+/* Pages */
+
+.page{
+display:none;
+}
+
+.page.active{
+display:block;
+}
+
+.page-title{
+margin-bottom:25px;
+}
+
+.page-title h1{
+margin:0 0 8px;
+font-size:25px;
+}
+
+.page-title p{
+margin:0;
+color:#718096;
+font-size:13px;
+}
+
+/* Dashboard cards */
+
+.stats{
+display:grid;
+grid-template-columns:repeat(5,1fr);
+gap:15px;
+margin-bottom:25px;
+}
+
+.stat{
+background:#fff;
+border:1px solid #e5eaf1;
+border-radius:15px;
+padding:20px;
+}
+
+.stat-top{
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+.stat-icon{
+width:42px;
+height:42px;
+border-radius:11px;
+background:#eaf3ff;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:21px;
+}
+
+.stat small{
+display:block;
+color:#7b8798;
+font-size:11px;
+margin-bottom:10px;
+}
+
+.stat strong{
+font-size:20px;
+}
+
+/* Panels */
+
+.panel{
+background:#fff;
+border:1px solid #e5eaf1;
+border-radius:17px;
+padding:22px;
+margin-bottom:20px;
+}
+
+.panel-head{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:15px;
+margin-bottom:20px;
+}
+
+.panel-head h2{
+margin:0;
+font-size:17px;
+}
+
+.muted{
+color:#7a8494;
+font-size:12px;
+}
+
+/* Buttons */
+
+.btn{
+border:0;
+border-radius:10px;
+padding:11px 17px;
+font-size:12px;
+font-weight:bold;
+background:#1261a8;
+color:#fff;
+}
+
+.btn.secondary{
+background:#eef3f8;
+color:#24344d;
+}
+
+.btn.success{
+background:#198754;
+}
+
+.btn.danger{
+background:#d64545;
+}
+
+/* Table */
+
+.table-wrap{
+overflow:auto;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+min-width:700px;
+}
+
+th,td{
+padding:13px 10px;
+border-bottom:1px solid #edf0f4;
+text-align:right;
+font-size:12px;
+}
+
+th{
+background:#f8fafc;
+color:#5e6b7e;
+font-weight:bold;
+}
+
+.empty{
+padding:45px 20px;
+text-align:center;
+color:#8993a3;
+}
+
+.empty-icon{
+font-size:42px;
+margin-bottom:12px;
+}
+
+/* Forms */
+
+.form-grid{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:16px;
+}
+
+.field label{
+display:block;
+font-size:12px;
+font-weight:bold;
+margin-bottom:7px;
+}
+
+.field input,
+.field select{
+width:100%;
+border:1px solid #dce3ec;
+border-radius:9px;
+padding:11px;
+outline:none;
+background:#fff;
+font-size:12px;
+}
+
+.field input:focus,
+.field select:focus{
+border-color:#1261a8;
+}
+
+.form-actions{
+margin-top:20px;
+display:flex;
+gap:10px;
+}
+
+/* Payroll calculation */
+
+.salary-grid{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:15px;
+}
+
+.salary-box{
+background:#f8fafc;
+border:1px solid #e5eaf1;
+border-radius:13px;
+padding:17px;
+}
+
+.salary-box h3{
+font-size:13px;
+margin:0 0 15px;
+}
+
+.result-line{
+display:flex;
+justify-content:space-between;
+padding:9px 0;
+border-bottom:1px solid #e9edf2;
+font-size:12px;
+}
+
+.result-line:last-child{
+border-bottom:0;
+}
+
+.total{
+background:#eaf5ef;
+border-radius:12px;
+padding:15px;
+margin-top:15px;
+display:flex;
+justify-content:space-between;
+font-weight:bold;
+}
+
+/* Responsive */
+
+.mobile-menu{
+display:none;
+}
+
+@media(max-width:1100px){
+
+.stats{
+grid-template-columns:repeat(3,1fr);
+}
+
+.salary-grid{
+grid-template-columns:1fr 1fr;
+}
+
+}
+
+@media(max-width:800px){
+
+.sidebar{
+transform:translateX(100%);
+transition:.2s;
+}
+
+.sidebar.open{
+transform:translateX(0);
+}
+
+.main{
+margin-right:0;
+width:100%;
+}
+
+.mobile-menu{
+display:block;
+border:0;
+background:#eef3f8;
+border-radius:9px;
+padding:9px 12px;
+font-size:18px;
+}
+
+.header{
+padding:0 15px;
+}
+
+.content{
+padding:18px;
+}
+
+.stats{
+grid-template-columns:1fr 1fr;
+}
+
+.form-grid,
+.salary-grid{
+grid-template-columns:1fr;
+}
+
+}
+
+@media(max-width:500px){
+
+.stats{
+grid-template-columns:1fr;
+}
+
+.header-title small{
+display:none;
+}
+
+.page-title h1{
+font-size:21px;
+}
+
+}
+</style>
+</head>
+
+<body>
+
+<div class="layout">
+
+<aside class="sidebar" id="sidebar">
+
+<div class="logo">
+<img src="/assets/logo-amnayar.png" alt="امنا یار">
+<div>
+<b>امنا یار</b>
+<small>سامانه حقوق و دستمزد</small>
+</div>
+</div>
+
+<nav class="menu">
+
+<button class="active" onclick="showPage('dashboard',this)">
+<span class="menu-icon">📊</span>
+داشبورد
+</button>
+
+<button onclick="showPage('employees',this)">
+<span class="menu-icon">👥</span>
+پرسنل
+</button>
+
+<button onclick="showPage('payroll',this)">
+<span class="menu-icon">🧮</span>
+محاسبه حقوق
+</button>
+
+<button onclick="showPage('insurance',this)">
+<span class="menu-icon">🛡️</span>
+بیمه و مالیات
+</button>
+
+<button onclick="showPage('payslips',this)">
+<span class="menu-icon">🧾</span>
+فیش حقوقی
+</button>
+
+<button onclick="showPage('reports',this)">
+<span class="menu-icon">📈</span>
+گزارش‌ها
+</button>
+
+<button onclick="showPage('settings',this)">
+<span class="menu-icon">⚙️</span>
+تنظیمات قانونی
+</button>
+
+<a href="/">
+<span class="menu-icon">🏠</span>
+بازگشت به سایت
+</a>
+
+</nav>
+
+</aside>
+
+
+<main class="main">
+
+<header class="header">
+
+<div style="display:flex;align-items:center;gap:12px">
+
+<button class="mobile-menu" onclick="toggleSidebar()">☰</button>
+
+<div class="header-title">
+<b>سامانه حقوق و دستمزد</b>
+<small>مدیریت حرفه‌ای اطلاعات کارکنان و محاسبات حقوق</small>
+</div>
+
+</div>
+
+<div class="user">
+<div>
+<b style="font-size:12px">مدیر سامانه</b>
+<small style="display:block;color:#8791a0;font-size:10px">امنا یار</small>
+</div>
+<div class="avatar">ا</div>
+</div>
+
+</header>
+
+
+<div class="content">
+
+
+<!-- Dashboard -->
+
+<section id="dashboard" class="page active">
+
+<div class="page-title">
+<h1>داشبورد</h1>
+<p>خلاصه وضعیت حقوق و دستمزد مجموعه</p>
+</div>
+
+<div class="stats">
+
+<div class="stat">
+<div class="stat-top">
+<div>
+<small>تعداد پرسنل</small>
+<strong id="statEmployees">۰</strong>
+</div>
+<div class="stat-icon">👥</div>
+</div>
+</div>
+
+<div class="stat">
+<div class="stat-top">
+<div>
+<small>مجموع ناخالص حقوق</small>
+<strong id="statGross">۰</strong>
+</div>
+<div class="stat-icon">💰</div>
+</div>
+</div>
+
+<div class="stat">
+<div class="stat-top">
+<div>
+<small>مجموع بیمه</small>
+<strong id="statInsurance">۰</strong>
+</div>
+<div class="stat-icon">🛡️</div>
+</div>
+</div>
+
+<div class="stat">
+<div class="stat-top">
+<div>
+<small>مجموع مالیات</small>
+<strong id="statTax">۰</strong>
+</div>
+<div class="stat-icon">📋</div>
+</div>
+</div>
+
+<div class="stat">
+<div class="stat-top">
+<div>
+<small>خالص پرداختی</small>
+<strong id="statNet">۰</strong>
+</div>
+<div class="stat-icon">💳</div>
+</div>
+</div>
+
+</div>
+
+<div class="panel">
+
+<div class="panel-head">
+<div>
+<h2>وضعیت سامانه</h2>
+<span class="muted">اطلاعات این نسخه در همین مرورگر نگهداری می‌شود.</span>
+</div>
+</div>
+
+<div class="empty">
+<div class="empty-icon">📊</div>
+هنوز اطلاعات پرسنلی و حقوقی ثبت نشده است.
+<br>
+از بخش «پرسنل» شروع کنید.
+</div>
+
+</div>
+
+</section>
+
+
+<!-- Employees -->
+
+<section id="employees" class="page">
+
+<div class="page-title">
+<h1>مدیریت پرسنل</h1>
+<p>ثبت، مشاهده و مدیریت اطلاعات کارکنان</p>
+</div>
+
+<div class="panel">
+
+<div class="panel-head">
+<h2>افزودن پرسنل جدید</h2>
+</div>
+
+<div class="form-grid">
+
+<div class="field">
+<label>کد پرسنلی</label>
+<input id="employeeCode" placeholder="مثلاً 1001">
+</div>
+
+<div class="field">
+<label>نام</label>
+<input id="employeeName" placeholder="نام">
+</div>
+
+<div class="field">
+<label>نام خانوادگی</label>
+<input id="employeeFamily" placeholder="نام خانوادگی">
+</div>
+
+<div class="field">
+<label>کد ملی</label>
+<input id="employeeNational" inputmode="numeric" placeholder="کد ملی">
+</div>
+
+<div class="field">
+<label>سمت</label>
+<input id="employeeJob" placeholder="سمت شغلی">
+</div>
+
+<div class="field">
+<label>حقوق پایه ماهانه</label>
+<input id="employeeBase" type="number" placeholder="ریال">
+</div>
+
+</div>
+
+<div class="form-actions">
+<button class="btn" onclick="addEmployee()">ثبت پرسنل</button>
+<button class="btn secondary" onclick="clearEmployeeForm()">پاک کردن</button>
+</div>
+
+</div>
+
+
+<div class="panel">
+
+<div class="panel-head">
+<h2>فهرست پرسنل</h2>
+<span class="muted" id="employeeCount">۰ نفر</span>
+</div>
+
+<div class="table-wrap">
+
+<table>
+
+<thead>
+<tr>
+<th>کد</th>
+<th>نام و نام خانوادگی</th>
+<th>کد ملی</th>
+<th>سمت</th>
+<th>حقوق پایه</th>
+<th>عملیات</th>
+</tr>
+</thead>
+
+<tbody id="employeeTable"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</section>
+
+
+<!-- Payroll -->
+
+<section id="payroll" class="page">
+
+<div class="page-title">
+<h1>محاسبه حقوق</h1>
+<p>محاسبه پایه حقوق، مزایا، اضافه‌کاری و کسورات</p>
+</div>
+
+<div class="panel">
+
+<div class="form-grid">
+
+<div class="field">
+<label>انتخاب پرسنل</label>
+<select id="payEmployee" onchange="loadEmployeeSalary()">
+<option value="">انتخاب کنید</option>
+</select>
+</div>
+
+<div class="field">
+<label>حقوق پایه</label>
+<input id="baseSalary" type="number" placeholder="ریال">
+</div>
+
+<div class="field">
+<label>حق مسکن</label>
+<input id="housing" type="number" value="0">
+</div>
+
+<div class="field">
+<label>بن کارگری / کمک‌هزینه</label>
+<input id="food" type="number" value="0">
+</div>
+
+<div class="field">
+<label>حق تأهل</label>
+<input id="marriage" type="number" value="0">
+</div>
+
+<div class="field">
+<label>حق اولاد</label>
+<input id="children" type="number" value="0">
+</div>
+
+<div class="field">
+<label>سنوات</label>
+<input id="seniority" type="number" value="0">
+</div>
+
+<div class="field">
+<label>اضافه‌کاری</label>
+<input id="overtime" type="number" value="0">
+</div>
+
+<div class="field">
+<label>سایر مزایا</label>
+<input id="otherBenefits" type="number" value="0">
+</div>
+
+<div class="field">
+<label>سایر کسورات</label>
+<input id="deductions" type="number" value="0">
+</div>
+
+</div>
+
+<div class="form-actions">
+<button class="btn" onclick="calculatePayroll()">محاسبه حقوق</button>
+</div>
+
+</div>
+
+
+<div class="salary-grid">
+
+<div class="salary-box">
+<h3>مزایا</h3>
+
+<div class="result-line">
+<span>حقوق پایه</span>
+<b id="rBase">۰</b>
+</div>
+
+<div class="result-line">
+<span>مجموع مزایا</span>
+<b id="rBenefits">۰</b>
+</div>
+
+<div class="result-line">
+<span>ناخالص</span>
+<b id="rGross">۰</b>
+</div>
+
+</div>
+
+
+<div class="salary-box">
+<h3>کسورات</h3>
+
+<div class="result-line">
+<span>بیمه</span>
+<b id="rInsurance">۰</b>
+</div>
+
+<div class="result-line">
+<span>مالیات</span>
+<b id="rTax">۰</b>
+</div>
+
+<div class="result-line">
+<span>سایر کسورات</span>
+<b id="rDeduction">۰</b>
+</div>
+
+</div>
+
+
+<div class="salary-box">
+<h3>نتیجه نهایی</h3>
+
+<div class="result-line">
+<span>مجموع کسورات</span>
+<b id="rTotalDeduction">۰</b>
+</div>
+
+<div class="total">
+<span>خالص پرداختی</span>
+<strong id="rNet">۰</strong>
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+
+<!-- Insurance -->
+
+<section id="insurance" class="page">
+
+<div class="page-title">
+<h1>بیمه و مالیات</h1>
+<p>مدیریت اطلاعات مرتبط با بیمه و مالیات حقوق</p>
+</div>
+
+<div class="panel">
+
+<div class="panel-head">
+<h2>خلاصه محاسبات</h2>
+</div>
+
+<div class="result-line">
+<span>نرخ سهم بیمه کارمند</span>
+<b>۷٪</b>
+</div>
+
+<div class="result-line">
+<span>مالیات</span>
+<b>بر اساس تنظیمات قانونی</b>
+</div>
+
+<p class="muted" style="margin-top:18px">
+نرخ‌ها و معافیت‌های قانونی باید بر اساس سال مالی انتخاب و تنظیم شوند.
+</p>
+
+</div>
+
+</section>
+
+
+<!-- Payslips -->
+
+<section id="payslips" class="page">
+
+<div class="page-title">
+<h1>فیش حقوقی</h1>
+<p>مشاهده اطلاعات حقوقی ثبت‌شده</p>
+</div>
+
+<div class="panel">
+
+<div class="empty">
+<div class="empty-icon">🧾</div>
+برای ایجاد فیش حقوقی ابتدا پرسنل و اطلاعات حقوقی را ثبت کنید.
+</div>
+
+</div>
+
+</section>
+
+
+<!-- Reports -->
+
+<section id="reports" class="page">
+
+<div class="page-title">
+<h1>گزارش‌ها</h1>
+<p>گزارش‌های مدیریتی حقوق و دستمزد</p>
+</div>
+
+<div class="panel">
+
+<div class="empty">
+<div class="empty-icon">📈</div>
+گزارش‌های حقوق، بیمه، مالیات و پرداخت‌ها در این بخش قرار می‌گیرند.
+</div>
+
+</div>
+
+</section>
+
+
+<!-- Settings -->
+
+<section id="settings" class="page">
+
+<div class="page-title">
+<h1>تنظیمات قانونی</h1>
+<p>تنظیم پارامترهای حقوق و دستمزد بر اساس سال</p>
+</div>
+
+<div class="panel">
+
+<div class="form-grid">
+
+<div class="field">
+<label>سال</label>
+<select id="legalYear">
+<option>۱۴۰۵</option>
+<option>۱۴۰۴</option>
+<option>۱۴۰۳</option>
+</select>
+</div>
+
+<div class="field">
+<label>درصد بیمه کارمند</label>
+<input value="7" type="number">
+</div>
+
+<div class="field">
+<label>سقف معافیت مالیاتی</label>
+<input placeholder="ریال">
+</div>
+
+</div>
+
+<div class="form-actions">
+<button class="btn" onclick="saveSettings()">ذخیره تنظیمات</button>
+</div>
+
+</div>
+
+</section>
+
+</div>
+
+</main>
+
+</div>
+
+
+<script>
+
+let employees=JSON.parse(localStorage.getItem('amnayar_payroll_employees')||'[]');
+
+function faNumber(n){
+return Number(n||0).toLocaleString('fa-IR');
+}
+
+function showPage(id,btn){
+
+document.querySelectorAll('.page').forEach(p=>{
+p.classList.remove('active');
+});
+
+const page=document.getElementById(id);
+
+if(page){
+page.classList.add('active');
+}
+
+document.querySelectorAll('.menu button').forEach(b=>{
+b.classList.remove('active');
+});
+
+if(btn){
+btn.classList.add('active');
+}
+
+document.getElementById('sidebar').classList.remove('open');
+
+window.scrollTo({top:0,behavior:'smooth'});
+
+if(id==='employees'){
+renderEmployees();
+}
+
+if(id==='payroll'){
+loadEmployeeSelect();
+}
+
+}
+
+function toggleSidebar(){
+document.getElementById('sidebar').classList.toggle('open');
+}
+
+function addEmployee(){
+
+const code=document.getElementById('employeeCode').value.trim();
+const name=document.getElementById('employeeName').value.trim();
+const family=document.getElementById('employeeFamily').value.trim();
+const national=document.getElementById('employeeNational').value.trim();
+const job=document.getElementById('employeeJob').value.trim();
+const base=Number(document.getElementById('employeeBase').value||0);
+
+if(!code||!name||!family){
+alert('کد پرسنلی، نام و نام خانوادگی را وارد کنید.');
+return;
+}
+
+employees.push({
+id:Date.now(),
+code,
+name,
+family,
+national,
+job,
+base
+});
+
+localStorage.setItem(
+'amnayar_payroll_employees',
+JSON.stringify(employees)
+);
+
+clearEmployeeForm();
+renderEmployees();
+updateDashboard();
+
+alert('پرسنل با موفقیت ثبت شد.');
+
+}
+
+function clearEmployeeForm(){
+
+[
+'employeeCode',
+'employeeName',
+'employeeFamily',
+'employeeNational',
+'employeeJob',
+'employeeBase'
+].forEach(id=>{
+document.getElementById(id).value='';
+});
+
+}
+
+function renderEmployees(){
+
+const tbody=document.getElementById('employeeTable');
+
+if(!employees.length){
+
+tbody.innerHTML=
+'<tr><td colspan="6"><div class="empty">هنوز پرسنلی ثبت نشده است.</div></td></tr>';
+
+document.getElementById('employeeCount').textContent='۰ نفر';
+
+return;
+
+}
+
+tbody.innerHTML=employees.map(e=>`
+
+<tr>
+
+<td>${e.code}</td>
+
+<td>${e.name} ${e.family}</td>
+
+<td>${e.national||'—'}</td>
+
+<td>${e.job||'—'}</td>
+
+<td>${faNumber(e.base)} ریال</td>
+
+<td>
+<button class="btn danger" onclick="deleteEmployee(${e.id})">
+حذف
+</button>
+</td>
+
+</tr>
+
+`).join('');
+
+document.getElementById('employeeCount').textContent=
+faNumber(employees.length)+' نفر';
+
+}
+
+function deleteEmployee(id){
+
+if(!confirm('آیا از حذف این پرسنل مطمئن هستید؟'))return;
+
+employees=employees.filter(e=>e.id!==id);
+
+localStorage.setItem(
+'amnayar_payroll_employees',
+JSON.stringify(employees)
+);
+
+renderEmployees();
+updateDashboard();
+
+}
+
+function loadEmployeeSelect(){
+
+const select=document.getElementById('payEmployee');
+
+select.innerHTML=
+'<option value="">انتخاب کنید</option>'+
+employees.map(e=>
+`<option value="${e.id}">${e.code} - ${e.name} ${e.family}</option>`
+).join('');
+
+}
+
+function loadEmployeeSalary(){
+
+const id=Number(document.getElementById('payEmployee').value);
+
+const e=employees.find(x=>x.id===id);
+
+if(e){
+document.getElementById('baseSalary').value=e.base||0;
+}
+
+}
+
+function calculatePayroll(){
+
+const base=Number(document.getElementById('baseSalary').value||0);
+
+const housing=Number(document.getElementById('housing').value||0);
+const food=Number(document.getElementById('food').value||0);
+const marriage=Number(document.getElementById('marriage').value||0);
+const children=Number(document.getElementById('children').value||0);
+const seniority=Number(document.getElementById('seniority').value||0);
+const overtime=Number(document.getElementById('overtime').value||0);
+const other=Number(document.getElementById('otherBenefits').value||0);
+const deductions=Number(document.getElementById('deductions').value||0);
+
+const benefits=
+housing+
+food+
+marriage+
+children+
+seniority+
+overtime+
+other;
+
+const gross=base+benefits;
+
+/* نسخه اولیه محاسبه:
+۷ درصد بیمه از ناخالص */
+const insurance=Math.round(gross*.07);
+
+/* مالیات فعلاً صفر است تا جدول قانونی سال انتخاب شود */
+const tax=0;
+
+const totalDeduction=
+insurance+
+tax+
+deductions;
+
+const net=gross-totalDeduction;
+
+document.getElementById('rBase').textContent=
+faNumber(base)+' ریال';
+
+document.getElementById('rBenefits').textContent=
+faNumber(benefits)+' ریال';
+
+document.getElementById('rGross').textContent=
+faNumber(gross)+' ریال';
+
+document.getElementById('rInsurance').textContent=
+faNumber(insurance)+' ریال';
+
+document.getElementById('rTax').textContent=
+faNumber(tax)+' ریال';
+
+document.getElementById('rDeduction').textContent=
+faNumber(deductions)+' ریال';
+
+document.getElementById('rTotalDeduction').textContent=
+faNumber(totalDeduction)+' ریال';
+
+document.getElementById('rNet').textContent=
+faNumber(net)+' ریال';
+
+}
+
+function updateDashboard(){
+
+document.getElementById('statEmployees').textContent=
+faNumber(employees.length);
+
+let gross=0;
+
+employees.forEach(e=>{
+gross+=Number(e.base||0);
+});
+
+const insurance=Math.round(gross*.07);
+const tax=0;
+const net=gross-insurance-tax;
+
+document.getElementById('statGross').textContent=
+faNumber(gross);
+
+document.getElementById('statInsurance').textContent=
+faNumber(insurance);
+
+document.getElementById('statTax').textContent=
+faNumber(tax);
+
+document.getElementById('statNet').textContent=
+faNumber(net);
+
+}
+
+function saveSettings(){
+alert('تنظیمات ذخیره شد.');
+}
+
+renderEmployees();
+updateDashboard();
+
+</script>
+
+</body>
+</html>
