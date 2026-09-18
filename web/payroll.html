@@ -6,121 +6,562 @@
 <meta name="theme-color" content="#081b36">
 <title>سامانه حقوق و دستمزد | امنا یار</title>
 
+<!-- کتابخانه خواندن فایل Excel -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
 <style>
 *{box-sizing:border-box}
-body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#f4f7fb;color:#172033}
+body{
+margin:0;
+font-family:Tahoma,Arial,sans-serif;
+background:#f4f7fb;
+color:#172033
+}
 button,input,select{font-family:inherit}
 button{cursor:pointer}
-.layout{min-height:100vh;display:flex}
+
+.layout{
+min-height:100vh;
+display:flex
+}
 
 .sidebar{
-width:245px;background:#081b36;color:#fff;padding:22px 15px;
-position:fixed;right:0;top:0;bottom:0;z-index:20
+width:245px;
+background:#081b36;
+color:#fff;
+padding:22px 15px;
+position:fixed;
+right:0;
+top:0;
+bottom:0;
+z-index:20
 }
-.logo{display:flex;align-items:center;gap:10px;padding:5px 8px 25px;border-bottom:1px solid rgba(255,255,255,.1)}
-.logo img{width:45px;height:45px;object-fit:contain;background:#fff;border-radius:11px}
-.logo b{display:block;font-size:16px}
-.logo small{display:block;font-size:10px;opacity:.6;margin-top:5px}
 
-.menu{margin-top:22px}
-.menu button,.menu a{
-display:flex;width:100%;border:0;background:transparent;color:#dce7f5;
-padding:13px 14px;border-radius:10px;margin-bottom:5px;text-align:right;
-font-size:13px;text-decoration:none;align-items:center;gap:10px
+.logo{
+display:flex;
+align-items:center;
+gap:10px;
+padding:5px 8px 25px;
+border-bottom:1px solid rgba(255,255,255,.1)
 }
-.menu button:hover,.menu a:hover,.menu button.active{background:#1261a8;color:#fff}
-.menu-icon{width:25px;font-size:17px;text-align:center}
 
-.main{margin-right:245px;width:calc(100% - 245px);min-height:100vh}
+.logo img{
+width:45px;
+height:45px;
+object-fit:contain;
+background:#fff;
+border-radius:11px
+}
+
+.logo b{
+display:block;
+font-size:16px
+}
+
+.logo small{
+display:block;
+font-size:10px;
+opacity:.6;
+margin-top:5px
+}
+
+.menu{
+margin-top:22px
+}
+
+.menu button,
+.menu a{
+display:flex;
+width:100%;
+border:0;
+background:transparent;
+color:#dce7f5;
+padding:13px 14px;
+border-radius:10px;
+margin-bottom:5px;
+text-align:right;
+font-size:13px;
+text-decoration:none;
+align-items:center;
+gap:10px
+}
+
+.menu button:hover,
+.menu a:hover,
+.menu button.active{
+background:#1261a8;
+color:#fff
+}
+
+.menu-icon{
+width:25px;
+font-size:17px;
+text-align:center
+}
+
+.main{
+margin-right:245px;
+width:calc(100% - 245px);
+min-height:100vh
+}
+
 .header{
-height:72px;background:#fff;border-bottom:1px solid #e5eaf1;
-display:flex;align-items:center;justify-content:space-between;
-padding:0 30px;position:sticky;top:0;z-index:10
+height:72px;
+background:#fff;
+border-bottom:1px solid #e5eaf1;
+display:flex;
+align-items:center;
+justify-content:space-between;
+padding:0 30px;
+position:sticky;
+top:0;
+z-index:10
 }
-.header-title b{font-size:18px}
-.header-title small{display:block;color:#7a8494;font-size:11px;margin-top:5px}
-.user{display:flex;align-items:center;gap:10px}
-.avatar{width:38px;height:38px;border-radius:50%;background:#1261a8;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold}
-.content{padding:30px}
 
-.page{display:none}
-.page.active{display:block}
-.page-title{margin-bottom:25px}
-.page-title h1{margin:0 0 8px;font-size:25px}
-.page-title p{margin:0;color:#718096;font-size:13px}
-
-.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:15px;margin-bottom:25px}
-.stat{background:#fff;border:1px solid #e5eaf1;border-radius:15px;padding:20px}
-.stat-top{display:flex;justify-content:space-between;align-items:center}
-.stat-icon{width:42px;height:42px;border-radius:11px;background:#eaf3ff;display:flex;align-items:center;justify-content:center;font-size:21px}
-.stat small{display:block;color:#7b8798;font-size:11px;margin-bottom:10px}
-.stat strong{font-size:19px}
-
-.panel{background:#fff;border:1px solid #e5eaf1;border-radius:17px;padding:22px;margin-bottom:20px}
-.panel-head{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:20px}
-.panel-head h2{margin:0;font-size:17px}
-.muted{color:#7a8494;font-size:12px}
-
-.btn{border:0;border-radius:10px;padding:11px 17px;font-size:12px;font-weight:bold;background:#1261a8;color:#fff}
-.btn.secondary{background:#eef3f8;color:#24344d}
-.btn.success{background:#198754}
-.btn.danger{background:#d64545}
-
-.table-wrap{overflow:auto}
-table{width:100%;border-collapse:collapse;min-width:750px}
-th,td{padding:13px 10px;border-bottom:1px solid #edf0f4;text-align:right;font-size:12px}
-th{background:#f8fafc;color:#5e6b7e}
-
-.empty{padding:45px 20px;text-align:center;color:#8993a3}
-.empty-icon{font-size:42px;margin-bottom:12px}
-
-.form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.field label{display:block;font-size:12px;font-weight:bold;margin-bottom:7px}
-.field input,.field select{
-width:100%;border:1px solid #dce3ec;border-radius:9px;padding:11px;
-outline:none;background:#fff;font-size:12px
+.header-title b{
+font-size:18px
 }
-.field input:focus,.field select:focus{border-color:#1261a8}
-.form-actions{margin-top:20px;display:flex;gap:10px;flex-wrap:wrap}
 
-.salary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
-.salary-box{background:#f8fafc;border:1px solid #e5eaf1;border-radius:13px;padding:17px}
-.salary-box h3{font-size:13px;margin:0 0 15px}
-.result-line{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #e9edf2;font-size:12px}
-.result-line:last-child{border-bottom:0}
-.total{background:#eaf5ef;border-radius:12px;padding:15px;margin-top:15px;display:flex;justify-content:space-between;font-weight:bold}
+.header-title small{
+display:block;
+color:#7a8494;
+font-size:11px;
+margin-top:5px
+}
 
-.legal-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:15px}
-.legal-card{background:#f8fafc;border:1px solid #e4eaf1;border-radius:13px;padding:17px}
-.legal-card small{display:block;color:#748094;font-size:11px;margin-bottom:8px}
-.legal-card b{font-size:16px}
+.user{
+display:flex;
+align-items:center;
+gap:10px
+}
 
-.notice{background:#fff8e6;border:1px solid #f2dfaa;border-radius:12px;padding:14px;color:#735b18;font-size:12px;line-height:2;margin-bottom:20px}
+.avatar{
+width:38px;
+height:38px;
+border-radius:50%;
+background:#1261a8;
+color:#fff;
+display:flex;
+align-items:center;
+justify-content:center;
+font-weight:bold
+}
 
-.mobile-menu{display:none;border:0;background:#eef3f8;border-radius:9px;padding:9px 12px;font-size:18px}
+.content{
+padding:30px
+}
+
+.page{
+display:none
+}
+
+.page.active{
+display:block
+}
+
+.page-title{
+margin-bottom:25px
+}
+
+.page-title h1{
+margin:0 0 8px;
+font-size:25px
+}
+
+.page-title p{
+margin:0;
+color:#718096;
+font-size:13px
+}
+
+.stats{
+display:grid;
+grid-template-columns:repeat(5,1fr);
+gap:15px;
+margin-bottom:25px
+}
+
+.stat{
+background:#fff;
+border:1px solid #e5eaf1;
+border-radius:15px;
+padding:20px
+}
+
+.stat-top{
+display:flex;
+justify-content:space-between;
+align-items:center
+}
+
+.stat-icon{
+width:42px;
+height:42px;
+border-radius:11px;
+background:#eaf3ff;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:21px
+}
+
+.stat small{
+display:block;
+color:#7b8798;
+font-size:11px;
+margin-bottom:10px
+}
+
+.stat strong{
+font-size:19px
+}
+
+.panel{
+background:#fff;
+border:1px solid #e5eaf1;
+border-radius:17px;
+padding:22px;
+margin-bottom:20px
+}
+
+.panel-head{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:15px;
+margin-bottom:20px
+}
+
+.panel-head h2{
+margin:0;
+font-size:17px
+}
+
+.muted{
+color:#7a8494;
+font-size:12px
+}
+
+.btn{
+border:0;
+border-radius:10px;
+padding:11px 17px;
+font-size:12px;
+font-weight:bold;
+background:#1261a8;
+color:#fff
+}
+
+.btn.secondary{
+background:#eef3f8;
+color:#24344d
+}
+
+.btn.success{
+background:#198754
+}
+
+.btn.danger{
+background:#d64545
+}
+
+.btn.warning{
+background:#c98a00
+}
+
+.table-wrap{
+overflow:auto
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+min-width:850px
+}
+
+th,td{
+padding:13px 10px;
+border-bottom:1px solid #edf0f4;
+text-align:right;
+font-size:12px
+}
+
+th{
+background:#f8fafc;
+color:#5e6b7e
+}
+
+.empty{
+padding:45px 20px;
+text-align:center;
+color:#8993a3
+}
+
+.empty-icon{
+font-size:42px;
+margin-bottom:12px
+}
+
+.form-grid{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:16px
+}
+
+.field label{
+display:block;
+font-size:12px;
+font-weight:bold;
+margin-bottom:7px
+}
+
+.field input,
+.field select{
+width:100%;
+border:1px solid #dce3ec;
+border-radius:9px;
+padding:11px;
+outline:none;
+background:#fff;
+font-size:12px
+}
+
+.field input:focus,
+.field select:focus{
+border-color:#1261a8
+}
+
+.form-actions{
+margin-top:20px;
+display:flex;
+gap:10px;
+flex-wrap:wrap
+}
+
+.salary-grid{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:15px
+}
+
+.salary-box{
+background:#f8fafc;
+border:1px solid #e5eaf1;
+border-radius:13px;
+padding:17px
+}
+
+.salary-box h3{
+font-size:13px;
+margin:0 0 15px
+}
+
+.result-line{
+display:flex;
+justify-content:space-between;
+padding:9px 0;
+border-bottom:1px solid #e9edf2;
+font-size:12px
+}
+
+.result-line:last-child{
+border-bottom:0
+}
+
+.total{
+background:#eaf5ef;
+border-radius:12px;
+padding:15px;
+margin-top:15px;
+display:flex;
+justify-content:space-between;
+font-weight:bold
+}
+
+.legal-grid{
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:15px
+}
+
+.legal-card{
+background:#f8fafc;
+border:1px solid #e4eaf1;
+border-radius:13px;
+padding:17px
+}
+
+.legal-card small{
+display:block;
+color:#748094;
+font-size:11px;
+margin-bottom:8px
+}
+
+.legal-card b{
+font-size:16px
+}
+
+.notice{
+background:#fff8e6;
+border:1px solid #f2dfaa;
+border-radius:12px;
+padding:14px;
+color:#735b18;
+font-size:12px;
+line-height:2;
+margin-bottom:20px
+}
+
+.excel-box{
+background:#f5f9ff;
+border:1px dashed #a9c5e5;
+border-radius:14px;
+padding:20px;
+margin-top:20px
+}
+
+.excel-box h3{
+margin:0 0 8px;
+font-size:14px
+}
+
+.excel-box p{
+margin:0 0 15px;
+font-size:11px;
+line-height:2;
+color:#68758a
+}
+
+.excel-actions{
+display:flex;
+gap:10px;
+flex-wrap:wrap;
+align-items:center
+}
+
+.file-input{
+display:none
+}
+
+.file-label{
+display:inline-flex;
+align-items:center;
+justify-content:center;
+border-radius:10px;
+padding:11px 17px;
+font-size:12px;
+font-weight:bold;
+background:#1261a8;
+color:#fff;
+cursor:pointer
+}
+
+.import-result{
+margin-top:15px;
+display:none;
+padding:13px;
+border-radius:10px;
+font-size:12px;
+line-height:2
+}
+
+.import-result.success{
+display:block;
+background:#eaf7ef;
+color:#176b3a;
+border:1px solid #b9e1c7
+}
+
+.import-result.error{
+display:block;
+background:#fff0f0;
+color:#9a2525;
+border:1px solid #edbaba
+}
+
+.mobile-menu{
+display:none;
+border:0;
+background:#eef3f8;
+border-radius:9px;
+padding:9px 12px;
+font-size:18px
+}
 
 @media(max-width:1100px){
-.stats{grid-template-columns:repeat(3,1fr)}
-.salary-grid{grid-template-columns:1fr 1fr}
-.legal-grid{grid-template-columns:1fr 1fr}
+
+.stats{
+grid-template-columns:repeat(3,1fr)
+}
+
+.salary-grid{
+grid-template-columns:1fr 1fr
+}
+
+.legal-grid{
+grid-template-columns:1fr 1fr
+}
+
 }
 
 @media(max-width:800px){
-.sidebar{transform:translateX(100%);transition:.2s}
-.sidebar.open{transform:translateX(0)}
-.main{margin-right:0;width:100%}
-.mobile-menu{display:block}
-.header{padding:0 15px}
-.content{padding:18px}
-.stats{grid-template-columns:1fr 1fr}
-.form-grid,.salary-grid{grid-template-columns:1fr}
+
+.sidebar{
+transform:translateX(100%);
+transition:.2s
+}
+
+.sidebar.open{
+transform:translateX(0)
+}
+
+.main{
+margin-right:0;
+width:100%
+}
+
+.mobile-menu{
+display:block
+}
+
+.header{
+padding:0 15px
+}
+
+.content{
+padding:18px
+}
+
+.stats{
+grid-template-columns:1fr 1fr
+}
+
+.form-grid,
+.salary-grid{
+grid-template-columns:1fr
+}
+
 }
 
 @media(max-width:500px){
-.stats{grid-template-columns:1fr}
-.legal-grid{grid-template-columns:1fr}
-.header-title small{display:none}
-.page-title h1{font-size:21px}
+
+.stats{
+grid-template-columns:1fr
+}
+
+.legal-grid{
+grid-template-columns:1fr
+}
+
+.header-title small{
+display:none
+}
+
+.page-title h1{
+font-size:21px
+}
+
 }
 </style>
 </head>
@@ -132,48 +573,60 @@ outline:none;background:#fff;font-size:12px
 <aside class="sidebar" id="sidebar">
 
 <div class="logo">
+
 <img src="/assets/logo-amnayar.png" alt="امنا یار">
+
 <div>
 <b>امنا یار</b>
 <small>سامانه حقوق و دستمزد</small>
 </div>
+
 </div>
 
 <nav class="menu">
 
 <button class="active" onclick="showPage('dashboard',this)">
-<span class="menu-icon">📊</span>داشبورد
+<span class="menu-icon">📊</span>
+داشبورد
 </button>
 
 <button onclick="showPage('employees',this)">
-<span class="menu-icon">👥</span>پرسنل
+<span class="menu-icon">👥</span>
+پرسنل
 </button>
 
 <button onclick="showPage('payroll',this)">
-<span class="menu-icon">🧮</span>محاسبه حقوق
+<span class="menu-icon">🧮</span>
+محاسبه حقوق
 </button>
 
 <button onclick="showPage('insurance',this)">
-<span class="menu-icon">🛡️</span>بیمه و مالیات
+<span class="menu-icon">🛡️</span>
+بیمه و مالیات
 </button>
 
 <button onclick="showPage('payslips',this)">
-<span class="menu-icon">🧾</span>فیش حقوقی
+<span class="menu-icon">🧾</span>
+فیش حقوقی
 </button>
 
 <button onclick="showPage('reports',this)">
-<span class="menu-icon">📈</span>گزارش‌ها
+<span class="menu-icon">📈</span>
+گزارش‌ها
 </button>
 
 <button onclick="showPage('settings',this)">
-<span class="menu-icon">⚙️</span>تنظیمات قانونی
+<span class="menu-icon">⚙️</span>
+تنظیمات قانونی
 </button>
 
 <a href="/">
-<span class="menu-icon">🏠</span>بازگشت به سایت
+<span class="menu-icon">🏠</span>
+بازگشت به سایت
 </a>
 
 </nav>
+
 </aside>
 
 
@@ -193,11 +646,16 @@ outline:none;background:#fff;font-size:12px
 </div>
 
 <div class="user">
+
 <div>
 <b style="font-size:12px">مدیر سامانه</b>
-<small style="display:block;color:#8791a0;font-size:10px">امنا یار</small>
+<small style="display:block;color:#8791a0;font-size:10px">
+امنا یار
+</small>
 </div>
+
 <div class="avatar">ا</div>
+
 </div>
 
 </header>
@@ -205,82 +663,131 @@ outline:none;background:#fff;font-size:12px
 
 <div class="content">
 
+
 <!-- DASHBOARD -->
 
 <section id="dashboard" class="page active">
 
 <div class="page-title">
+
 <h1>داشبورد</h1>
-<p>خلاصه وضعیت حقوق و دستمزد</p>
+
+<p>
+خلاصه وضعیت حقوق و دستمزد
+</p>
+
 </div>
+
 
 <div class="stats">
 
+
 <div class="stat">
+
 <div class="stat-top">
+
 <div>
 <small>تعداد پرسنل</small>
 <strong id="statEmployees">۰</strong>
 </div>
+
 <div class="stat-icon">👥</div>
-</div>
+
 </div>
 
+</div>
+
+
 <div class="stat">
+
 <div class="stat-top">
+
 <div>
 <small>مجموع ناخالص حقوق</small>
 <strong id="statGross">۰</strong>
 </div>
+
 <div class="stat-icon">💰</div>
-</div>
+
 </div>
 
+</div>
+
+
 <div class="stat">
+
 <div class="stat-top">
+
 <div>
 <small>مجموع بیمه</small>
 <strong id="statInsurance">۰</strong>
 </div>
+
 <div class="stat-icon">🛡️</div>
-</div>
+
 </div>
 
+</div>
+
+
 <div class="stat">
+
 <div class="stat-top">
+
 <div>
 <small>مجموع مالیات</small>
 <strong id="statTax">۰</strong>
 </div>
+
 <div class="stat-icon">📋</div>
-</div>
+
 </div>
 
+</div>
+
+
 <div class="stat">
+
 <div class="stat-top">
+
 <div>
 <small>خالص پرداختی</small>
 <strong id="statNet">۰</strong>
 </div>
+
 <div class="stat-icon">💳</div>
-</div>
+
 </div>
 
 </div>
+
+</div>
+
 
 <div class="panel">
+
 <div class="panel-head">
+
 <h2>وضعیت سامانه</h2>
-<span class="muted">سال محاسباتی: ۱۴۰۵</span>
+
+<span class="muted">
+سال محاسباتی: ۱۴۰۵
+</span>
+
 </div>
 
 <div class="empty">
+
 <div class="empty-icon">📊</div>
+
 اطلاعات حقوقی از بخش «محاسبه حقوق» قابل محاسبه است.
+
 </div>
+
 </div>
 
 </section>
+
 
 
 <!-- EMPLOYEES -->
@@ -288,78 +795,233 @@ outline:none;background:#fff;font-size:12px
 <section id="employees" class="page">
 
 <div class="page-title">
+
 <h1>مدیریت پرسنل</h1>
-<p>ثبت و مدیریت اطلاعات کارکنان</p>
+
+<p>
+ثبت دستی یا ورود گروهی اطلاعات کارکنان
+</p>
+
 </div>
+
 
 <div class="panel">
 
 <div class="panel-head">
+
 <h2>افزودن پرسنل</h2>
+
+<span class="muted">
+ثبت دستی
+</span>
+
 </div>
+
 
 <div class="form-grid">
 
+
 <div class="field">
+
 <label>کد پرسنلی</label>
-<input id="employeeCode" placeholder="مثلاً 1001">
+
+<input
+id="employeeCode"
+placeholder="مثلاً 1001"
+>
+
 </div>
 
+
 <div class="field">
+
 <label>نام</label>
-<input id="employeeName" placeholder="نام">
+
+<input
+id="employeeName"
+placeholder="نام"
+>
+
 </div>
 
+
 <div class="field">
+
 <label>نام خانوادگی</label>
-<input id="employeeFamily" placeholder="نام خانوادگی">
+
+<input
+id="employeeFamily"
+placeholder="نام خانوادگی"
+>
+
 </div>
 
+
 <div class="field">
+
 <label>کد ملی</label>
-<input id="employeeNational" inputmode="numeric" placeholder="کد ملی">
+
+<input
+id="employeeNational"
+inputmode="numeric"
+placeholder="کد ملی"
+>
+
 </div>
 
+
 <div class="field">
+
 <label>سمت</label>
-<input id="employeeJob" placeholder="سمت شغلی">
+
+<input
+id="employeeJob"
+placeholder="سمت شغلی"
+>
+
 </div>
+
 
 <div class="field">
+
 <label>حقوق پایه ماهانه</label>
-<input id="employeeBase" type="number" placeholder="ریال">
-</div>
+
+<input
+id="employeeBase"
+type="number"
+placeholder="ریال"
+>
 
 </div>
+
+
+</div>
+
 
 <div class="form-actions">
-<button class="btn" onclick="addEmployee()">ثبت پرسنل</button>
-<button class="btn secondary" onclick="clearEmployeeForm()">پاک کردن</button>
+
+<button
+class="btn"
+onclick="addEmployee()"
+>
+ثبت پرسنل
+</button>
+
+<button
+class="btn secondary"
+onclick="clearEmployeeForm()"
+>
+پاک کردن
+</button>
+
+</div>
+
+
+<!-- EXCEL -->
+
+<div class="excel-box">
+
+<h3>
+📥 ورود گروهی پرسنل از Excel
+</h3>
+
+<p>
+فایل Excel باید شامل ستون‌های زیر باشد:
+<br>
+<strong>
+کد پرسنلی، نام، نام خانوادگی، کد ملی، سمت، حقوق پایه ماهانه
+</strong>
+<br>
+نام ستون‌ها می‌تواند فارسی یا انگلیسی باشد.
+</p>
+
+
+<div class="excel-actions">
+
+<label
+for="excelFile"
+class="file-label"
+>
+📂 انتخاب فایل Excel
+</label>
+
+<input
+id="excelFile"
+class="file-input"
+type="file"
+accept=".xlsx,.xls"
+onchange="importExcel(event)"
+>
+
+
+<button
+class="btn secondary"
+onclick="downloadExcelTemplate()"
+>
+📄 دانلود فایل نمونه Excel
+</button>
+
+</div>
+
+
+<div
+id="importResult"
+class="import-result"
+></div>
+
 </div>
 
 </div>
+
+
 
 <div class="panel">
 
 <div class="panel-head">
-<h2>فهرست پرسنل</h2>
-<span class="muted" id="employeeCount">۰ نفر</span>
+
+<h2>
+فهرست پرسنل
+</h2>
+
+<span
+class="muted"
+id="employeeCount"
+>
+۰ نفر
+</span>
+
 </div>
 
+
 <div class="table-wrap">
+
 <table>
+
 <thead>
+
 <tr>
+
 <th>کد</th>
+
 <th>نام و نام خانوادگی</th>
+
 <th>کد ملی</th>
+
 <th>سمت</th>
+
 <th>حقوق پایه</th>
+
 <th>عملیات</th>
+
 </tr>
+
 </thead>
+
+
 <tbody id="employeeTable"></tbody>
+
 </table>
+
 </div>
 
 </div>
@@ -367,144 +1029,363 @@ outline:none;background:#fff;font-size:12px
 </section>
 
 
+
 <!-- PAYROLL -->
 
 <section id="payroll" class="page">
 
 <div class="page-title">
-<h1>محاسبه حقوق ۱۴۰۵</h1>
-<p>محاسبه مزایا، اضافه‌کاری، بیمه، مالیات و خالص پرداختی</p>
+
+<h1>
+محاسبه حقوق ۱۴۰۵
+</h1>
+
+<p>
+محاسبه مزایا، اضافه‌کاری، بیمه، مالیات و خالص پرداختی
+</p>
+
 </div>
 
+
 <div class="notice">
+
 محاسبات این صفحه بر اساس پارامترهای قابل تنظیم سال ۱۴۰۵ انجام می‌شود.
 برای مواردی که شرایط شمول یا آخرین مصوبه متفاوت است، مقدار تنظیمات قانونی را بررسی کنید.
+
 </div>
+
 
 <div class="panel">
 
 <div class="panel-head">
-<h2>اطلاعات حقوقی</h2>
+
+<h2>
+اطلاعات حقوقی
+</h2>
+
 </div>
+
 
 <div class="form-grid">
 
+
 <div class="field">
-<label>انتخاب پرسنل</label>
-<select id="payEmployee" onchange="loadEmployeeSalary()">
-<option value="">انتخاب کنید</option>
+
+<label>
+انتخاب پرسنل
+</label>
+
+<select
+id="payEmployee"
+onchange="loadEmployeeSalary()"
+>
+
+<option value="">
+انتخاب کنید
+</option>
+
 </select>
+
 </div>
+
 
 <div class="field">
-<label>تعداد روز کارکرد</label>
-<input id="workDays" type="number" min="0" max="31" value="30">
+
+<label>
+تعداد روز کارکرد
+</label>
+
+<input
+id="workDays"
+type="number"
+min="0"
+max="31"
+value="30"
+>
+
 </div>
+
 
 <div class="field">
-<label>حقوق پایه ماهانه</label>
-<input id="baseSalary" type="number" placeholder="ریال">
+
+<label>
+حقوق پایه ماهانه
+</label>
+
+<input
+id="baseSalary"
+type="number"
+placeholder="ریال"
+>
+
 </div>
+
 
 <div class="field">
-<label>حق مسکن</label>
-<input id="housing" type="number" value="30000000">
+
+<label>
+حق مسکن
+</label>
+
+<input
+id="housing"
+type="number"
+value="30000000"
+>
+
 </div>
+
 
 <div class="field">
-<label>بن کارگری</label>
-<input id="food" type="number" value="22000000">
+
+<label>
+بن کارگری
+</label>
+
+<input
+id="food"
+type="number"
+value="22000000"
+>
+
 </div>
+
 
 <div class="field">
-<label>حق تأهل</label>
-<input id="marriage" type="number" value="0">
+
+<label>
+حق تأهل
+</label>
+
+<input
+id="marriage"
+type="number"
+value="0"
+>
+
 </div>
+
 
 <div class="field">
-<label>تعداد فرزند</label>
-<input id="childCount" type="number" min="0" value="0" onchange="calculateChildAllowance()">
+
+<label>
+تعداد فرزند
+</label>
+
+<input
+id="childCount"
+type="number"
+min="0"
+value="0"
+onchange="calculateChildAllowance()"
+>
+
 </div>
+
 
 <div class="field">
-<label>حق اولاد</label>
-<input id="children" type="number" value="0">
+
+<label>
+حق اولاد
+</label>
+
+<input
+id="children"
+type="number"
+value="0"
+>
+
 </div>
+
 
 <div class="field">
-<label>پایه سنوات</label>
-<input id="seniority" type="number" value="0">
+
+<label>
+پایه سنوات
+</label>
+
+<input
+id="seniority"
+type="number"
+value="0"
+>
+
 </div>
+
 
 <div class="field">
-<label>اضافه‌کاری - ساعت</label>
-<input id="overtimeHours" type="number" min="0" value="0">
+
+<label>
+اضافه‌کاری - ساعت
+</label>
+
+<input
+id="overtimeHours"
+type="number"
+min="0"
+value="0"
+>
+
 </div>
+
 
 <div class="field">
-<label>مبلغ اضافه‌کاری دستی</label>
-<input id="overtime" type="number" value="0">
+
+<label>
+مبلغ اضافه‌کاری دستی
+</label>
+
+<input
+id="overtime"
+type="number"
+value="0"
+>
+
 </div>
+
 
 <div class="field">
-<label>شب‌کاری / نوبت‌کاری</label>
-<input id="shiftPay" type="number" value="0">
+
+<label>
+شب‌کاری / نوبت‌کاری
+</label>
+
+<input
+id="shiftPay"
+type="number"
+value="0"
+>
+
 </div>
+
 
 <div class="field">
-<label>تعطیل‌کاری</label>
-<input id="holidayPay" type="number" value="0">
+
+<label>
+تعطیل‌کاری
+</label>
+
+<input
+id="holidayPay"
+type="number"
+value="0"
+>
+
 </div>
+
 
 <div class="field">
-<label>مأموریت</label>
-<input id="missionPay" type="number" value="0">
+
+<label>
+مأموریت
+</label>
+
+<input
+id="missionPay"
+type="number"
+value="0"
+>
+
 </div>
+
 
 <div class="field">
-<label>پاداش</label>
-<input id="bonus" type="number" value="0">
+
+<label>
+پاداش
+</label>
+
+<input
+id="bonus"
+type="number"
+value="0"
+>
+
 </div>
+
 
 <div class="field">
-<label>سایر مزایا</label>
-<input id="otherBenefits" type="number" value="0">
+
+<label>
+سایر مزایا
+</label>
+
+<input
+id="otherBenefits"
+type="number"
+value="0"
+>
+
 </div>
+
 
 <div class="field">
-<label>سایر کسورات</label>
-<input id="deductions" type="number" value="0">
-</div>
+
+<label>
+سایر کسورات
+</label>
+
+<input
+id="deductions"
+type="number"
+value="0"
+>
 
 </div>
+
+
+</div>
+
 
 <div class="form-actions">
-<button class="btn" onclick="calculatePayroll()">محاسبه حقوق</button>
-<button class="btn secondary" onclick="resetPayroll()">پاک کردن محاسبات</button>
+
+<button
+class="btn"
+onclick="calculatePayroll()"
+>
+محاسبه حقوق
+</button>
+
+<button
+class="btn secondary"
+onclick="resetPayroll()"
+>
+پاک کردن محاسبات
+</button>
+
 </div>
 
 </div>
+
 
 
 <div class="salary-grid">
 
+
 <div class="salary-box">
-<h3>مزایا و پرداخت‌ها</h3>
+
+<h3>
+مزایا و پرداخت‌ها
+</h3>
+
 
 <div class="result-line">
 <span>حقوق پایه</span>
 <b id="rBase">۰</b>
 </div>
 
+
 <div class="result-line">
 <span>مجموع مزایا</span>
 <b id="rBenefits">۰</b>
 </div>
 
+
 <div class="result-line">
 <span>اضافه‌کاری</span>
 <b id="rOvertime">۰</b>
 </div>
+
 
 <div class="result-line">
 <span>ناخالص</span>
@@ -514,23 +1395,31 @@ outline:none;background:#fff;font-size:12px
 </div>
 
 
+
 <div class="salary-box">
-<h3>کسورات</h3>
+
+<h3>
+کسورات
+</h3>
+
 
 <div class="result-line">
 <span>بیمه سهم کارمند</span>
 <b id="rInsurance">۰</b>
 </div>
 
+
 <div class="result-line">
 <span>مالیات</span>
 <b id="rTax">۰</b>
 </div>
 
+
 <div class="result-line">
 <span>سایر کسورات</span>
 <b id="rDeduction">۰</b>
 </div>
+
 
 <div class="result-line">
 <span>مجموع کسورات</span>
@@ -540,18 +1429,30 @@ outline:none;background:#fff;font-size:12px
 </div>
 
 
+
 <div class="salary-box">
 
-<h3>نتیجه نهایی</h3>
+<h3>
+نتیجه نهایی
+</h3>
+
 
 <div class="result-line">
 <span>ناخالص</span>
 <b id="rGross2">۰</b>
 </div>
 
+
 <div class="total">
-<span>خالص پرداختی</span>
-<strong id="rNet">۰</strong>
+
+<span>
+خالص پرداختی
+</span>
+
+<strong id="rNet">
+۰
+</strong>
+
 </div>
 
 </div>
@@ -559,6 +1460,7 @@ outline:none;background:#fff;font-size:12px
 </div>
 
 </section>
+
 
 
 <!-- INSURANCE -->
@@ -566,78 +1468,165 @@ outline:none;background:#fff;font-size:12px
 <section id="insurance" class="page">
 
 <div class="page-title">
-<h1>بیمه و مالیات</h1>
-<p>پارامترهای اصلی محاسبات سال ۱۴۰۵</p>
+
+<h1>
+بیمه و مالیات
+</h1>
+
+<p>
+پارامترهای اصلی محاسبات سال ۱۴۰۵
+</p>
+
 </div>
+
 
 <div class="legal-grid">
 
-<div class="legal-card">
-<small>حداقل مزد روزانه</small>
-<b>۵,۵۴۱,۸۵۰ ریال</b>
-</div>
 
 <div class="legal-card">
-<small>پایه سنوات روزانه</small>
-<b>۱۶۶,۶۶۷ ریال</b>
+
+<small>
+حداقل مزد روزانه
+</small>
+
+<b>
+۵,۵۴۱,۸۵۰ ریال
+</b>
+
 </div>
+
 
 <div class="legal-card">
-<small>بن کارگری ماهانه</small>
-<b>۲۲,۰۰۰,۰۰۰ ریال</b>
+
+<small>
+پایه سنوات روزانه
+</small>
+
+<b>
+۱۶۶,۶۶۷ ریال
+</b>
+
 </div>
+
 
 <div class="legal-card">
-<small>بیمه سهم کارمند</small>
-<b>۷٪</b>
+
+<small>
+بن کارگری ماهانه
+</small>
+
+<b>
+۲۲,۰۰۰,۰۰۰ ریال
+</b>
+
 </div>
+
 
 <div class="legal-card">
-<small>معافیت مالیاتی ماهانه</small>
-<b>۴۰۰,۰۰۰,۰۰۰ ریال</b>
-</div>
+
+<small>
+بیمه سهم کارمند
+</small>
+
+<b>
+۷٪
+</b>
 
 </div>
 
-<div class="panel" style="margin-top:20px">
+
+<div class="legal-card">
+
+<small>
+معافیت مالیاتی ماهانه
+</small>
+
+<b>
+۴۰۰,۰۰۰,۰۰۰ ریال
+</b>
+
+</div>
+
+</div>
+
+
+<div
+class="panel"
+style="margin-top:20px"
+>
 
 <div class="panel-head">
-<h2>پلکان مالیات ۱۴۰۵</h2>
+
+<h2>
+پلکان مالیات ۱۴۰۵
+</h2>
+
 </div>
 
-<div class="result-line">
-<span>تا ۴۰۰ میلیون ریال</span>
-<b>معاف</b>
-</div>
 
 <div class="result-line">
-<span>۴۰۰ تا ۸۰۰ میلیون ریال</span>
-<b>۱۰٪</b>
+<span>
+تا ۴۰۰ میلیون ریال
+</span>
+<b>
+معاف
+</b>
 </div>
 
-<div class="result-line">
-<span>۸۰۰ میلیون تا ۱ میلیارد ریال</span>
-<b>۱۵٪</b>
-</div>
 
 <div class="result-line">
-<span>۱ تا ۱.۲ میلیارد ریال</span>
-<b>۲۰٪</b>
+<span>
+۴۰۰ تا ۸۰۰ میلیون ریال
+</span>
+<b>
+۱۰٪
+</b>
 </div>
 
-<div class="result-line">
-<span>۱.۲ تا ۱.۴ میلیارد ریال</span>
-<b>۲۵٪</b>
-</div>
 
 <div class="result-line">
-<span>بیش از ۱.۴ میلیارد ریال</span>
-<b>۳۰٪</b>
+<span>
+۸۰۰ میلیون تا ۱ میلیارد ریال
+</span>
+<b>
+۱۵٪
+</b>
+</div>
+
+
+<div class="result-line">
+<span>
+۱ تا ۱.۲ میلیارد ریال
+</span>
+<b>
+۲۰٪
+</b>
+</div>
+
+
+<div class="result-line">
+<span>
+۱.۲ تا ۱.۴ میلیارد ریال
+</span>
+<b>
+۲۵٪
+</b>
+</div>
+
+
+<div class="result-line">
+<span>
+بیش از ۱.۴ میلیارد ریال
+</span>
+<b>
+۳۰٪
+</b>
 </div>
 
 </div>
 
 </section>
+
 
 
 <!-- PAYSLIPS -->
@@ -645,20 +1634,34 @@ outline:none;background:#fff;font-size:12px
 <section id="payslips" class="page">
 
 <div class="page-title">
-<h1>فیش حقوقی</h1>
-<p>فیش حقوقی پس از ثبت محاسبه قابل آماده‌سازی است.</p>
+
+<h1>
+فیش حقوقی
+</h1>
+
+<p>
+فیش حقوقی پس از ثبت محاسبه قابل آماده‌سازی است.
+</p>
+
 </div>
+
 
 <div class="panel">
 
 <div class="empty">
-<div class="empty-icon">🧾</div>
+
+<div class="empty-icon">
+🧾
+</div>
+
 ماژول فیش حقوقی در مرحله بعد به موتور محاسبات متصل می‌شود.
+
 </div>
 
 </div>
 
 </section>
+
 
 
 <!-- REPORTS -->
@@ -666,20 +1669,34 @@ outline:none;background:#fff;font-size:12px
 <section id="reports" class="page">
 
 <div class="page-title">
-<h1>گزارش‌ها</h1>
-<p>گزارش‌های مدیریتی حقوق و دستمزد</p>
+
+<h1>
+گزارش‌ها
+</h1>
+
+<p>
+گزارش‌های مدیریتی حقوق و دستمزد
+</p>
+
 </div>
+
 
 <div class="panel">
 
 <div class="empty">
-<div class="empty-icon">📈</div>
+
+<div class="empty-icon">
+📈
+</div>
+
 گزارش‌های ماهانه، بیمه، مالیات و خالص پرداختی در مرحله بعد تکمیل می‌شوند.
+
 </div>
 
 </div>
 
 </section>
+
 
 
 <!-- SETTINGS -->
@@ -687,619 +1704,1876 @@ outline:none;background:#fff;font-size:12px
 <section id="settings" class="page">
 
 <div class="page-title">
-<h1>تنظیمات قانونی ۱۴۰۵</h1>
-<p>پارامترهای قانونی قابل تغییر برای محاسبات</p>
+
+<h1>
+تنظیمات قانونی ۱۴۰۵
+</h1>
+
+<p>
+پارامترهای قانونی قابل تغییر برای محاسبات
+</p>
+
 </div>
+
 
 <div class="panel">
 
 <div class="form-grid">
 
+
 <div class="field">
-<label>سال مالی</label>
+
+<label>
+سال مالی
+</label>
+
 <select id="legalYear">
-<option value="1405">۱۴۰۵</option>
+
+<option value="1405">
+۱۴۰۵
+</option>
+
 </select>
+
 </div>
+
 
 <div class="field">
-<label>حداقل مزد روزانه</label>
-<input id="settingDailyWage" type="number" value="5541850">
+
+<label>
+حداقل مزد روزانه
+</label>
+
+<input
+id="settingDailyWage"
+type="number"
+value="5541850"
+>
+
 </div>
+
 
 <div class="field">
-<label>پایه سنوات روزانه</label>
-<input id="settingSeniorityDaily" type="number" value="166667">
+
+<label>
+پایه سنوات روزانه
+</label>
+
+<input
+id="settingSeniorityDaily"
+type="number"
+value="166667"
+>
+
 </div>
+
 
 <div class="field">
-<label>بن کارگری ماهانه</label>
-<input id="settingFood" type="number" value="22000000">
+
+<label>
+بن کارگری ماهانه
+</label>
+
+<input
+id="settingFood"
+type="number"
+value="22000000"
+>
+
 </div>
+
 
 <div class="field">
-<label>حق مسکن ماهانه</label>
-<input id="settingHousing" type="number" value="30000000">
+
+<label>
+حق مسکن ماهانه
+</label>
+
+<input
+id="settingHousing"
+type="number"
+value="30000000"
+>
+
 </div>
+
 
 <div class="field">
-<label>حق تأهل ماهانه</label>
-<input id="settingMarriage" type="number" value="5000000">
+
+<label>
+حق تأهل ماهانه
+</label>
+
+<input
+id="settingMarriage"
+type="number"
+value="5000000"
+>
+
 </div>
+
 
 <div class="field">
-<label>حق اولاد هر فرزند</label>
-<input id="settingChild" type="number" value="16255480">
+
+<label>
+حق اولاد هر فرزند
+</label>
+
+<input
+id="settingChild"
+type="number"
+value="16255480"
+>
+
 </div>
+
 
 <div class="field">
-<label>درصد بیمه سهم کارمند</label>
-<input id="settingInsurance" type="number" value="7" step=".01">
+
+<label>
+درصد بیمه سهم کارمند
+</label>
+
+<input
+id="settingInsurance"
+type="number"
+value="7"
+step=".01"
+>
+
 </div>
+
 
 <div class="field">
-<label>معافیت مالیاتی ماهانه</label>
-<input id="settingTaxFree" type="number" value="400000000">
-</div>
+
+<label>
+معافیت مالیاتی ماهانه
+</label>
+
+<input
+id="settingTaxFree"
+type="number"
+value="400000000"
+>
 
 </div>
+
+
+</div>
+
 
 <div class="form-actions">
-<button class="btn" onclick="saveSettings()">ذخیره تنظیمات</button>
-<button class="btn secondary" onclick="loadSettingsToForm()">بازنشانی</button>
+
+<button
+class="btn"
+onclick="saveSettings()"
+>
+ذخیره تنظیمات
+</button>
+
+<button
+class="btn secondary"
+onclick="loadSettingsToForm()"
+>
+بازنشانی
+</button>
+
 </div>
 
 </div>
 
 </section>
 
+
 </div>
+
 </main>
+
 </div>
+
 
 
 <script>
 
 const STORAGE_EMP='amnayar_payroll_employees';
+
 const STORAGE_SETTINGS='amnayar_payroll_settings';
 
-let employees=JSON.parse(localStorage.getItem(STORAGE_EMP)||'[]');
+
+let employees=JSON.parse(
+localStorage.getItem(STORAGE_EMP)||'[]'
+);
+
 
 const DEFAULT_SETTINGS={
+
 year:'1405',
+
 dailyWage:5541850,
+
 seniorityDaily:166667,
+
 food:22000000,
+
 housing:30000000,
+
 marriage:5000000,
+
 child:16255480,
+
 insurance:7,
+
 taxFree:400000000
+
 };
+
 
 let settings={
+
 ...DEFAULT_SETTINGS,
-...(JSON.parse(localStorage.getItem(STORAGE_SETTINGS)||'{}'))
+
+...(JSON.parse(
+localStorage.getItem(STORAGE_SETTINGS)||'{}'
+))
+
 };
 
+
+
 function faNumber(n){
+
 return Number(n||0).toLocaleString('fa-IR');
+
 }
 
+
+
 function money(n){
-return faNumber(Math.round(Number(n||0)))+' ریال';
+
+return faNumber(
+Math.round(Number(n||0))
+)+' ریال';
+
 }
+
+
 
 function showPage(id,btn){
 
 document.querySelectorAll('.page').forEach(p=>{
+
 p.classList.remove('active');
+
 });
+
 
 const page=document.getElementById(id);
 
-if(page) page.classList.add('active');
+if(page){
+
+page.classList.add('active');
+
+}
+
 
 document.querySelectorAll('.menu button').forEach(b=>{
+
 b.classList.remove('active');
+
 });
 
-if(btn) btn.classList.add('active');
 
-document.getElementById('sidebar').classList.remove('open');
+if(btn){
 
-window.scrollTo({top:0,behavior:'smooth'});
-
-if(id==='employees') renderEmployees();
-if(id==='payroll') loadEmployeeSelect();
-if(id==='settings') loadSettingsToForm();
+btn.classList.add('active');
 
 }
+
+
+document.getElementById('sidebar')
+.classList.remove('open');
+
+
+window.scrollTo({
+top:0,
+behavior:'smooth'
+});
+
+
+if(id==='employees'){
+
+renderEmployees();
+
+}
+
+if(id==='payroll'){
+
+loadEmployeeSelect();
+
+}
+
+if(id==='settings'){
+
+loadSettingsToForm();
+
+}
+
+}
+
+
 
 function toggleSidebar(){
-document.getElementById('sidebar').classList.toggle('open');
+
+document.getElementById('sidebar')
+.classList.toggle('open');
+
 }
+
 
 
 function addEmployee(){
 
-const code=document.getElementById('employeeCode').value.trim();
-const name=document.getElementById('employeeName').value.trim();
-const family=document.getElementById('employeeFamily').value.trim();
-const national=document.getElementById('employeeNational').value.trim();
-const job=document.getElementById('employeeJob').value.trim();
-const base=Number(document.getElementById('employeeBase').value||0);
+const code=document
+.getElementById('employeeCode')
+.value.trim();
+
+const name=document
+.getElementById('employeeName')
+.value.trim();
+
+const family=document
+.getElementById('employeeFamily')
+.value.trim();
+
+const national=document
+.getElementById('employeeNational')
+.value.trim();
+
+const job=document
+.getElementById('employeeJob')
+.value.trim();
+
+const base=Number(
+document.getElementById('employeeBase')
+.value||0
+);
+
 
 if(!code||!name||!family){
-alert('کد پرسنلی، نام و نام خانوادگی را وارد کنید.');
+
+alert(
+'کد پرسنلی، نام و نام خانوادگی را وارد کنید.'
+);
+
 return;
+
 }
+
+
+if(employees.some(e=>String(e.code)===String(code))){
+
+alert(
+'این کد پرسنلی قبلاً ثبت شده است.'
+);
+
+return;
+
+}
+
 
 employees.push({
+
 id:Date.now(),
+
 code,
+
 name,
+
 family,
+
 national,
+
 job,
+
 base
+
 });
 
-localStorage.setItem(STORAGE_EMP,JSON.stringify(employees));
+
+saveEmployees();
 
 clearEmployeeForm();
+
 renderEmployees();
+
 updateDashboard();
 
-alert('پرسنل با موفقیت ثبت شد.');
+
+alert(
+'پرسنل با موفقیت ثبت شد.'
+);
 
 }
+
+
+
+function saveEmployees(){
+
+localStorage.setItem(
+STORAGE_EMP,
+JSON.stringify(employees)
+);
+
+}
+
 
 
 function clearEmployeeForm(){
 
 [
+
 'employeeCode',
+
 'employeeName',
+
 'employeeFamily',
+
 'employeeNational',
+
 'employeeJob',
+
 'employeeBase'
+
 ].forEach(id=>{
+
 document.getElementById(id).value='';
+
 });
 
 }
 
 
+
 function renderEmployees(){
 
-const tbody=document.getElementById('employeeTable');
+const tbody=document
+.getElementById('employeeTable');
+
 
 if(!employees.length){
 
-tbody.innerHTML='<tr><td colspan="6"><div class="empty">هنوز پرسنلی ثبت نشده است.</div></td></tr>';
+tbody.innerHTML=
+'<tr><td colspan="6"><div class="empty">هنوز پرسنلی ثبت نشده است.</div></td></tr>';
 
-document.getElementById('employeeCount').textContent='۰ نفر';
+document.getElementById('employeeCount')
+.textContent='۰ نفر';
 
 return;
+
 }
+
 
 tbody.innerHTML=employees.map(e=>`
 
 <tr>
-<td>${e.code}</td>
-<td>${e.name} ${e.family}</td>
-<td>${e.national||'—'}</td>
-<td>${e.job||'—'}</td>
-<td>${money(e.base)}</td>
+
+<td>${escapeHtml(e.code)}</td>
+
 <td>
-<button class="btn danger" onclick="deleteEmployee(${e.id})">حذف</button>
+${escapeHtml(e.name)}
+${escapeHtml(e.family)}
 </td>
+
+<td>
+${escapeHtml(e.national||'—')}
+</td>
+
+<td>
+${escapeHtml(e.job||'—')}
+</td>
+
+<td>
+${money(e.base)}
+</td>
+
+<td>
+
+<button
+class="btn danger"
+onclick="deleteEmployee(${e.id})"
+>
+حذف
+</button>
+
+</td>
+
 </tr>
 
 `).join('');
 
-document.getElementById('employeeCount').textContent=
+
+document.getElementById('employeeCount')
+.textContent=
 faNumber(employees.length)+' نفر';
 
 }
 
 
+
+function escapeHtml(value){
+
+return String(value??'')
+.replace(/&/g,'&amp;')
+.replace(/</g,'&lt;')
+.replace(/>/g,'&gt;')
+.replace(/"/g,'&quot;')
+.replace(/'/g,'&#039;');
+
+}
+
+
+
 function deleteEmployee(id){
 
-if(!confirm('آیا از حذف این پرسنل مطمئن هستید؟')) return;
+if(!confirm(
+'آیا از حذف این پرسنل مطمئن هستید؟'
+)){
 
-employees=employees.filter(e=>e.id!==id);
+return;
 
-localStorage.setItem(STORAGE_EMP,JSON.stringify(employees));
+}
+
+
+employees=employees.filter(
+e=>e.id!==id
+);
+
+
+saveEmployees();
 
 renderEmployees();
+
 updateDashboard();
 
 }
 
 
+
 function loadEmployeeSelect(){
 
-const select=document.getElementById('payEmployee');
+const select=document
+.getElementById('payEmployee');
+
 
 select.innerHTML=
 '<option value="">انتخاب کنید</option>'+
 employees.map(e=>
-`<option value="${e.id}">${e.code} - ${e.name} ${e.family}</option>`
+
+`<option value="${e.id}">
+${escapeHtml(e.code)}
+ - 
+${escapeHtml(e.name)}
+${escapeHtml(e.family)}
+</option>`
+
 ).join('');
 
 }
 
 
+
 function loadEmployeeSalary(){
 
-const id=Number(document.getElementById('payEmployee').value);
-const e=employees.find(x=>x.id===id);
+const id=Number(
+document.getElementById('payEmployee').value
+);
+
+const e=employees.find(
+x=>x.id===id
+);
+
 
 if(e){
 
-document.getElementById('baseSalary').value=e.base||0;
+document.getElementById('baseSalary')
+.value=e.base||0;
 
-document.getElementById('housing').value=settings.housing;
-document.getElementById('food').value=settings.food;
-document.getElementById('marriage').value=0;
-document.getElementById('children').value=0;
-document.getElementById('seniority').value=0;
+document.getElementById('housing')
+.value=settings.housing;
+
+document.getElementById('food')
+.value=settings.food;
+
+document.getElementById('marriage')
+.value=0;
+
+document.getElementById('children')
+.value=0;
+
+document.getElementById('childCount')
+.value=0;
+
+document.getElementById('seniority')
+.value=0;
 
 }
 
 }
+
 
 
 function calculateChildAllowance(){
 
-const count=Number(document.getElementById('childCount').value||0);
+const count=Number(
+document.getElementById('childCount').value||0
+);
 
-document.getElementById('children').value=
+
+document.getElementById('children')
+.value=
 count*Number(settings.child);
 
 }
 
 
+
 function calculateOvertime(baseSalary){
 
-const hours=Number(document.getElementById('overtimeHours').value||0);
+const hours=Number(
+document.getElementById('overtimeHours').value||0
+);
 
-if(hours<=0) return 0;
 
-const daily=baseSalary/30;
-const hourly=daily/7.3333333333;
+if(hours<=0){
 
-/*
-ضریب پایه اضافه‌کاری:
-مزد هر ساعت × 1.4
-*/
-
-return Math.round(hourly*1.4*hours);
+return 0;
 
 }
+
+
+const daily=baseSalary/30;
+
+const hourly=daily/7.3333333333;
+
+
+return Math.round(
+hourly*1.4*hours
+);
+
+}
+
 
 
 function calculateTax(monthlyTaxable){
 
-const x=Math.max(0,Number(monthlyTaxable||0));
+const x=Math.max(
+0,
+Number(monthlyTaxable||0)
+);
+
 const free=Number(settings.taxFree);
 
-if(x<=free) return 0;
+
+if(x<=free){
+
+return 0;
+
+}
+
 
 let tax=0;
+
 let remaining=x-free;
 
+
 const p1=400000000;
+
 const p2=200000000;
+
 const p3=200000000;
+
 const p4=200000000;
 
-let part=Math.min(remaining,p1);
+
+let part=Math.min(
+remaining,
+p1
+);
+
 tax+=part*.10;
+
 remaining-=part;
 
+
 if(remaining>0){
-part=Math.min(remaining,p2);
+
+part=Math.min(
+remaining,
+p2
+);
+
 tax+=part*.15;
+
 remaining-=part;
+
 }
 
+
 if(remaining>0){
-part=Math.min(remaining,p3);
+
+part=Math.min(
+remaining,
+p3
+);
+
 tax+=part*.20;
+
 remaining-=part;
+
 }
 
+
 if(remaining>0){
-part=Math.min(remaining,p4);
+
+part=Math.min(
+remaining,
+p4
+);
+
 tax+=part*.25;
+
 remaining-=part;
+
 }
 
+
 if(remaining>0){
+
 tax+=remaining*.30;
+
 }
+
 
 return Math.round(tax);
 
 }
 
 
+
 function calculatePayroll(){
 
 const days=Math.max(
+
 0,
+
 Math.min(
+
 31,
-Number(document.getElementById('workDays').value||30)
+
+Number(
+document.getElementById('workDays')
+.value||30
 )
+
+)
+
 );
 
-const baseMonthly=Number(document.getElementById('baseSalary').value||0);
+
+const baseMonthly=Number(
+
+document.getElementById('baseSalary')
+.value||0
+
+);
+
 
 if(!baseMonthly){
-alert('ابتدا پرسنل و حقوق پایه را مشخص کنید.');
+
+alert(
+'ابتدا پرسنل و حقوق پایه را مشخص کنید.'
+);
+
 return;
+
 }
 
-/*
-برای کارکرد ناقص ماه، حقوق پایه و اقلام ماهانه
-به نسبت روزهای کارکرد محاسبه می‌شوند.
-*/
 
-const base=Math.round(baseMonthly*(days/30));
+const base=Math.round(
+baseMonthly*(days/30)
+);
+
 
 const housing=Math.round(
-Number(document.getElementById('housing').value||0)*(days/30)
+
+Number(
+document.getElementById('housing')
+.value||0
+)
+
+*(days/30)
+
 );
+
 
 const food=Math.round(
-Number(document.getElementById('food').value||0)*(days/30)
+
+Number(
+document.getElementById('food')
+.value||0
+)
+
+*(days/30)
+
 );
+
 
 const marriage=Math.round(
-Number(document.getElementById('marriage').value||0)*(days/30)
+
+Number(
+document.getElementById('marriage')
+.value||0
+)
+
+*(days/30)
+
 );
+
 
 const children=Math.round(
-Number(document.getElementById('children').value||0)*(days/30)
+
+Number(
+document.getElementById('children')
+.value||0
+)
+
+*(days/30)
+
 );
+
 
 const seniority=Math.round(
-Number(document.getElementById('seniority').value||0)*(days/30)
+
+Number(
+document.getElementById('seniority')
+.value||0
+)
+
+*(days/30)
+
 );
+
 
 const overtimeManual=Number(
-document.getElementById('overtime').value||0
+
+document.getElementById('overtime')
+.value||0
+
 );
 
-const overtimeAuto=calculateOvertime(base);
 
-const overtime=Math.max(overtimeManual,overtimeAuto);
+const overtimeAuto=
+calculateOvertime(base);
+
+
+const overtime=Math.max(
+overtimeManual,
+overtimeAuto
+);
+
 
 const shiftPay=Number(
-document.getElementById('shiftPay').value||0
+
+document.getElementById('shiftPay')
+.value||0
+
 );
+
 
 const holidayPay=Number(
-document.getElementById('holidayPay').value||0
+
+document.getElementById('holidayPay')
+.value||0
+
 );
+
 
 const mission=Number(
-document.getElementById('missionPay').value||0
+
+document.getElementById('missionPay')
+.value||0
+
 );
+
 
 const bonus=Number(
-document.getElementById('bonus').value||0
+
+document.getElementById('bonus')
+.value||0
+
 );
+
 
 const other=Number(
-document.getElementById('otherBenefits').value||0
+
+document.getElementById('otherBenefits')
+.value||0
+
 );
+
 
 const deductions=Number(
-document.getElementById('deductions').value||0
+
+document.getElementById('deductions')
+.value||0
+
 );
+
 
 const benefits=
+
 housing+
+
 food+
+
 marriage+
+
 children+
+
 seniority+
+
 shiftPay+
+
 holidayPay+
+
 mission+
+
 bonus+
+
 other;
 
+
 const gross=
+
 base+
+
 benefits+
+
 overtime;
 
-/*
-در این نسخه، مبنای بیمه به‌صورت
-حقوق پایه + اقلام مزدی اصلی در نظر گرفته می‌شود.
-*/
 
 const insuranceBase=
+
 base+
+
 housing+
+
 food+
+
 marriage+
+
 children+
+
 seniority+
+
 shiftPay+
+
 holidayPay+
+
 overtime;
 
+
 const insurance=Math.round(
-insuranceBase*(Number(settings.insurance)/100)
+
+insuranceBase*
+
+(
+Number(settings.insurance)/100
+)
+
 );
 
-/*
-برای نسخه اولیه، مالیات روی ناخالص پس از کسر بیمه
-محاسبه می‌شود.
-*/
 
 const taxable=
-Math.max(0,gross-insurance);
 
-const tax=calculateTax(taxable);
+Math.max(
+0,
+gross-insurance
+);
+
+
+const tax=
+calculateTax(taxable);
+
 
 const totalDeduction=
+
 insurance+
+
 tax+
+
 deductions;
 
+
 const net=
+
 gross-totalDeduction;
 
 
-document.getElementById('rBase').textContent=money(base);
-document.getElementById('rBenefits').textContent=money(benefits);
-document.getElementById('rOvertime').textContent=money(overtime);
-document.getElementById('rGross').textContent=money(gross);
+document.getElementById('rBase')
+.textContent=money(base);
 
-document.getElementById('rInsurance').textContent=money(insurance);
-document.getElementById('rTax').textContent=money(tax);
-document.getElementById('rDeduction').textContent=money(deductions);
-document.getElementById('rTotalDeduction').textContent=money(totalDeduction);
 
-document.getElementById('rGross2').textContent=money(gross);
-document.getElementById('rNet').textContent=money(net);
+document.getElementById('rBenefits')
+.textContent=money(benefits);
+
+
+document.getElementById('rOvertime')
+.textContent=money(overtime);
+
+
+document.getElementById('rGross')
+.textContent=money(gross);
+
+
+document.getElementById('rInsurance')
+.textContent=money(insurance);
+
+
+document.getElementById('rTax')
+.textContent=money(tax);
+
+
+document.getElementById('rDeduction')
+.textContent=money(deductions);
+
+
+document.getElementById('rTotalDeduction')
+.textContent=money(totalDeduction);
+
+
+document.getElementById('rGross2')
+.textContent=money(gross);
+
+
+document.getElementById('rNet')
+.textContent=money(net);
 
 }
+
 
 
 function resetPayroll(){
 
 [
+
 'baseSalary',
+
 'housing',
+
 'food',
+
 'marriage',
+
 'children',
+
 'seniority',
+
 'overtimeHours',
+
 'overtime',
+
 'shiftPay',
+
 'holidayPay',
+
 'missionPay',
+
 'bonus',
+
 'otherBenefits',
+
 'deductions'
+
 ].forEach(id=>{
 
 const el=document.getElementById(id);
 
-if(el) el.value='0';
+if(el){
+
+el.value='0';
+
+}
 
 });
 
-document.getElementById('workDays').value='30';
 
-document.getElementById('housing').value=settings.housing;
-document.getElementById('food').value=settings.food;
-document.getElementById('children').value='0';
+document.getElementById('workDays')
+.value='30';
+
+
+document.getElementById('housing')
+.value=settings.housing;
+
+
+document.getElementById('food')
+.value=settings.food;
+
+
+document.getElementById('children')
+.value='0';
+
+
+document.getElementById('childCount')
+.value='0';
+
 
 [
+
 'rBase',
+
 'rBenefits',
+
 'rOvertime',
+
 'rGross',
+
 'rInsurance',
+
 'rTax',
+
 'rDeduction',
+
 'rTotalDeduction',
+
 'rGross2',
+
 'rNet'
+
 ].forEach(id=>{
-document.getElementById(id).textContent='۰';
+
+document.getElementById(id)
+.textContent='۰';
+
 });
 
 }
+
 
 
 function updateDashboard(){
 
-document.getElementById('statEmployees').textContent=
+document.getElementById('statEmployees')
+.textContent=
 faNumber(employees.length);
+
 
 let gross=0;
 
+
 employees.forEach(e=>{
+
 gross+=Number(e.base||0);
+
 });
 
+
 const insurance=Math.round(
-gross*(Number(settings.insurance)/100)
+
+gross*
+
+(
+Number(settings.insurance)/100
+)
+
 );
+
 
 const tax=calculateTax(
-Math.max(0,gross-insurance)
+
+Math.max(
+0,
+gross-insurance
+)
+
 );
 
-const net=gross-insurance-tax;
 
-document.getElementById('statGross').textContent=faNumber(gross);
-document.getElementById('statInsurance').textContent=faNumber(insurance);
-document.getElementById('statTax').textContent=faNumber(tax);
-document.getElementById('statNet').textContent=faNumber(net);
+const net=
+
+gross-
+
+insurance-
+
+tax;
+
+
+document.getElementById('statGross')
+.textContent=faNumber(gross);
+
+
+document.getElementById('statInsurance')
+.textContent=faNumber(insurance);
+
+
+document.getElementById('statTax')
+.textContent=faNumber(tax);
+
+
+document.getElementById('statNet')
+.textContent=faNumber(net);
 
 }
+
 
 
 function saveSettings(){
 
 settings={
-year:document.getElementById('legalYear').value,
-dailyWage:Number(document.getElementById('settingDailyWage').value||0),
-seniorityDaily:Number(document.getElementById('settingSeniorityDaily').value||0),
-food:Number(document.getElementById('settingFood').value||0),
-housing:Number(document.getElementById('settingHousing').value||0),
-marriage:Number(document.getElementById('settingMarriage').value||0),
-child:Number(document.getElementById('settingChild').value||0),
-insurance:Number(document.getElementById('settingInsurance').value||0),
-taxFree:Number(document.getElementById('settingTaxFree').value||0)
+
+year:
+document.getElementById('legalYear').value,
+
+dailyWage:
+Number(
+document.getElementById('settingDailyWage')
+.value||0
+),
+
+seniorityDaily:
+Number(
+document.getElementById('settingSeniorityDaily')
+.value||0
+),
+
+food:
+Number(
+document.getElementById('settingFood')
+.value||0
+),
+
+housing:
+Number(
+document.getElementById('settingHousing')
+.value||0
+),
+
+marriage:
+Number(
+document.getElementById('settingMarriage')
+.value||0
+),
+
+child:
+Number(
+document.getElementById('settingChild')
+.value||0
+),
+
+insurance:
+Number(
+document.getElementById('settingInsurance')
+.value||0
+),
+
+taxFree:
+Number(
+document.getElementById('settingTaxFree')
+.value||0
+)
+
 };
 
+
 localStorage.setItem(
+
 STORAGE_SETTINGS,
+
 JSON.stringify(settings)
+
 );
 
-document.getElementById('housing').value=settings.housing;
-document.getElementById('food').value=settings.food;
 
-alert('تنظیمات سال ۱۴۰۵ ذخیره شد.');
+document.getElementById('housing')
+.value=settings.housing;
+
+
+document.getElementById('food')
+.value=settings.food;
+
+
+alert(
+'تنظیمات سال ۱۴۰۵ ذخیره شد.'
+);
+
 
 updateDashboard();
 
 }
+
 
 
 function loadSettingsToForm(){
 
-document.getElementById('legalYear').value=settings.year;
-document.getElementById('settingDailyWage').value=settings.dailyWage;
-document.getElementById('settingSeniorityDaily').value=settings.seniorityDaily;
-document.getElementById('settingFood').value=settings.food;
-document.getElementById('settingHousing').value=settings.housing;
-document.getElementById('settingMarriage').value=settings.marriage;
-document.getElementById('settingChild').value=settings.child;
-document.getElementById('settingInsurance').value=settings.insurance;
-document.getElementById('settingTaxFree').value=settings.taxFree;
+document.getElementById('legalYear')
+.value=settings.year;
+
+
+document.getElementById('settingDailyWage')
+.value=settings.dailyWage;
+
+
+document.getElementById('settingSeniorityDaily')
+.value=settings.seniorityDaily;
+
+
+document.getElementById('settingFood')
+.value=settings.food;
+
+
+document.getElementById('settingHousing')
+.value=settings.housing;
+
+
+document.getElementById('settingMarriage')
+.value=settings.marriage;
+
+
+document.getElementById('settingChild')
+.value=settings.child;
+
+
+document.getElementById('settingInsurance')
+.value=settings.insurance;
+
+
+document.getElementById('settingTaxFree')
+.value=settings.taxFree;
 
 }
 
 
+
+/* ================================
+   Excel
+================================ */
+
+
+function normalizeHeader(value){
+
+return String(value??'')
+
+.trim()
+.toLowerCase()
+.replace(/\s+/g,'')
+.replace(/‌/g,'')
+.replace(/ي/g,'ی')
+.replace(/ى/g,'ی')
+.replace(/ك/g,'ک')
+.replace(/[ـ_-]/g,'');
+
+}
+
+
+
+function findColumn(row,names){
+
+const keys=Object.keys(row);
+
+
+for(const key of keys){
+
+const normalized=
+normalizeHeader(key);
+
+
+for(const name of names){
+
+if(
+normalized===normalizeHeader(name)
+){
+
+return key;
+
+}
+
+}
+
+}
+
+
+for(const key of keys){
+
+const normalized=
+normalizeHeader(key);
+
+
+for(const name of names){
+
+const target=
+normalizeHeader(name);
+
+
+if(
+normalized.includes(target) ||
+target.includes(normalized)
+){
+
+return key;
+
+}
+
+}
+
+}
+
+
+return null;
+
+}
+
+
+
+function importExcel(event){
+
+const file=
+event.target.files[0];
+
+
+if(!file){
+
+return;
+
+}
+
+
+const result=
+document.getElementById('importResult');
+
+
+result.className=
+'import-result';
+
+
+result.style.display='none';
+
+
+if(
+typeof XLSX==='undefined'
+){
+
+result.className=
+'import-result error';
+
+result.textContent=
+'کتابخانه Excel بارگذاری نشده است. اتصال اینترنت مرورگر را بررسی کنید.';
+
+result.style.display='block';
+
+return;
+
+}
+
+
+const reader=
+new FileReader();
+
+
+reader.onload=function(e){
+
+try{
+
+const data=
+new Uint8Array(e.target.result);
+
+
+const workbook=
+XLSX.read(
+data,
+{type:'array'}
+);
+
+
+const sheetName=
+workbook.SheetNames[0];
+
+
+const sheet=
+workbook.Sheets[sheetName];
+
+
+const rows=
+XLSX.utils.sheet_to_json(
+sheet,
+{defval:''}
+);
+
+
+if(!rows.length){
+
+throw new Error(
+'فایل Excel خالی است.'
+);
+
+}
+
+
+const sample=
+rows[0];
+
+
+const codeCol=
+findColumn(
+sample,
+[
+'کد پرسنلی',
+'کدپرسنلی',
+'کدپرسنل',
+'کد',
+'personnelcode',
+'employeecode',
+'code'
+]
+);
+
+
+const nameCol=
+findColumn(
+sample,
+[
+'نام',
+'name',
+'firstname',
+'first name'
+]
+);
+
+
+const familyCol=
+findColumn(
+sample,
+[
+'نام خانوادگی',
+'نامخانوادگی',
+'نام فامیلی',
+'family',
+'lastname',
+'last name',
+'surname'
+]
+);
+
+
+const nationalCol=
+findColumn(
+sample,
+[
+'کد ملی',
+'کدملی',
+'کدملیفرد',
+'nationalcode',
+'nationalid',
+'national'
+]
+);
+
+
+const jobCol=
+findColumn(
+sample,
+[
+'سمت',
+'سمت شغلی',
+'عنوان شغلی',
+'job',
+'position',
+'title'
+]
+);
+
+
+const baseCol=
+findColumn(
+sample,
+[
+'حقوق پایه ماهانه',
+'حقوق پایه',
+'حقوقپایهماهانه',
+'حقوقپایه',
+'حقوق',
+'پایه حقوق',
+'base salary',
+'basesalary',
+'monthly salary',
+'monthlybase'
+]
+);
+
+
+const missing=[];
+
+
+if(!codeCol) missing.push('کد پرسنلی');
+
+if(!nameCol) missing.push('نام');
+
+if(!familyCol) missing.push('نام خانوادگی');
+
+if(!nationalCol) missing.push('کد ملی');
+
+if(!jobCol) missing.push('سمت');
+
+if(!baseCol) missing.push('حقوق پایه ماهانه');
+
+
+if(missing.length){
+
+throw new Error(
+'ستون‌های زیر در فایل Excel پیدا نشدند: '+
+missing.join('، ')
+);
+
+}
+
+
+let added=0;
+
+let duplicate=0;
+
+let invalid=0;
+
+
+rows.forEach(row=>{
+
+const code=
+String(row[codeCol]??'').trim();
+
+const name=
+String(row[nameCol]??'').trim();
+
+const family=
+String(row[familyCol]??'').trim();
+
+const national=
+String(row[nationalCol]??'').trim();
+
+const job=
+String(row[jobCol]??'').trim();
+
+
+let baseValue=
+row[baseCol];
+
+
+if(
+typeof baseValue==='string'
+){
+
+baseValue=
+baseValue
+.replace(/,/g,'')
+.replace(/٬/g,'')
+.replace(/ریال/g,'')
+.replace(/تومان/g,'')
+.trim();
+
+}
+
+
+const base=
+Number(baseValue||0);
+
+
+if(
+!code ||
+!name ||
+!family
+){
+
+invalid++;
+
+return;
+
+}
+
+
+if(
+employees.some(
+e=>String(e.code)===String(code)
+)
+){
+
+duplicate++;
+
+return;
+
+}
+
+
+employees.push({
+
+id:Date.now()+Math.random(),
+
+code,
+
+name,
+
+family,
+
+national,
+
+job,
+
+base
+
+});
+
+
+added++;
+
+});
+
+
+saveEmployees();
+
 renderEmployees();
+
 updateDashboard();
+
+
+result.className=
+'import-result success';
+
+
+result.innerHTML=
+
+'ورود Excel با موفقیت انجام شد.<br>'+
+'تعداد واردشده: <strong>'+
+faNumber(added)+
+'</strong> نفر<br>'+
+'موارد تکراری: <strong>'+
+faNumber(duplicate)+
+'</strong> نفر<br>'+
+'ردیف‌های ناقص: <strong>'+
+faNumber(invalid)+
+'</strong> مورد';
+
+
+result.style.display='block';
+
+
+event.target.value='';
+
+
+}
+
+catch(error){
+
+result.className=
+'import-result error';
+
+result.innerHTML=
+'خطا در ورود فایل Excel:<br>'+
+escapeHtml(error.message);
+
+result.style.display='block';
+
+}
+
+};
+
+
+reader.readAsArrayBuffer(file);
+
+}
+
+
+
+/* ================================
+   Excel Template
+================================ */
+
+
+function downloadExcelTemplate(){
+
+if(
+typeof XLSX==='undefined'
+){
+
+alert(
+'کتابخانه Excel بارگذاری نشده است.'
+);
+
+return;
+
+}
+
+
+const data=[
+
+{
+
+'کد پرسنلی':'1001',
+
+'نام':'علی',
+
+'نام خانوادگی':'احمدی',
+
+'کد ملی':'0012345678',
+
+'سمت':'کارشناس',
+
+'حقوق پایه ماهانه':100000000
+
+},
+
+{
+
+'کد پرسنلی':'1002',
+
+'نام':'مریم',
+
+'نام خانوادگی':'محمدی',
+
+'کد ملی':'0023456789',
+
+'سمت':'حسابدار',
+
+'حقوق پایه ماهانه':120000000
+
+}
+
+];
+
+
+const worksheet=
+XLSX.utils.json_to_sheet(data);
+
+
+const workbook=
+XLSX.utils.book_new();
+
+
+XLSX.utils.book_append_sheet(
+workbook,
+worksheet,
+'پرسنل'
+);
+
+
+XLSX.writeFile(
+workbook,
+'AmnaYar-Personnel-Template.xlsx'
+);
+
+}
+
+
+
+renderEmployees();
+
+updateDashboard();
+
 loadSettingsToForm();
 
 </script>
