@@ -15,18 +15,23 @@
       return nativeFetch(input, init);
     }
 
-    let lastError;
+    let lastError = null;
+    let lastResponse = null;
     for (const base of API_BASES) {
       const target = base + rawUrl;
       try {
-        if (typeof Request !== 'undefined' && input instanceof Request) {
-          return await nativeFetch(new Request(target, input), init);
-        }
-        return await nativeFetch(target, init);
+        const response = typeof Request !== 'undefined' && input instanceof Request
+          ? await nativeFetch(new Request(target, input), init)
+          : await nativeFetch(target, init);
+        lastResponse = response;
+        // If the host responds normally, use it. If it is a 5xx gateway/server
+        // error, try the next API host before giving up.
+        if (response.status < 500) return response;
       } catch (err) {
         lastError = err;
       }
     }
+    if (lastResponse) return lastResponse;
     throw lastError || new Error('api_unavailable');
   };
 })();
