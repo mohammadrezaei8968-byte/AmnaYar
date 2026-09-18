@@ -18,7 +18,7 @@ app.use(cors({
   origin: allowedOrigins.length ? allowedOrigins : false,
   credentials: true
 }));
-app.use(express.json({limit:"64kb"}));
+app.use(express.json({limit:"2mb"}));
 app.use((req,res,next)=>{ req.requestId=crypto.randomUUID(); res.setHeader("X-Request-ID",req.requestId); next(); });
 app.use("/api/", rateLimit({windowMs:60*1000,max:120,standardHeaders:true,legacyHeaders:false}));
 app.use("/api/auth/", rateLimit({windowMs:15*60*1000,max:30,standardHeaders:true,legacyHeaders:false}));
