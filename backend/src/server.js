@@ -13,10 +13,21 @@ app.set("trust proxy", 1);
 const NODE_ENV = process.env.NODE_ENV || "development";
 if (NODE_ENV === "production") app.use((req,res,next)=>{ if (req.secure || req.headers["x-forwarded-proto"] === "https") return next(); return res.status(400).json({error:"https_required"}); });
 app.use(helmet());
-const allowedOrigins = (process.env.CORS_ORIGINS || "").split(",").map(x => x.trim()).filter(Boolean);
+const configuredOrigins = (process.env.CORS_ORIGINS || "").split(",").map(x => x.trim()).filter(Boolean);
+const allowedOrigins = [...new Set([
+  "https://amnayar.ir",
+  "https://www.amnayar.ir",
+  ...configuredOrigins
+])];
 app.use(cors({
-  origin: allowedOrigins.length ? allowedOrigins : false,
-  credentials: true
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error("cors_origin_not_allowed"));
+  },
+  credentials: true,
+  methods: ["GET","HEAD","POST","PUT","PATCH","DELETE","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization","X-Device-Key","X-Request-ID"],
+  exposedHeaders: ["X-Request-ID"]
 }));
 app.use(express.json({limit:"2mb"}));
 app.use((req,res,next)=>{ req.requestId=crypto.randomUUID(); res.setHeader("X-Request-ID",req.requestId); next(); });
@@ -43,6 +54,7 @@ CREATE TABLE IF NOT EXISTS devices(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id
 CREATE TABLE IF NOT EXISTS audit_logs(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, action TEXT NOT NULL, request_id TEXT, created_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS payment_events(id INTEGER PRIMARY KEY AUTOINCREMENT, provider TEXT NOT NULL, event_id TEXT UNIQUE NOT NULL, order_id TEXT, raw_hash TEXT NOT NULL, created_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS sales_channels(id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT UNIQUE NOT NULL, title TEXT NOT NULL, enabled INTEGER NOT NULL DEFAULT 1, purchase_enabled INTEGER NOT NULL DEFAULT 1, app_download_enabled INTEGER NOT NULL DEFAULT 1, webhook_enabled INTEGER NOT NULL DEFAULT 0, notes TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS login_logs(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, identifier TEXT, username TEXT, email TEXT, success INTEGER NOT NULL DEFAULT 0, ip TEXT, user_agent TEXT, request_id TEXT, created_at TEXT NOT NULL);
 `);
 
 // Lightweight migrations for existing databases.
@@ -173,11 +185,70 @@ function mask(s){s=String(s||"");return s.length>8?s.slice(0,4)+"****"+s.slice(-
 function spend(req,type,input,result){return db.transaction(()=>{const u=db.prepare("SELECT * FROM users WHERE id=? AND active=1").get(req.user.uid);if(!u)throw new Error("inactive");if(u.credits<1)return null;const changed=db.prepare("UPDATE users SET credits=credits-1 WHERE id=? AND credits>0").run(u.id);if(!changed.changes)return null;db.prepare("INSERT INTO verifications(user_id,type,input_masked,result,created_at) VALUES(?,?,?,?,?)").run(u.id,type,mask(input),result,now());return u.credits-1;})();}
 function addCreditsForPaidPurchase(purchaseId, providerRef){return db.transaction(()=>{const row=db.prepare("SELECT * FROM purchases WHERE id=?").get(purchaseId);if(!row)throw new Error("purchase_not_found");if(row.status==="paid")return {already:true,credits:0};const p=db.prepare("SELECT credits FROM packages WHERE id=?").get(row.package_id);if(!p)throw new Error("package_not_found");const changed=db.prepare("UPDATE purchases SET status='paid',provider_ref=?,paid_at=? WHERE id=? AND status='pending'").run(providerRef||null,now(),purchaseId);if(!changed.changes)return {already:true,credits:0};db.prepare("UPDATE users SET credits=credits+? WHERE id=?").run(p.credits,row.user_id);return {already:false,credits:p.credits};})();}
 
+
+// ============================================================
+// LIVE MARKET DATA
+// قیمت‌ها مستقیماً روی سرور از منبع عمومی TGJU خوانده می‌شوند.
+// کش کوتاه‌مدت فقط برای جلوگیری از فشار روی منبع است و داده ساختگی تولید نمی‌شود.
+// ============================================================
+const MARKET_CACHE={data:null,at:0};
+const MARKET_TTL_MS=60*1000;
+const MARKET_HEADERS={"User-Agent":"Mozilla/5.0 (compatible; AmnaYar/market; +https://amnayar.ir)","Accept":"text/html,application/xhtml+xml"};
+function marketNumber(v){
+  const s=String(v??"").replace(/[۰-۹]/g,c=>String("۰۱۲۳۴۵۶۷۸۹".indexOf(c))).replace(/[٠-٩]/g,c=>String("٠١٢٣٤٥٦٧٨٩".indexOf(c))).replace(/,/g,"").replace(/\s/g,"");
+  const n=Number(s.replace(/[^0-9.\-]/g,"")); return Number.isFinite(n)?n:null;
+}
+async function fetchMarketProfile(slug){
+  const r=await fetch(`https://www.tgju.org/profile/${slug}`,{headers:MARKET_HEADERS,signal:AbortSignal.timeout(10000)});
+  if(!r.ok)throw new Error(`market_${slug}_${r.status}`);
+  const html=await r.text();
+  const priceMatch=html.match(/data-price=["']([0-9۰-۹٠-٩,.]+)["']/i)||html.match(/itemprop=["']price["'][^>]*>\s*([0-9۰-۹٠-٩,.]+)/i);
+  if(!priceMatch)throw new Error(`market_${slug}_price_missing`);
+  const rial=marketNumber(priceMatch[1]); if(rial===null)throw new Error(`market_${slug}_price_invalid`);
+  const changeMatch=html.match(/data-change=["']([^"']+)["']/i)||html.match(/data-percent=["']([^"']+)["']/i);
+  return {rial,change:changeMatch?marketNumber(changeMatch[1]):null};
+}
+async function buildMarketSnapshot(){
+  const specs=[["gold18","طلای ۱۸ عیار","geram18","gold"],["coin","سکه امامی","sekee","coin"],["usd","دلار آمریکا","price_dollar_rl","currency"],["eur","یورو","price_eur","currency"],["aed","درهم امارات","price_aed","currency"],["ounce","اونس طلا","ons","global"]];
+  const out={items:{},source:"TGJU",fetchedAt:new Date().toISOString(),warnings:[]};
+  const rows=await Promise.all(specs.map(async([key,title,slug,group])=>{try{const x=await fetchMarketProfile(slug);return [key,{key,title,group,price_rial:x.rial,price_toman:Math.round(x.rial/10),change_percent:x.change,unit:group==="global"?"دلار":"تومان",source:"TGJU"}]}catch(e){out.warnings.push(key+"_unavailable");return [key,null]}}));
+  for(const [key,value] of rows)if(value)out.items[key]=value;
+  try{
+    const cg=await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,tether&vs_currencies=usd&include_24hr_change=true",{headers:{Accept:"application/json"},signal:AbortSignal.timeout(10000)});
+    if(cg.ok){const coins=await cg.json(),usd=out.items.usd?.price_toman;
+      if(usd)for(const [id,key,title] of [["bitcoin","btc","بیت‌کوین"],["ethereum","eth","اتریوم"],["tether","usdt","تتر"]]){const x=coins[id];if(!x?.usd)continue;out.items[key]={key,title,group:"crypto",price_toman:Math.round(x.usd*usd),change_percent:Number.isFinite(Number(x.usd_24h_change))?Number(x.usd_24h_change):null,unit:"تومان",source:"CoinGecko + TGJU",usd_price:x.usd}}
+    }else out.warnings.push("crypto_unavailable");
+  }catch(e){out.warnings.push("crypto_unavailable")}
+  if(!Object.keys(out.items).length)throw new Error("market_sources_unavailable");
+  return out;
+}
+app.get("/api/market",async(req,res)=>{
+  try{
+    const force=String(req.query.refresh||"")==="1";
+    if(!force&&MARKET_CACHE.data&&Date.now()-MARKET_CACHE.at<MARKET_TTL_MS)return res.json({...MARKET_CACHE.data,cached:true});
+    const data=await buildMarketSnapshot(); MARKET_CACHE.data=data; MARKET_CACHE.at=Date.now();
+    res.setHeader("Cache-Control","no-store"); res.json({...data,cached:false});
+  }catch(e){
+    console.error("market_snapshot",e);
+    if(MARKET_CACHE.data)return res.json({...MARKET_CACHE.data,cached:true,stale:true});
+    res.status(503).json({error:"market_unavailable",message:"قیمت بازار از منبع زنده دریافت نشد؛ داده ساختگی نمایش داده نمی‌شود."});
+  }
+});
+
 app.get("/api/app/version",(req,res)=>res.json({version:APP_VERSION,channel:String(req.query.channel||"direct"),url:process.env.APP_DOWNLOAD_URL||"",notes:"امنا یار با طراحی بانکی جدید و اتصال سرویس استعلام بانکی"}));
 app.get("/api/health",(req,res)=>res.json({ok:true,service:"amnayar",version:APP_VERSION,environment:NODE_ENV,max_active_devices:Number(process.env.MAX_ACTIVE_DEVICES||2),timestamp:now()}));
 app.get("/api/app/config",(req,res)=>res.json({name:"امنا یار",version:APP_VERSION,minSupportedVersion:process.env.MIN_SUPPORTED_APP_VERSION||"5.0.0",apiBase:"https://api.amnayar.ir/api",support:{email:"mohammad.rezaei8968@gmail.com"},channels:db.prepare("SELECT code,title,enabled,app_download_enabled FROM sales_channels WHERE enabled=1 ORDER BY id").all()}));
 app.post("/api/auth/register",(req,res)=>{const email=String(req.body.email||"").trim().toLowerCase();const username=String(req.body.username||"").trim().toLowerCase();const password=String(req.body.password||"");if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||!/^[a-z0-9_.-]{3,40}$/.test(username)||password.length<8)return res.status(400).json({error:"ایمیل، نام کاربری یا رمز عبور نامعتبر است"});if(db.prepare("SELECT id FROM users WHERE username=?").get(username))return res.status(409).json({error:"این نام کاربری قبلاً ثبت شده است"});if(db.prepare("SELECT id FROM users WHERE email=?").get(email))return res.status(409).json({error:"این ایمیل قبلاً ثبت شده است"});const publicId=crypto.randomUUID();const hash=bcrypt.hashSync(password,12);const initial=2; const info=db.prepare("INSERT INTO users(public_id,username,email,password_hash,credits,created_at) VALUES(?,?,?,?,?,?)").run(publicId,username,email,hash,initial,now());const user=db.prepare("SELECT * FROM users WHERE id=?").get(info.lastInsertRowid);res.json({token:sign(user),user:{public_id:user.public_id,username:user.username,email:user.email,credits:user.credits}});});
-app.post("/api/auth/login",(req,res)=>{const identifier=String(req.body.identifier??req.body.username??req.body.email??"").trim().toLowerCase();const u=db.prepare("SELECT * FROM users WHERE username=? OR email=? LIMIT 1").get(identifier,identifier);if(!u||!bcrypt.compareSync(String(req.body.password||""),u.password_hash)||!u.active)return res.status(401).json({error:"اطلاعات ورود نادرست است"});res.json({token:sign(u),user:{public_id:u.public_id,username:u.username,email:u.email||null,credits:u.credits}});});
+app.post("/api/auth/login",(req,res)=>{
+  const identifier=String(req.body.identifier??req.body.username??req.body.email??"").trim().toLowerCase();
+  const u=db.prepare("SELECT * FROM users WHERE username=? OR email=? LIMIT 1").get(identifier,identifier);
+  const success=!!u && !!u.active && bcrypt.compareSync(String(req.body.password||""),u.password_hash);
+  db.prepare("INSERT INTO login_logs(user_id,identifier,username,email,success,ip,user_agent,request_id,created_at) VALUES(?,?,?,?,?,?,?,?,?)")
+    .run(u?.id||null,identifier,u?.username||null,u?.email||null,success?1:0,String(req.ip||""),String(req.get("user-agent")||"").slice(0,500),req.requestId,now());
+  if(!success)return res.status(401).json({error:"اطلاعات ورود نادرست است"});
+  audit(u.id,"login_success",req.requestId);
+  res.json({token:sign(u),user:{public_id:u.public_id,username:u.username,email:u.email||null,credits:u.credits}});
+});
 app.get("/api/me",auth,(req,res)=>{const u=db.prepare("SELECT public_id,username,credits,active,created_at FROM users WHERE id=?").get(req.user.uid);if(!u)return res.status(404).json({error:"user_not_found"});res.json(u);});
 app.post("/api/device/register",auth,(req,res)=>{const deviceKey=String(req.body.deviceKey||"").trim();if(deviceKey.length<16||deviceKey.length>200)return res.status(400).json({error:"device_key_invalid"});const channel=String(req.body.channel||"other").slice(0,30);const appVersion=String(req.body.appVersion||"").slice(0,40);const count=db.prepare("SELECT COUNT(*) c FROM devices WHERE user_id=? AND active=1").get(req.user.uid).c;const digest=deviceDigest(deviceKey);
 const exists=db.prepare("SELECT id FROM devices WHERE user_id=? AND device_key=?").get(req.user.uid,digest);const max=Number(process.env.MAX_ACTIVE_DEVICES||2);if(!exists&&count>=max)return res.status(409).json({error:"device_limit_reached"});db.prepare("INSERT INTO devices(user_id,device_key,channel,app_version,created_at) VALUES(?,?,?,?,?) ON CONFLICT(user_id,device_key) DO UPDATE SET channel=excluded.channel,app_version=excluded.app_version,active=1").run(req.user.uid,digest,channel,appVersion,now());
@@ -332,6 +403,13 @@ app.post("/api/owner/login", rateLimit({windowMs:15*60*1000,max:10,standardHeade
 });
 
 app.get("/api/owner/me",ownerAuth,(req,res)=>res.json({ok:true,user:{username:OWNER_EMAIL,email:OWNER_EMAIL,role:"owner"}}));
+app.get("/api/owner/login-logs",ownerAuth,(req,res)=>{
+  const limit=Math.min(Math.max(Number(req.query.limit||500),1),1000);
+  const logs=db.prepare(`SELECT l.id,l.identifier,l.username,l.email,l.success,l.ip,l.user_agent,l.request_id,l.created_at
+    FROM login_logs l ORDER BY l.id DESC LIMIT ?`).all(limit);
+  res.json({logs});
+});
+
 
 app.post("/api/admin/login", rateLimit({windowMs:15*60*1000,max:10,standardHeaders:true,legacyHeaders:false}),(req,res)=>{const username=String(req.body.username||"");const password=String(req.body.password||"");if(!ADMIN_USERNAME||!ADMIN_PASSWORD_HASH||username!==ADMIN_USERNAME||!bcrypt.compareSync(password,ADMIN_PASSWORD_HASH))return res.status(401).json({error:"اطلاعات مدیر نادرست است"});res.json({token:jwt.sign({admin:true,username},SECRET,{expiresIn:"8h"})});});
 
