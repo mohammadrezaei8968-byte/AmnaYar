@@ -37,6 +37,10 @@ services:
         value: amna
       - key: ADMIN_PASSWORD_HASH
         sync: false
+      - key: OWNER_EMAIL
+        sync: false
+      - key: OWNER_PASSWORD
+        sync: false
       - key: CORS_ORIGINS
         value: https://amnayar.ir,https://www.amnayar.ir,https://amnayar-admin.onrender.com
       - key: PUBLIC_API_URL
