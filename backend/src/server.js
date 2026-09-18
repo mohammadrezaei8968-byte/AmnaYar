@@ -403,6 +403,9 @@ app.post("/api/owner/login", rateLimit({windowMs:15*60*1000,max:10,standardHeade
 });
 
 app.get("/api/owner/me",ownerAuth,(req,res)=>res.json({ok:true,user:{username:OWNER_EMAIL,email:OWNER_EMAIL,role:"owner"}}));
+
+// Direct advertising, campaign tracking and owner analytics.
+require("./ads")({app,db,ownerAuth,now,crypto});
 app.get("/api/owner/login-logs",ownerAuth,(req,res)=>{
   const limit=Math.min(Math.max(Number(req.query.limit||500),1),1000);
   const logs=db.prepare(`SELECT l.id,l.identifier,l.username,l.email,l.success,l.ip,l.user_agent,l.request_id,l.created_at
