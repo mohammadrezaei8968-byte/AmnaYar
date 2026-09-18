@@ -359,4 +359,85 @@ app.get("/api/admin/api-status",adminAuth,(req,res)=>{const checks=[
 ];res.json({appVersion:APP_VERSION,apiBase:process.env.PUBLIC_API_URL||"",checks});});
 app.get("/api/admin/settings",adminAuth,(req,res)=>res.json(Object.fromEntries(db.prepare("SELECT key,value FROM settings").all().map(x=>[x.key,x.value]))));
 app.put("/api/admin/settings",adminAuth,(req,res)=>{db.transaction(()=>{for(const [k,v] of Object.entries(req.body||{}))db.prepare("INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(String(k),String(v));})();res.json({ok:true});});
+
+/* ============================================================
+   PAYROLL PERSISTENCE API
+   حقوق و دستمزد: اطلاعات از localStorage به SQLite همگام می‌شود.
+   Scope هر کاربر با user_id جداست.
+   ============================================================ */
+db.exec(`
+CREATE TABLE IF NOT EXISTS payroll_employees(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  personnel_code TEXT NOT NULL,
+  data_json TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE(user_id, personnel_code)
+);
+CREATE TABLE IF NOT EXISTS payroll_records(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  personnel_code TEXT NOT NULL,
+  payroll_month TEXT,
+  data_json TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS payroll_settings(
+  user_id INTEGER PRIMARY KEY,
+  data_json TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+`);
+
+function payrollJson(v){ try{return JSON.parse(v||"{}");}catch{return {};} }
+
+app.get("/api/company/me",auth,(req,res)=>{
+  const u=db.prepare("SELECT id,public_id,username,email FROM users WHERE id=? AND active=1").get(req.user.uid);
+  if(!u)return res.status(404).json({error:"company_not_found"});
+  res.json({id:u.public_id||String(u.id),name:u.username||"شرکت جاری",public_id:u.public_id});
+});
+
+app.get("/api/payroll/sync",auth,(req,res)=>{
+  const employees=db.prepare("SELECT id,personnel_code,data_json,created_at,updated_at FROM payroll_employees WHERE user_id=? ORDER BY id").all(req.user.uid)
+    .map(r=>({id:r.id,code:r.personnel_code,...payrollJson(r.data_json)}));
+  const records=db.prepare("SELECT id,personnel_code,payroll_month,data_json,created_at FROM payroll_records WHERE user_id=? ORDER BY id DESC LIMIT 5000").all(req.user.uid)
+    .map(r=>({id:r.id,personnelCode:r.personnel_code,payrollMonth:r.payroll_month,...payrollJson(r.data_json),createdAt:r.created_at}));
+  const s=db.prepare("SELECT data_json FROM payroll_settings WHERE user_id=?").get(req.user.uid);
+  res.json({employees,history:records,settings:s?payrollJson(s.data_json):{}});
+});
+
+app.put("/api/payroll/sync",auth,(req,res)=>{
+  const body=req.body||{};
+  const employees=Array.isArray(body.employees)?body.employees:[];
+  const history=Array.isArray(body.history)?body.history:[];
+  const settings=body.settings&&typeof body.settings==="object"?body.settings:{};
+  const tx=db.transaction(()=>{
+    for(const e of employees){
+      const code=String(e.code||e.personnelCode||"").trim();
+      if(!code)continue;
+      const clean={...e}; delete clean.id;
+      db.prepare(`INSERT INTO payroll_employees(user_id,personnel_code,data_json,created_at,updated_at)
+        VALUES(?,?,?,?,?)
+        ON CONFLICT(user_id,personnel_code) DO UPDATE SET data_json=excluded.data_json,updated_at=excluded.updated_at`)
+        .run(req.user.uid,code,JSON.stringify(clean),now(),now());
+    }
+    const keep=new Set(employees.map(e=>String(e.code||e.personnelCode||"").trim()).filter(Boolean));
+    const existing=db.prepare("SELECT personnel_code FROM payroll_employees WHERE user_id=?").all(req.user.uid);
+    for(const row of existing)if(!keep.has(row.personnel_code))db.prepare("DELETE FROM payroll_employees WHERE user_id=? AND personnel_code=?").run(req.user.uid,row.personnel_code);
+
+    db.prepare("DELETE FROM payroll_records WHERE user_id=?").run(req.user.uid);
+    const stmt=db.prepare("INSERT INTO payroll_records(user_id,personnel_code,payroll_month,data_json,created_at) VALUES(?,?,?,?,?)");
+    for(const r of history){
+      const code=String(r.personnelCode||r.code||"").trim();
+      const clean={...r}; delete clean.id;
+      stmt.run(req.user.uid,code,String(r.payrollMonth||""),JSON.stringify(clean),String(r.createdAt||now()));
+    }
+    db.prepare("INSERT INTO payroll_settings(user_id,data_json,updated_at) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET data_json=excluded.data_json,updated_at=excluded.updated_at")
+      .run(req.user.uid,JSON.stringify(settings),now());
+  });
+  try{tx(); audit(req.user.uid,"payroll_sync",req.requestId); res.json({ok:true,employees:employees.length,records:history.length});}
+  catch(e){console.error("payroll_sync",e);res.status(500).json({error:"payroll_sync_failed"});}
+});
+
 app.listen(PORT,()=>console.log(`AmnaYar API running on :${PORT}`));
