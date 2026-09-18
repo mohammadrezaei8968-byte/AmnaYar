@@ -13,6 +13,20 @@ module.exports = function registerAds({app, db, ownerAuth, now, crypto}) {
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS ad_leads(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      brand_name TEXT NOT NULL,
+      contact_name TEXT NOT NULL DEFAULT '',
+      phone TEXT NOT NULL DEFAULT '',
+      email TEXT NOT NULL DEFAULT '',
+      website TEXT NOT NULL DEFAULT '',
+      placement TEXT NOT NULL DEFAULT 'leader',
+      budget_toman INTEGER NOT NULL DEFAULT 0,
+      message TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'new',
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_ad_leads_status ON ad_leads(status,created_at);
     CREATE TABLE IF NOT EXISTS ad_campaigns(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       advertiser_id INTEGER,
@@ -63,6 +77,16 @@ module.exports = function registerAds({app, db, ownerAuth, now, crypto}) {
       .run(campaignId,type,placement,hash,String(req.headers['user-agent']||'').slice(0,500),String(req.headers.referer||'').slice(0,500),now());
   };
 
+  app.post('/api/ads/leads',(req,res)=>{
+    const b=req.body||{}, brand=String(b.brand_name||'').trim();
+    const phone=String(b.phone||'').trim(), email=String(b.email||'').trim();
+    if(!brand || (!phone && !email)) return res.status(400).json({error:'نام برند و حداقل یک راه ارتباطی الزامی است'});
+    const t=now();
+    const r=db.prepare('INSERT INTO ad_leads(brand_name,contact_name,phone,email,website,placement,budget_toman,message,status,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)')
+      .run(brand,String(b.contact_name||''),phone,email,String(b.website||''),String(b.placement||'leader'),Number(b.budget_toman||0),String(b.message||''),'new',t);
+    res.json({ok:true,id:r.lastInsertRowid});
+  });
+
   app.get('/api/ads', (req,res)=>{
     const placement=String(req.query.placement||'leader').trim().slice(0,60);
     const c=activeCampaign(placement);
@@ -90,9 +114,10 @@ module.exports = function registerAds({app, db, ownerAuth, now, crypto}) {
       FROM ad_campaigns c LEFT JOIN advertisers a ON a.id=c.advertiser_id ORDER BY c.id DESC
     `).all().map(x=>({...x,ctr:x.impressions?Number((x.clicks*100/x.impressions).toFixed(2)):0}));
     const advertisers=db.prepare('SELECT * FROM advertisers ORDER BY id DESC').all();
+    const leads=db.prepare('SELECT * FROM ad_leads ORDER BY id DESC LIMIT 100').all();
     const totals=db.prepare("SELECT COUNT(*) campaigns,COALESCE(SUM(CASE WHEN status='active' THEN 1 ELSE 0 END),0) active_campaigns FROM ad_campaigns").get();
     const events=db.prepare("SELECT event_type,COUNT(*) count FROM ad_events GROUP BY event_type").all();
-    res.json({campaigns,advertisers,totals,events});
+    res.json({campaigns,advertisers,leads,totals,events});
   });
 
   app.post('/api/owner/ads/advertisers',ownerAuth,(req,res)=>{
