@@ -15,9 +15,37 @@ function b64e(){try{$('#encodeResult').textContent=btoa(unescape(encodeURICompon
 function money(n){return fa(Math.round(Number(n)||0))+' تومان'}
 function carCalc(){const f=+$('#carFactory').value,m=+$('#carMarket').value;if(!f||!m)return $('#carResult').textContent='قیمت کارخانه و بازار را وارد کنید.';const d=m-f,p=d/f*100;$('#carResult').textContent=`اختلاف قیمت: ${money(d)} — اختلاف: ${p.toLocaleString('fa-IR',{maximumFractionDigits:1})}٪`+(d>=0?' — بازار بالاتر است.':' — بازار پایین‌تر است.')}
 function carProfitCalc(){const b=+$('#carBuy').value,s=+$('#carSell').value,e=+$('#carExtra').value;if(!b||!s)return $('#carProfitResult').textContent='قیمت خرید و فروش را وارد کنید.';const profit=s-b-e,p=profit/b*100;$('#carProfitResult').textContent=`${profit>=0?'سود':'زیان'}: ${money(Math.abs(profit))} — درصد: ${Math.abs(p).toLocaleString('fa-IR',{maximumFractionDigits:1})}٪`}
-function goldBuyCalc(){const w=+$('#goldWeight').value,g=+$('#goldGram').value,karat=+$('#goldKarat').value,wage=+$('#goldWage').value||0,tax=+$('#goldTax').value||0,profit=+$('#goldProfit').value||0;if(!w||!g)return $('#goldBuyResult').textContent='وزن و قیمت هر گرم را وارد کنید.';const base=g*w*(karat/18),wageAmt=base*wage/100,profitAmt=(base+wageAmt)*profit/100,taxAmt=(wageAmt+profitAmt)*tax/100,total=base+wageAmt+profitAmt+taxAmt;$('#goldBuyResult').textContent=`ارزش طلا: ${money(base)} — اجرت: ${money(wageAmt)} — سود: ${money(profitAmt)} — مالیات: ${money(taxAmt)} — جمع: ${money(total)}`}
-function goldSellCalc(){const w=+$('#goldSellWeight').value,g=+$('#goldSellGram').value,fee=+$('#goldSellFee').value||0;if(!w||!g)return $('#goldSellResult').textContent='وزن و قیمت هر گرم را وارد کنید.';const gross=w*g,net=gross*(1-fee/100);$('#goldSellResult').textContent=`ارزش خام: ${money(gross)} — مبلغ تقریبی دریافتی: ${money(net)}`}
-function coinCalc(){const n=+$('#coinCount').value,p=+$('#coinPrice').value;if(!n||!p)return $('#coinResult').textContent='تعداد و قیمت هر سکه را وارد کنید.';$('#coinResult').textContent=`ارزش کل سکه‌ها: ${money(n*p)}`}
+async function loadLiveGoldPrices(){
+  const status=document.getElementById('goldLiveStatus');
+  try{
+    status.textContent='در حال دریافت قیمت زنده...';
+    const r=await fetch('/api/market?refresh=1',{cache:'no-store'}); const j=await r.json();
+    if(!r.ok)throw new Error(j.message||j.error||'market_unavailable');
+    const g=Number(j.items?.gold18?.price_toman||0), coin=Number(j.items?.coin?.price_toman||0);
+    if(g){$('#goldLiveGram').value=Math.round(g); if(!$('#goldGram').value)$('#goldGram').value=Math.round(g); if(!$('#goldSellGram').value)$('#goldSellGram').value=Math.round(g);}
+    if(coin){$('#coinLivePrice').value=Math.round(coin); if(!$('#coinPrice').value)$('#coinPrice').value=Math.round(coin);}
+    const time=j.fetchedAt?new Date(j.fetchedAt).toLocaleString('fa-IR'):'—';
+    status.textContent=(j.stale?'⚠️ آخرین قیمت معتبر: ':'✓ قیمت زنده دریافت شد: ')+time;
+  }catch(err){status.textContent='قیمت زنده در دسترس نیست؛ برای جلوگیری از محاسبه جعلی، قیمت خودکار استفاده نشد.';}
+}
+function goldBasePrice(id){const v=Number($(id)?.value||0);return v>0?v:Number($('#goldLiveGram')?.value||0)}
+function goldBuyCalc(){
+  const w=+$('#goldWeight').value,g=goldBasePrice('goldGram'),karat=+$('#goldKarat').value,discount=Math.max(0,+$('#goldBuyDiscount').value||0);
+  if(!w||!g)return $('#goldBuyResult').textContent='وزن و قیمت مرجع را وارد یا از قیمت زنده دریافت کنید.';
+  const raw=w*g*(karat/18),deduction=raw*discount/100,total=raw-deduction;
+  $('#goldBuyResult').innerHTML=`ارزش خام: <b>${money(raw)}</b> — کسر خرید: ${money(deduction)} — <b>مبلغ پرداختی به مشتری: ${money(total)}</b> تومان`;
+}
+function goldSellCalc(){
+  const w=+$('#goldSellWeight').value,g=goldBasePrice('goldSellGram'),karat=+$('#goldSellKarat').value,wage=Math.max(0,+$('#goldWage').value||0),profit=Math.max(0,+$('#goldProfit').value||0),tax=Math.max(0,+$('#goldTax').value||0);
+  if(!w||!g)return $('#goldSellResult').textContent='وزن و قیمت مرجع را وارد یا از قیمت زنده دریافت کنید.';
+  const base=w*g*(karat/18),wageAmt=base*wage/100,profitAmt=(base+wageAmt)*profit/100,taxBase=wageAmt+profitAmt,taxAmt=taxBase*tax/100,total=base+wageAmt+profitAmt+taxAmt;
+  $('#goldSellResult').innerHTML=`اصل طلا: ${money(base)} — اجرت: ${money(wageAmt)} — سود فروشنده: ${money(profitAmt)} — مالیات: ${money(taxAmt)} — <b>مبلغ نهایی فاکتور: ${money(total)} تومان</b>`;
+}
+function coinCalc(){
+  const n=+$('#coinCount').value,p=Number($('#coinPrice').value||$('#coinLivePrice').value||0);
+  if(!n||!p)return $('#coinResult').textContent='تعداد و قیمت سکه را وارد یا قیمت زنده را دریافت کنید.';
+  $('#coinResult').innerHTML=`تعداد: ${n.toLocaleString('fa-IR')} — قیمت واحد: ${money(p)} — <b>ارزش کل: ${money(n*p)} تومان</b>`;
+}
 function fxCalc(){const a=+$('#fxAmount').value,r=+$('#fxRate').value;if(!a||!r)return $('#fxResult').textContent='مقدار ارز و نرخ را وارد کنید.';$('#fxResult').textContent=`${fa(a)} ${$('#fxCurrency').value} ≈ ${money(a*r)}`}
 function fxProfitCalc(){const a=+$('#fxBuyAmount').value,b=+$('#fxBuyRate').value,s=+$('#fxSellRate').value;if(!a||!b||!s)return $('#fxProfitResult').textContent='مقدار ارز و هر دو نرخ را وارد کنید.';const p=a*(s-b),pct=(s-b)/b*100;$('#fxProfitResult').textContent=`${p>=0?'سود':'زیان'}: ${money(Math.abs(p))} — درصد: ${Math.abs(pct).toLocaleString('fa-IR',{maximumFractionDigits:2})}٪`}
 function depositToRent(){const d=+$('#deposit').value,r=+$('#depositRate').value||3;if(!d)return $('#depositRentResult').textContent='مبلغ رهن را وارد کنید.';$('#depositRentResult').textContent=`اجاره معادل تقریبی: ${money(d/100000000*r*1000000)}`}
