@@ -12,32 +12,6 @@ async function loadNavUser(){const box=document.getElementById('navActions');if(
 async function logoutNav(){await api('/api/auth/logout','POST');location.reload()}
 loadNavUser();
 
-function showMarket(kind){document.querySelectorAll('.market-widget').forEach(x=>x.classList.add('hidden'));const id={gold:'marketGold',currency:'marketCurrency',crypto:'marketCrypto',global:'marketGlobal'}[kind];document.getElementById(id)?.classList.remove('hidden');document.querySelectorAll('.market-tab').forEach((b,i)=>b.classList.toggle('active',['gold','currency','crypto','global'][i]===kind))}
-let amnaMarketData=null;
-function marketFmt(n){return Number(n).toLocaleString('fa-IR',{maximumFractionDigits:0})}
-function marketPct(n){if(n===null||n===undefined||!Number.isFinite(Number(n)))return '—';const v=Number(n);return `${v>0?'▲':v<0?'▼':'•'} ${Math.abs(v).toFixed(2)}٪`}
-function marketCard(x){if(!x)return `<div class="amn-market-card unavailable"><div class="amn-market-title">اطلاعات بازار</div><div class="amn-market-price">در دسترس نیست</div></div>`;const change=Number(x.change_percent);const cls=Number.isFinite(change)?(change>0?'up':change<0?'down':'flat'):'flat';return `<div class="amn-market-card"><div class="amn-market-title">${x.title}</div><div class="amn-market-price">${marketFmt(x.price_toman||x.price_rial)} <small>${x.unit||'تومان'}</small></div><div class="amn-market-change ${cls}">${marketPct(x.change_percent)}</div></div>`}
-function ensureMarketUI(){
-  if(document.querySelector('tgju')) return;
-  const section=document.getElementById('markets'); if(!section||document.getElementById('amnayarMarketLive'))return;
-  const old=section.querySelectorAll('.market-tabs,.market-tab,.market-widget'); old.forEach(x=>{x.style.display='none'});
-  const box=document.createElement('div');box.id='amnayarMarketLive';
-  box.innerHTML=`<div class="amn-market-head"><div><h2>بازار آنلاین</h2><p>قیمت‌های بازار با به‌روزرسانی خودکار</p></div><button id="amnMarketRefresh" class="btn soft" type="button">↻ به‌روزرسانی</button></div><div id="amnMarketStatus" class="amn-market-status">در حال دریافت قیمت‌ها...</div><div class="amn-market-grid" id="amnMarketGrid"></div><div class="amn-gold-calc"><h3>محاسبه‌گر قیمت طلا</h3><div class="amn-gold-fields"><label>وزن (گرم)<input id="goldWeight" type="number" min="0" step="0.01" placeholder="مثلاً ۵"></label><label>عیار<select id="goldKarat"><option value="18">۱۸</option><option value="24">۲۴</option><option value="22">۲۲</option><option value="21">۲۱</option><option value="20">۲۰</option><option value="14">۱۴</option></select></label><button class="btn primary" type="button" onclick="calcGold()">محاسبه</button></div><div id="goldResult" class="amn-gold-result">قیمت لحظه‌ای طلای ۱۸ برای محاسبه استفاده می‌شود.</div></div><div class="amn-market-note">منبع داده: TGJU برای طلا و ارز و CoinGecko برای رمزارزها. قیمت‌ها صرفاً جهت اطلاع هستند.</div>`;
-  section.appendChild(box);
-  const style=document.createElement('style');style.textContent=`#amnayarMarketLive{margin-top:18px}.amn-market-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}.amn-market-head h2{margin:0}.amn-market-head p{margin:5px 0 0;color:#64748b}.amn-market-status{font-size:13px;color:#64748b;margin-bottom:10px}.amn-market-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.amn-market-card{background:rgba(255,255,255,.92);border:1px solid rgba(148,163,184,.22);border-radius:18px;padding:16px;box-shadow:0 8px 24px rgba(15,23,42,.06)}.amn-market-title{font-weight:700}.amn-market-price{font-size:21px;font-weight:800;margin:10px 0}.amn-market-price small{font-size:11px;color:#64748b}.amn-market-change{font-size:12px}.amn-market-change.up{color:#16803c}.amn-market-change.down{color:#c0392b}.amn-market-change.flat{color:#64748b}.amn-market-card.unavailable{opacity:.65}.amn-gold-calc{margin-top:16px;padding:18px;border-radius:20px;background:rgba(248,250,252,.9);border:1px solid rgba(148,163,184,.2)}.amn-gold-fields{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end}.amn-gold-fields label{font-size:13px;font-weight:700}.amn-gold-fields input,.amn-gold-fields select{width:100%;box-sizing:border-box;margin-top:6px;padding:11px;border:1px solid #dbe3ee;border-radius:12px;background:#fff}.amn-gold-result{margin-top:12px;padding:12px;border-radius:12px;background:#fff}.amn-market-note{font-size:11px;color:#64748b;margin-top:10px}@media(max-width:800px){.amn-market-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.amn-gold-fields{grid-template-columns:1fr 1fr}.amn-gold-fields button{grid-column:1/-1}}@media(max-width:520px){.amn-market-grid{grid-template-columns:1fr}.amn-market-head{align-items:flex-start;flex-direction:column}}`;document.head.appendChild(style);
-  document.getElementById('amnMarketRefresh').onclick=()=>loadMarket(true);
-}
-async function loadMarket(force=false){
-  ensureMarketUI();const grid=document.getElementById('amnMarketGrid'),status=document.getElementById('amnMarketStatus');if(!grid)return;
-  status.textContent=force?'در حال به‌روزرسانی قیمت‌ها...':'در حال دریافت قیمت‌ها...';
-  try{const r=await fetch('/api/market'+(force?'?refresh=1':''),{cache:'no-store'});const j=await r.json();if(!r.ok)throw new Error(j.error||'market_unavailable');amnaMarketData=j.items||{};const keys=['gold18','coin','usd','eur','aed','btc','eth','usdt'];grid.innerHTML=keys.map(k=>marketCard(amnaMarketData[k])).join('');
-  const top=(id,key,prefix='')=>{const el=document.getElementById(id);if(!el)return;const x=amnaMarketData[key];el.textContent=x?prefix+marketFmt(x.price_toman||x.price_rial)+' تومان':'در دسترس نیست';};
-  top('topGoldPrice','gold18');top('topCoinPrice','coin','سکه: ');top('topUsdPrice','usd');top('topEurPrice','eur','یورو: ');
-  const t=j.fetchedAt?new Date(j.fetchedAt).toLocaleTimeString('fa-IR',{hour:'2-digit',minute:'2-digit'}):'';status.textContent=(j.stale?'آخرین قیمت معتبر نمایش داده شد — ':'')+'آخرین به‌روزرسانی: '+(t||'اکنون');if(j.warnings?.length)status.textContent+=' · برخی داده‌ها موقتاً در دسترس نبودند';}catch(e){status.textContent='قیمت‌های بازار موقتاً در دسترس نیست؛ دوباره تلاش کنید.';}}
-async function calcGold(){const w=+document.getElementById('goldWeight')?.value;const k=+document.getElementById('goldKarat')?.value;const result=document.getElementById('goldResult');if(!w||w<=0)return result.textContent='وزن را وارد کنید.';let base=Number(amnaMarketData?.gold18?.price_toman||0);if(!base){try{const r=await fetch('/api/market?refresh=1',{cache:'no-store'});const j=await r.json();base=Number(j.items?.gold18?.price_toman||0);amnaMarketData=j.items||amnaMarketData;}catch(e){}}if(!base)return result.textContent='قیمت زنده طلا فعلاً در دسترس نیست.';const effectiveKarat=k===750?18:k;const value=w*base*(effectiveKarat/18);result.innerHTML=`ارزش تقریبی: <b>${marketFmt(value)} تومان</b><br><span class="muted">بر اساس آخرین قیمت زنده طلای ۱۸؛ بدون اجرت، سود فروشنده و مالیات.</span>`}
-
-
-
 // جستجوی داخلی سایت — بدون ارسال متن جستجو به سرور
 const siteSearchItems = [
   {title:'صحت‌سنجی کد ملی', desc:'بررسی رایگان کد ملی', href:'/?check=national', check:'national', tags:'کد ملی صحت سنجی اعتبارسنجی'},
@@ -46,12 +20,7 @@ const siteSearchItems = [
   {title:'استعلام بیمه خودرو', desc:'ورود به سامانه رسمی بیمه مرکزی', href:'#popular', tags:'بیمه خودرو بیمه نامه'},
   {title:'استعلام چک صیادی', desc:'سامانه رسمی بانک مرکزی', href:'#popular', tags:'چک صیادی بانک مرکزی'},
   {title:'رهگیری مرسوله پستی', desc:'پیگیری بسته در سامانه پست', href:'#popular', tags:'پست مرسوله رهگیری کد رهگیری'},
-  {title:'پنجره ملی خدمات دولت', desc:'دسترسی به خدمات دولت هوشمند', href:'#popular', tags:'دولت خدمات دولتی'},
-  {title:'بازار آنلاین', desc:'قیمت طلا، سکه، ارز و رمزارز', href:'#markets', tags:'بازار قیمت آنلاین طلا سکه دلار یورو ارز رمزارز'},
-  {title:'قیمت طلای ۱۸ عیار', desc:'نمایش قیمت بازار و محاسبه طلا', href:'#markets', tags:'طلا ۱۸ عیار قیمت گرم'},
-  {title:'قیمت دلار', desc:'نمایش نرخ بازار ارز', href:'#markets', tags:'دلار ارز قیمت'},
-  {title:'قیمت یورو', desc:'نمایش نرخ بازار ارز', href:'#markets', tags:'یورو ارز قیمت'},
-  {title:'محاسبه‌گر طلا', desc:'محاسبه ارزش تقریبی طلا', href:'#markets', tags:'محاسبه طلا گرم عیار خرید فروش'},
+  {title:'پنجره ملی خدمات دولت', desc:'دسترسی به خدمات دولت هوشمند', href:'#popular', tags:'دولت خدمات دولتی'}
   {title:'ابزارهای رایگان', desc:'مجموعه ابزارهای کاربردی', href:'#tools', tags:'ابزار رایگان'},
   {title:'محاسبه‌گر خودرو', desc:'مقایسه قیمت کارخانه و بازار و سود یا زیان', href:'/tools.html?tool=car', tags:'خودرو ماشین قیمت کارخانه بازار سود زیان'},
   {title:'محاسبه‌گر طلا و سکه', desc:'خرید، فروش، اجرت، مالیات و ارزش سکه', href:'/tools.html?tool=gold', tags:'طلا سکه گرم عیار اجرت مالیات خرید فروش'},
@@ -150,8 +119,6 @@ function applyHomeLayout(settings){
   if(main){order.forEach(id=>{const el=document.getElementById(id); if(el)main.appendChild(el);});}
 }
 function escapeHtml(v){return String(v??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]))}
-ensureMarketUI();
-loadMarket();
 loadPublicConfig();
 document.addEventListener('click',e=>{const a=e.target.closest('a[href*="/tools.html?tool="]');if(a){const slug=(new URL(a.href,location.origin)).searchParams.get('tool')||'';fetch('/api/analytics/tool',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug})}).catch(()=>{})}});
 
