@@ -409,6 +409,19 @@ app.get("/api/owner/login-logs",ownerAuth,(req,res)=>{
     FROM login_logs l ORDER BY l.id DESC LIMIT ?`).all(limit);
   res.json({logs});
 });
+app.get("/api/owner/audit",ownerAuth,(req,res)=>{
+  const logs=db.prepare(`SELECT l.id,l.username,l.email,l.identifier,l.success,l.ip,l.user_agent,l.request_id,l.created_at
+    FROM login_logs l ORDER BY l.id DESC LIMIT 500`).all().map(l=>({
+      owner_username:l.username||l.identifier||"—",
+      action:l.success?"login_success":"login_failed",
+      target_type:"user",
+      target_id:l.email||l.username||l.identifier||"—",
+      details:{success:!!l.success,ip:l.ip||"",user_agent:l.user_agent||"",request_id:l.request_id||""},
+      created_at:l.created_at
+    }));
+  res.json({logs});
+});
+
 
 
 app.post("/api/admin/login", rateLimit({windowMs:15*60*1000,max:10,standardHeaders:true,legacyHeaders:false}),(req,res)=>{const username=String(req.body.username||"");const password=String(req.body.password||"");if(!ADMIN_USERNAME||!ADMIN_PASSWORD_HASH||username!==ADMIN_USERNAME||!bcrypt.compareSync(password,ADMIN_PASSWORD_HASH))return res.status(401).json({error:"اطلاعات مدیر نادرست است"});res.json({token:jwt.sign({admin:true,username},SECRET,{expiresIn:"8h"})});});
