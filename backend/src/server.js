@@ -400,9 +400,9 @@ app.get("/api/company/me",auth,(req,res)=>{
 
 app.get("/api/payroll/sync",auth,(req,res)=>{
   const employees=db.prepare("SELECT id,personnel_code,data_json,created_at,updated_at FROM payroll_employees WHERE user_id=? ORDER BY id").all(req.user.uid)
-    .map(r=>({id:r.id,code:r.personnel_code,...payrollJson(r.data_json)}));
+    .map(r=>({id:r.id,code:r.personnel_code,...payrollJson(r.data_json),companyId:req.user.pid,company_id:req.user.pid}));
   const records=db.prepare("SELECT id,personnel_code,payroll_month,data_json,created_at FROM payroll_records WHERE user_id=? ORDER BY id DESC LIMIT 5000").all(req.user.uid)
-    .map(r=>({id:r.id,personnelCode:r.personnel_code,payrollMonth:r.payroll_month,...payrollJson(r.data_json),createdAt:r.created_at}));
+    .map(r=>({id:r.id,personnelCode:r.personnel_code,payrollMonth:r.payroll_month,...payrollJson(r.data_json),companyId:req.user.pid,company_id:req.user.pid,createdAt:r.created_at}));
   const s=db.prepare("SELECT data_json FROM payroll_settings WHERE user_id=?").get(req.user.uid);
   res.json({employees,history:records,settings:s?payrollJson(s.data_json):{}});
 });
@@ -416,7 +416,7 @@ app.put("/api/payroll/sync",auth,(req,res)=>{
     for(const e of employees){
       const code=String(e.code||e.personnelCode||"").trim();
       if(!code)continue;
-      const clean={...e}; delete clean.id;
+      const clean={...e}; delete clean.id; delete clean.userId; delete clean.user_id; clean.companyId=req.user.pid; clean.company_id=req.user.pid;
       db.prepare(`INSERT INTO payroll_employees(user_id,personnel_code,data_json,created_at,updated_at)
         VALUES(?,?,?,?,?)
         ON CONFLICT(user_id,personnel_code) DO UPDATE SET data_json=excluded.data_json,updated_at=excluded.updated_at`)
@@ -430,7 +430,7 @@ app.put("/api/payroll/sync",auth,(req,res)=>{
     const stmt=db.prepare("INSERT INTO payroll_records(user_id,personnel_code,payroll_month,data_json,created_at) VALUES(?,?,?,?,?)");
     for(const r of history){
       const code=String(r.personnelCode||r.code||"").trim();
-      const clean={...r}; delete clean.id;
+      const clean={...r}; delete clean.id; delete clean.userId; delete clean.user_id; clean.companyId=req.user.pid; clean.company_id=req.user.pid;
       stmt.run(req.user.uid,code,String(r.payrollMonth||""),JSON.stringify(clean),String(r.createdAt||now()));
     }
     db.prepare("INSERT INTO payroll_settings(user_id,data_json,updated_at) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET data_json=excluded.data_json,updated_at=excluded.updated_at")
