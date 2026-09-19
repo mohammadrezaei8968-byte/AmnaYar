@@ -6,6 +6,13 @@
   window.AMNA_API_BASE = API_BASES[0];
   window.AMNA_API_BASES = API_BASES.slice();
 
+  async function fetchWithTimeout(url, options={}, ms=7000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ms);
+    try { return await nativeFetch(url, {...options, signal: controller.signal}); }
+    finally { clearTimeout(timer); }
+  }
+
   window.fetch = async function(input, init) {
     const rawUrl = typeof input === 'string'
       ? input
@@ -21,11 +28,9 @@
       const target = base + rawUrl;
       try {
         const response = typeof Request !== 'undefined' && input instanceof Request
-          ? await nativeFetch(new Request(target, input), init)
-          : await nativeFetch(target, init);
+          ? await fetchWithTimeout(target, {method: input.method, headers: input.headers, body: input.method === 'GET' || input.method === 'HEAD' ? undefined : await input.clone().text(), credentials: init?.credentials || 'include', cache: init?.cache || 'no-store'}, 7000)
+          : await fetchWithTimeout(target, init || {}, 7000);
         lastResponse = response;
-        // If the host responds normally, use it. If it is a 5xx gateway/server
-        // error, try the next API host before giving up.
         if (response.status < 500) return response;
       } catch (err) {
         lastError = err;
