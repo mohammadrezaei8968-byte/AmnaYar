@@ -7,6 +7,7 @@ const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const {initPayment: samanInit, verifyPayment: samanVerify} = require("./providers/saman");
 const rateLimit = require("express-rate-limit");
+const https = require("https");
 
 const app = express();
 app.set("trust proxy", 1);
@@ -235,6 +236,21 @@ app.get("/api/market",async(req,res)=>{
   }
 });
 
+function requestTranslation(url){
+  return new Promise((resolve,reject)=>{
+    const req=https.get(url,{headers:{"Accept":"application/json","User-Agent":"AmnaYar/1.0"}},r=>{
+      let body="";
+      r.setEncoding("utf8");
+      r.on("data",chunk=>{body+=chunk;if(body.length>2*1024*1024)r.destroy(new Error("translation_response_too_large"));});
+      r.on("end",()=>{
+        if(r.statusCode!==200)return reject(new Error("translation_provider_"+r.statusCode));
+        try{resolve(JSON.parse(body));}catch(e){reject(new Error("translation_invalid_json"));}
+      });
+    });
+    req.setTimeout(15000,()=>req.destroy(new Error("translation_timeout")));
+    req.on("error",reject);
+  });
+}
 app.post("/api/translate",async(req,res)=>{
   const text=String(req.body?.text||"").trim().slice(0,5000);
   const direction=String(req.body?.direction||"");
@@ -243,9 +259,7 @@ app.post("/api/translate",async(req,res)=>{
   if(!langs)return res.status(400).json({error:"جهت ترجمه نامعتبر است."});
   try{
     const url="https://translate.googleapis.com/translate_a/single?client=gtx&sl="+langs[0]+"&tl="+langs[1]+"&dt=t&q="+encodeURIComponent(text);
-    const r=await fetch(url,{headers:{"Accept":"application/json"},signal:AbortSignal.timeout(15000)});
-    if(!r.ok)throw new Error("translation_provider_"+r.status);
-    const data=await r.json();
+    const data=await requestTranslation(url);
     const translated=Array.isArray(data?.[0])?data[0].map(x=>Array.isArray(x)?String(x[0]||""):"").join(""):"";
     if(!translated)throw new Error("translation_empty");
     res.json({ok:true,translatedText:translated,direction});
