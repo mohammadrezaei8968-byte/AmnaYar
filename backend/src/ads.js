@@ -102,7 +102,7 @@ module.exports = function registerAds({app, db, ownerAuth, now, crypto}) {
 
   app.get('/api/ads/:id/click',(req,res)=>{
     const id=Number(req.params.id); const c=db.prepare("SELECT id,placement,destination_url FROM ad_campaigns WHERE id=? AND status='active'").get(id);
-    if(!c||!/^https?:\\/\\//i.test(c.destination_url))return res.status(404).send('تبلیغ پیدا نشد');
+    if(!c||!/^https?:\/\//i.test(c.destination_url))return res.status(404).send('تبلیغ پیدا نشد');
     logEvent(req,id,'click',c.placement); res.redirect(c.destination_url);
   });
 
