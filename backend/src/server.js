@@ -235,6 +235,26 @@ app.get("/api/market",async(req,res)=>{
   }
 });
 
+app.post("/api/translate",async(req,res)=>{
+  const text=String(req.body?.text||"").trim().slice(0,5000);
+  const direction=String(req.body?.direction||"");
+  if(!text)return res.status(400).json({error:"متن برای ترجمه خالی است."});
+  const langs=direction==="fa-en"?["fa","en"]:direction==="en-fa"?["en","fa"]:null;
+  if(!langs)return res.status(400).json({error:"جهت ترجمه نامعتبر است."});
+  try{
+    const url="https://translate.googleapis.com/translate_a/single?client=gtx&sl="+langs[0]+"&tl="+langs[1]+"&dt=t&q="+encodeURIComponent(text);
+    const r=await fetch(url,{headers:{"Accept":"application/json"},signal:AbortSignal.timeout(15000)});
+    if(!r.ok)throw new Error("translation_provider_"+r.status);
+    const data=await r.json();
+    const translated=Array.isArray(data?.[0])?data[0].map(x=>Array.isArray(x)?String(x[0]||""):"").join(""):"";
+    if(!translated)throw new Error("translation_empty");
+    res.json({ok:true,translatedText:translated,direction});
+  }catch(e){
+    console.error("translate",e);
+    res.status(502).json({error:"ترجمه در حال حاضر در دسترس نیست؛ دوباره تلاش کنید."});
+  }
+});
+
 app.get("/api/app/version",(req,res)=>res.json({version:APP_VERSION,channel:String(req.query.channel||"direct"),url:process.env.APP_DOWNLOAD_URL||"",notes:"امنا یار با طراحی بانکی جدید و اتصال سرویس استعلام بانکی"}));
 app.get("/api/health",(req,res)=>res.json({ok:true,service:"amnayar",version:APP_VERSION,environment:NODE_ENV,max_active_devices:Number(process.env.MAX_ACTIVE_DEVICES||2),timestamp:now()}));
 app.get("/api/app/config",(req,res)=>res.json({name:"امنا یار",version:APP_VERSION,minSupportedVersion:process.env.MIN_SUPPORTED_APP_VERSION||"5.0.0",apiBase:"https://api.amnayar.ir/api",support:{email:"mohammad.rezaei8968@gmail.com"},channels:db.prepare("SELECT code,title,enabled,app_download_enabled FROM sales_channels WHERE enabled=1 ORDER BY id").all()}));
