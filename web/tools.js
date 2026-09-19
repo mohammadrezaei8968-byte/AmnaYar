@@ -7,23 +7,37 @@ async function translateText(direction){
   if(!text){status.textContent='متن را وارد کنید.';return}
   if(text.length>5000){status.textContent='حداکثر ۵۰۰۰ نویسه مجاز است.';return}
   status.textContent='در حال ترجمه...'; result.value='';
-  const parse=async r=>{let d={};try{d=await r.json()}catch{};if(!r.ok)throw new Error(d.error||'ترجمه انجام نشد.');return d.translatedText||''};
+  const [sl,tl]=direction==='fa-en'?['fa','en']:['en','fa'];
+  const googleUrl='https://translate.googleapis.com/translate_a/single?client=gtx&sl='+sl+'&tl='+tl+'&dt=t&q='+encodeURIComponent(text);
+  const parseGoogle=async r=>{
+    if(!r.ok)throw new Error('google_'+r.status);
+    const data=await r.json();
+    const translated=Array.isArray(data?.[0])?data[0].map(x=>Array.isArray(x)?String(x[0]||''):'').join(''):'';
+    if(!translated)throw new Error('empty');
+    return translated;
+  };
   try{
-    const r=await fetch('/api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,direction})});
-    const translated=await parse(r);
-    if(!translated)throw new Error('ترجمه خالی بود.');
-    result.value=translated;status.textContent='ترجمه آماده است.';return;
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),5000);
+    try{
+      const r=await fetch(googleUrl,{headers:{Accept:'application/json'},signal:controller.signal});
+      const translated=await parseGoogle(r);
+      result.value=translated;status.textContent='ترجمه آماده است.';return;
+    }finally{clearTimeout(timer)}
   }catch(primary){
     try{
-      const [sl,tl]=direction==='fa-en'?['fa','en']:['en','fa'];
-      const url='https://translate.googleapis.com/translate_a/single?client=gtx&sl='+sl+'&tl='+tl+'&dt=t&q='+encodeURIComponent(text);
-      const r=await fetch(url,{headers:{Accept:'application/json'}});
-      const data=await r.json();
-      const translated=Array.isArray(data?.[0])?data[0].map(x=>Array.isArray(x)?String(x[0]||''):'').join(''):'';
-      if(!translated)throw new Error('empty');
-      result.value=translated;status.textContent='ترجمه آماده است.';return;
+      const controller=new AbortController();
+      const timer=setTimeout(()=>controller.abort(),12000);
+      try{
+        const r=await fetch('/api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,direction}),signal:controller.signal});
+        const d=await r.json();
+        if(!r.ok)throw new Error(d.error||'ترجمه انجام نشد.');
+        const translated=String(d.translatedText||'');
+        if(!translated)throw new Error('ترجمه خالی بود.');
+        result.value=translated;status.textContent='ترجمه آماده است.';return;
+      }finally{clearTimeout(timer)}
     }catch(fallback){
-      status.textContent=primary.message||'سرویس ترجمه موقتاً در دسترس نیست؛ دوباره تلاش کنید.';
+      status.textContent='سرویس ترجمه موقتاً در دسترس نیست؛ دوباره تلاش کنید.';
     }
   }
 }
