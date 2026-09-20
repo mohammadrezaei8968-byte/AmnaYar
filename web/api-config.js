@@ -29,7 +29,7 @@
       try {
         const response = typeof Request !== 'undefined' && input instanceof Request
           ? await fetchWithTimeout(target, {method: input.method, headers: input.headers, body: input.method === 'GET' || input.method === 'HEAD' ? undefined : await input.clone().text(), credentials: init?.credentials || 'include', cache: init?.cache || 'no-store'}, 7000)
-          : await fetchWithTimeout(target, init || {}, 5000);
+          : await fetchWithTimeout(target, init || {}, 15000);
         lastResponse = response;
         if (response.status < 500) return response;
       } catch (err) {
