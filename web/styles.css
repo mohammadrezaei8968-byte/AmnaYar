@@ -564,3 +564,57 @@ body:has(.tool-panel) main.section:before{opacity:.35!important}
   .hero-brand-logo{width:185px!important}
   .hero-brand-visual strong{font-size:25px!important}
 }
+
+
+/* v4.8 executive hero — typography-led, no decorative image panel */
+.hero-v2{
+  grid-template-columns:1fr!important;
+  max-width:1220px!important;
+  min-height:440px!important;
+  padding:68px 82px!important;
+  align-items:center!important;
+  background:
+    radial-gradient(circle at 12% 18%,rgba(23,79,143,.07),transparent 26%),
+    radial-gradient(circle at 88% 82%,rgba(8,121,106,.06),transparent 28%),
+    linear-gradient(135deg,#fff 0%,#f7faff 62%,#f1f8f6 100%)!important;
+}
+.hero-v2 .hero-copy{
+  max-width:900px!important;
+  margin:0 auto!important;
+  text-align:center!important;
+  padding:0!important;
+}
+.hero-v2 .hero-copy .pill{display:inline-flex!important}
+.hero-v2 .hero-copy h1{
+  font-size:clamp(48px,5.3vw,72px)!important;
+  line-height:1.22!important;
+  margin:20px 0 18px!important;
+  letter-spacing:-2.4px!important;
+}
+.hero-v2 .hero-copy>p{
+  max-width:700px!important;
+  margin:0 auto!important;
+  font-size:17px!important;
+  line-height:2.05!important;
+}
+.hero-v2 .actions{
+  justify-content:center!important;
+  margin-top:30px!important;
+}
+.hero-v2 .trust{
+  justify-content:center!important;
+  width:max-content!important;
+  max-width:100%!important;
+  margin:25px auto 0!important;
+}
+.hero-brand-visual{display:none!important}
+@media(max-width:700px){
+ .hero-v2{min-height:auto!important;padding:48px 25px!important}
+ .hero-v2 .hero-copy h1{font-size:40px!important;letter-spacing:-1.3px!important}
+ .hero-v2 .hero-copy>p{font-size:14px!important}
+ .hero-v2 .trust{width:100%!important}
+}
+@media(max-width:520px){
+ .hero-v2{padding:38px 18px!important}
+ .hero-v2 .hero-copy h1{font-size:34px!important}
+}
