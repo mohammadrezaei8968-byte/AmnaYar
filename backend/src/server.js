@@ -238,24 +238,121 @@ app.get("/api/market",async(req,res)=>{
 
 
 // ============================================================
-// LIVE CAR PRICES — Car.ir
+// LIVE CAR PRICES — 1Car (daily updated public price table)
 // ============================================================
 const CAR_PRICE_CACHE={data:null,at:0};
 const CAR_PRICE_TTL_MS=5*60*1000;
-const CAR_PRICE_HEADERS={"User-Agent":"Mozilla/5.0 (compatible; AmnaYar/1.0; +https://amnayar.ir)","Accept":"text/html,application/xhtml+xml"};
-const CAR_DOMESTIC_BRANDS=new Set(["ایران خودرو","سایپا","بهمن موتور","کی ام سی","کرمان موتور","ام وی ام","فونیکس","چانگان","جک","هایما","لاماری","فردا","مدیران خودرو","آریا","زامیاد"]);
-function carText(v){return String(v||"").replace(/<[^>]*>/g," ").replace(/&nbsp;/gi," ").replace(/&amp;/gi,"&").replace(/&#(\d+);/g,(_,n)=>String.fromCharCode(Number(n))).replace(/\s+/g," ").trim();}
-function carNum(v){const s=carText(v).replace(/[۰-۹]/g,c=>String("۰۱۲۳۴۵۶۷۸۹".indexOf(c))).replace(/[٠-٩]/g,c=>String("٠١٢٣٤٥٦٧٨٩".indexOf(c))).replace(/[,٬،]/g,"").replace(/[^\d.-]/g,"");const n=Number(s);return Number.isFinite(n)?n:null;}
-function carCell(v){const text=carText(v);const pm=text.match(/([\d۰-۹٠-٩][\d۰-۹٠-٩,٬،.]*)\s*تومان/i);const cm=text.match(/(-?\d+(?:[.,]\d+)?)\s*%/);return {price:pm?carNum(pm[1]):null,pct:cm?Number(String(cm[1]).replace(",",".")):null};}
-function carDailyDelta(price,pct){if(price==null||pct==null||pct===0)return 0;return Math.round(price-(price/(1+pct/100)));}
-function parseCarPriceRows(html){
- const out=[],blockRe=/<h3[^>]*>([\s\S]*?)<\/h3>([\s\S]*?)(?=<h3[^>]*>|$)/gi;let bm;
- while((bm=blockRe.exec(html))){const brand=carText(bm[1]);if(!CAR_DOMESTIC_BRANDS.has(brand))continue;const rows=bm[2].match(/<tr[^>]*>[\s\S]*?<\/tr>/gi)||[];
-  for(const row of rows){const cells=[...row.matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi)].map(m=>m[1]);if(cells.length<3)continue;const name=carText(cells[0]);if(!name||/نام خودرو/i.test(name))continue;const factory=carCell(cells[1]),market=carCell(cells[2]);if(factory.price==null&&market.price==null)continue;out.push({brand,name,factory:factory.price,market:market.price,diff:(factory.price!=null&&market.price!=null)?market.price-factory.price:null,market_change:market.price!=null?carDailyDelta(market.price,market.pct):null,market_change_pct:market.pct,factory_change:factory.price!=null?carDailyDelta(factory.price,factory.pct):null,factory_change_pct:factory.pct});}
- } return out;
+const CAR_PRICE_HEADERS={
+  "User-Agent":"Mozilla/5.0 (compatible; AmnaYar/1.0; +https://amnayar.ir)",
+  "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  "Accept-Language":"fa-IR,fa;q=0.9,en;q=0.6"
+};
+const CAR_DOMESTIC_BRANDS=new Set([
+  "آریسان","اطلس","پارس نوآ","پراید","پژو","تارا","دنا","رانا","ری را","ساینا","شاهین","سهند","کوییک",
+  "سمند","وانت","ایران خودرو","ایران‌خودرو","سایپا","زامیاد","هایما","چانگان","جک","کی ام سی","فونیکس",
+  "ام وی ام","فردا","لاماری","فیدلیتی","دیگنیتی","ریسپکت","کاپرا","اطلس","دنا","سورن","پارس","تیبا",
+  "شاهین","کوییک","سهند","ساینا","سورن","رنو","کرمان موتور","مدیران خودرو","گروه بهمن","بهمن خودرو"
+]);
+function carText(v){
+  return String(v||"")
+    .replace(/<[^>]*>/g," ")
+    .replace(/&nbsp;/gi," ")
+    .replace(/&amp;/gi,"&")
+    .replace(/&#(d+);/g,(_,n)=>String.fromCharCode(Number(n)))
+    .replace(/&#x([0-9a-f]+);/gi,(_,n)=>String.fromCharCode(parseInt(n,16)))
+    .replace(/[\u200c\u200f]/g," ")
+    .replace(/\s+/g," ").trim();
 }
-async function fetchCarPrices(){const r=await fetch("https://car.ir/prices",{headers:CAR_PRICE_HEADERS,signal:AbortSignal.timeout(15000)});if(!r.ok)throw new Error("car_prices_"+r.status);const rows=parseCarPriceRows(await r.text());if(!rows.length)throw new Error("car_prices_empty");return {source:"Car.ir",sourceUrl:"https://car.ir/prices",fetchedAt:new Date().toISOString(),items:rows.slice(0,120)};}
-app.get("/api/car-prices",async(req,res)=>{try{const force=String(req.query.refresh||"")==="1";if(!force&&CAR_PRICE_CACHE.data&&Date.now()-CAR_PRICE_CACHE.at<CAR_PRICE_TTL_MS)return res.json({...CAR_PRICE_CACHE.data,cached:true});const data=await fetchCarPrices();CAR_PRICE_CACHE.data=data;CAR_PRICE_CACHE.at=Date.now();res.setHeader("Cache-Control","no-store");res.json({...data,cached:false});}catch(e){console.error("car_prices",e);if(CAR_PRICE_CACHE.data)return res.json({...CAR_PRICE_CACHE.data,cached:true,stale:true});res.status(503).json({error:"car_prices_unavailable",message:"قیمت خودرو از منبع آنلاین دریافت نشد؛ داده ساختگی نمایش داده نمی‌شود."});}});
+function carDigits(v){
+  return carText(v)
+    .replace(/[۰-۹]/g,c=>String("۰۱۲۳۴۵۶۷۸۹".indexOf(c)))
+    .replace(/[٠-٩]/g,c=>String("٠١٢٣٤٥٦٧٨٩".indexOf(c)));
+}
+function carMoney(v){
+  const s=carDigits(v).replace(/[,٬،]/g,"");
+  const nums=(s.match(/\d+(?:\.\d+)?/g)||[]).map(Number).filter(Number.isFinite);
+  if(!nums.length)return {value:null,min:null,max:null};
+  const vals=nums.filter(n=>n>=1000000);
+  if(!vals.length)return {value:null,min:null,max:null};
+  const min=Math.min(...vals),max=Math.max(...vals);
+  return {value:Math.round((min+max)/2),min,max};
+}
+function carPercent(v){
+  const s=carDigits(v).replace(/,/g,".");
+  const m=s.match(/(-?\d+(?:\.\d+)?)\s*%/);
+  return m?Number(m[1]):null;
+}
+function carDailyDelta(price,pct){
+  if(price==null||pct==null||pct===0)return 0;
+  return Math.round(price-(price/(1+pct/100)));
+}
+function parse1CarPriceRows(html){
+  const out=[];
+  const blockRe=/<h3[^>]*>\s*([\s\S]*?)\s*<\/h3>([\s\S]*?)(?=<h3[^>]*>|$)/gi;
+  let bm;
+  while((bm=blockRe.exec(html))){
+    const rawBrand=carText(bm[1]).replace(/^قیمت\s*/,"").trim();
+    if(!CAR_DOMESTIC_BRANDS.has(rawBrand))continue;
+    const rows=bm[2].match(/<tr[^>]*>[\s\S]*?<\/tr>/gi)||[];
+    for(const row of rows){
+      const cells=[...row.matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi)].map(m=>carText(m[1]));
+      if(cells.length<4||/نام خودرو/i.test(cells[0]))continue;
+      const name=cells[0];
+      const year=cells[1];
+      const market=carMoney(cells[2]);
+      const factory=carMoney(cells[3]);
+      const pct=carPercent(cells[5]||"");
+      if(market.value==null&&factory.value==null)continue;
+      out.push({
+        brand:rawBrand,
+        name:year?name+" مدل "+year:name,
+        factory:factory.value,
+        market:market.value,
+        factory_min:factory.min,
+        factory_max:factory.max,
+        market_min:market.min,
+        market_max:market.max,
+        diff:(factory.value!=null&&market.value!=null)?market.value-factory.value:null,
+        market_change:market.value!=null?carDailyDelta(market.value,pct):null,
+        market_change_pct:pct,
+        source:"1Car"
+      });
+    }
+  }
+  return out;
+}
+async function fetchCarPrices(){
+  const r=await fetch("https://1car.ir/price",{headers:CAR_PRICE_HEADERS,signal:AbortSignal.timeout(20000)});
+  if(!r.ok)throw new Error("car_prices_"+r.status);
+  const html=await r.text();
+  const rows=parse1CarPriceRows(html);
+  if(!rows.length)throw new Error("car_prices_empty");
+  return {
+    source:"1Car",
+    sourceUrl:"https://1car.ir/price",
+    fetchedAt:new Date().toISOString(),
+    items:rows.slice(0,180)
+  };
+}
+app.get("/api/car-prices",async(req,res)=>{
+  try{
+    const force=String(req.query.refresh||"")==="1";
+    if(!force&&CAR_PRICE_CACHE.data&&Date.now()-CAR_PRICE_CACHE.at<CAR_PRICE_TTL_MS)
+      return res.json({...CAR_PRICE_CACHE.data,cached:true});
+    const data=await fetchCarPrices();
+    CAR_PRICE_CACHE.data=data;
+    CAR_PRICE_CACHE.at=Date.now();
+    res.setHeader("Cache-Control","no-store");
+    res.json({...data,cached:false});
+  }catch(e){
+    console.error("car_prices",e);
+    if(CAR_PRICE_CACHE.data)return res.json({...CAR_PRICE_CACHE.data,cached:true,stale:true});
+    res.status(503).json({
+      error:"car_prices_unavailable",
+      message:"قیمت خودرو از منبع آنلاین دریافت نشد؛ داده ساختگی نمایش داده نمی‌شود."
+    });
+  }
+});
 
 function requestTranslation(url){
   return new Promise((resolve,reject)=>{
