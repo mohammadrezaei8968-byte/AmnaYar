@@ -205,3 +205,11 @@ body:has(.advertise) .ad-benefits article:before{content:"";position:absolute;to
 body:has(.advertise) .ad-format{background:linear-gradient(135deg,#eef6ff,#f0faf7);border:1px solid #dce9f4}
 body:has(.advertise) .ad-contact{background:rgba(255,255,255,.9);backdrop-filter:blur(8px)}
 @media(max-width:700px){body:has(.hero-v2) .hero-v2{border-radius:24px}body:has(.tool-panel) .tool-panel{border-radius:18px}}
+
+
+/* ترجمه: دو بخش فارسی و انگلیسی همیشه کنار هم */
+#translate .two-col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+#translate .tool-box{min-width:0}
+#translate .tool-box textarea{width:100%;box-sizing:border-box;display:block;resize:vertical}
+#translate .tool-box .btn{display:inline-flex;margin:10px 0 4px}
+@media(max-width:520px){#translate .two-col{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}#translate .tool-box{padding:10px}#translate .tool-box h3{font-size:12px}#translate .tool-box textarea{font-size:11px;min-height:110px}#translate .tool-box .btn{width:100%;justify-content:center;padding:8px 5px;font-size:10px}}
