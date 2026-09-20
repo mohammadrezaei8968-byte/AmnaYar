@@ -220,3 +220,42 @@ body:has(.advertise) .ad-contact{background:rgba(255,255,255,.9);backdrop-filter
 .tool-back{display:inline-flex;align-items:center;gap:7px;margin-bottom:14px;padding:8px 13px;border:1px solid #d9e4f2;border-radius:11px;background:#f7faff;color:#24578f;text-decoration:none;font-size:12px;font-weight:700;transition:.2s}
 .tool-back:hover{background:#edf5ff;border-color:#bcd2ee;transform:translateX(2px);box-shadow:0 6px 18px rgba(20,70,120,.08)}
 @media(max-width:520px){.tool-back{font-size:11px;padding:7px 10px;margin-bottom:11px}}
+
+
+/* v4.0 formal color system - distinct identity for every section */
+:root{
+ --formal-blue:#123b6d;--formal-blue-2:#1d5a9d;--formal-teal:#087f6b;
+ --formal-gold:#b8872b;--formal-purple:#6653a8;--formal-slate:#34445b;
+}
+.section .heading>span{box-shadow:0 5px 16px rgba(18,59,109,.08)}
+.popular-card.sana{border-top:4px solid #6653a8!important;background:linear-gradient(145deg,#fff,#f5f1ff)!important}
+.popular-card.social-security{border-top:4px solid #087f6b!important;background:linear-gradient(145deg,#fff,#eefaf6)!important}
+.popular-card.car{border-top:4px solid #1d5a9d!important;background:linear-gradient(145deg,#fff,#eef5ff)!important}
+.popular-card.cheque{border-top:4px solid #b8872b!important;background:linear-gradient(145deg,#fff,#fff9ed)!important}
+.popular-card.parcel{border-top:4px solid #087f6b!important;background:linear-gradient(145deg,#fff,#eefbf8)!important}
+.popular-card.gov{border-top:4px solid #123b6d!important;background:linear-gradient(145deg,#fff,#f0f5fb)!important}
+.popular-card .service-icon{box-shadow:0 8px 20px rgba(18,59,109,.10)}
+.cards-3 article:nth-child(1){border-top:4px solid #123b6d;background:linear-gradient(145deg,#fff,#f2f6fb)}
+.cards-3 article:nth-child(2){border-top:4px solid #087f6b;background:linear-gradient(145deg,#fff,#f0faf7)}
+.cards-3 article:nth-child(3){border-top:4px solid #6653a8;background:linear-gradient(145deg,#fff,#f6f3fc)}
+.why-grid>div:nth-child(4n+1){border-top:3px solid #123b6d}
+.why-grid>div:nth-child(4n+2){border-top:3px solid #087f6b}
+.why-grid>div:nth-child(4n+3){border-top:3px solid #b8872b}
+.why-grid>div:nth-child(4n+4){border-top:3px solid #6653a8}
+.directory-item:nth-child(4n+1){background:linear-gradient(145deg,#fff,#f1f6fb)}
+.directory-item:nth-child(4n+2){background:linear-gradient(145deg,#fff,#f0faf7)}
+.directory-item:nth-child(4n+3){background:linear-gradient(145deg,#fff,#fff9ee)}
+.directory-item:nth-child(4n+4){background:linear-gradient(145deg,#fff,#f6f3fc)}
+.tools-section{background:linear-gradient(135deg,#f2f6fb,#eef8f5)!important;border:1px solid #dce7ef}
+.tool-tile:nth-child(4n+1){border-top:3px solid #123b6d}
+.tool-tile:nth-child(4n+2){border-top:3px solid #087f6b}
+.tool-tile:nth-child(4n+3){border-top:3px solid #6653a8}
+.tool-tile:nth-child(4n+4){border-top:3px solid #b8872b}
+#quick-check{background:linear-gradient(135deg,#edf4fc,#eef9f6)!important}
+.home-check-card:nth-child(3n+1){border-top:3px solid #123b6d}
+.home-check-card:nth-child(3n+2){border-top:3px solid #087f6b}
+.home-check-card:nth-child(3n+3){border-top:3px solid #6653a8}
+#official{background:linear-gradient(180deg,#f4f7fb,#edf3f9)!important}
+#official .directory-item{border-right:4px solid #123b6d}
+.support{background:linear-gradient(135deg,#0b294e,#123f70 58%,#0b695b)!important}
+.ad-format{background:linear-gradient(135deg,#eef4fb,#eef9f6)!important}
