@@ -1,7 +1,7 @@
 // AmnaYar frontend API routing with automatic fallback.
 // The public site is hosted on amnayar.ir and the backend API is on Render.
 (() => {
-  const API_BASES = ['https://amnayar-api.onrender.com', 'https://api.amnayar.ir'];
+  const API_BASES = ['https://api.amnayar.ir', 'https://amnayar-api.onrender.com'];
   const nativeFetch = window.fetch.bind(window);
   window.AMNA_API_BASE = API_BASES[0];
   window.AMNA_API_BASES = API_BASES.slice();
@@ -29,7 +29,7 @@
       try {
         const response = typeof Request !== 'undefined' && input instanceof Request
           ? await fetchWithTimeout(target, {method: input.method, headers: input.headers, body: input.method === 'GET' || input.method === 'HEAD' ? undefined : await input.clone().text(), credentials: init?.credentials || 'include', cache: init?.cache || 'no-store'}, 7000)
-          : await fetchWithTimeout(target, init || {}, 7000);
+          : await fetchWithTimeout(target, init || {}, 5000);
         lastResponse = response;
         if (response.status < 500) return response;
       } catch (err) {
