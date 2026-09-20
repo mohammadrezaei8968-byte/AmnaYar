@@ -83,3 +83,35 @@ body{font-weight:500;letter-spacing:0;line-height:1.9}
 .nav .brand span,.hero-copy h1,.heading h2,.popular-card h3,.dash-welcome h1,.section-title-row h2,.hr-hero h1,.org-banner h2{font-weight:800;letter-spacing:-.25px}
 .nav .brand small,.main-nav a,.service-tag,.btn,.tool-tile strong,.directory-item b,.stat-card b,.checker-card b,.extra-card b{font-weight:700}
 .hero-copy>p,.heading p,.popular-card p,.directory-item small,.tool-tile small{font-weight:500}
+
+/* Visual polish: richer backgrounds, depth and subtle motion */
+body{background:
+ radial-gradient(circle at 8% 8%,rgba(40,120,255,.08),transparent 26%),
+ radial-gradient(circle at 92% 18%,rgba(16,168,121,.07),transparent 24%),
+ linear-gradient(180deg,#f8fbff 0%,#f3f7fc 48%,#eef4fa 100%);
+}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;opacity:.32;background-image:radial-gradient(rgba(40,120,255,.14) 1px,transparent 1px);background-size:28px 28px;mask-image:linear-gradient(to bottom,black,transparent 78%)}
+.nav{box-shadow:0 8px 30px rgba(10,35,70,.07)}
+.hero-v2{position:relative}
+.hero-v2:before{content:"";position:absolute;width:420px;height:420px;right:-160px;top:10px;border-radius:50%;background:radial-gradient(circle,rgba(40,120,255,.13),transparent 68%);pointer-events:none}
+.hero-v2:after{content:"";position:absolute;width:300px;height:300px;left:-130px;bottom:-70px;border-radius:50%;background:radial-gradient(circle,rgba(16,168,121,.10),transparent 70%);pointer-events:none}
+.hero-copy,.dashboard-preview{position:relative;z-index:1}
+.dashboard-preview{box-shadow:0 35px 90px rgba(8,27,54,.25),0 0 0 1px rgba(255,255,255,.25);transition:transform .35s ease,box-shadow .35s ease}
+.dashboard-preview:hover{transform:rotate(0) translateY(-6px);box-shadow:0 42px 100px rgba(8,27,54,.29)}
+.section{position:relative}
+.section:nth-of-type(even){background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(239,246,253,.72))}
+.heading h2{position:relative}
+.heading h2:after{content:"";display:block;width:58px;height:4px;border-radius:99px;background:linear-gradient(90deg,#2878ff,#10a879);margin:12px auto 0}
+.popular-card,.cards-3 article,.directory-item,.why-grid>div,.panel,.tool-tile{box-shadow:0 12px 38px rgba(10,35,70,.065);transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease}
+.popular-card:hover,.cards-3 article:hover,.directory-item:hover,.why-grid>div:hover,.tool-tile:hover{transform:translateY(-5px);box-shadow:0 22px 55px rgba(10,35,70,.11)}
+.popular-card .service-icon{box-shadow:inset 0 0 0 1px rgba(40,120,255,.06)}
+.service-directory,.popular-grid,.cards-3,.why-grid,.tool-grid{position:relative}
+.service-directory:before,.popular-grid:before{content:"";position:absolute;inset:-35px;border-radius:40px;background:radial-gradient(circle at 20% 20%,rgba(40,120,255,.055),transparent 32%),radial-gradient(circle at 80% 80%,rgba(16,168,121,.045),transparent 30%);z-index:-1}
+.tools-section{position:relative;overflow:hidden}
+.tools-section:before{content:"";position:absolute;width:520px;height:520px;right:-220px;top:-260px;border-radius:50%;background:radial-gradient(circle,rgba(40,120,255,.12),transparent 68%)}
+.tools-section:after{content:"";position:absolute;width:420px;height:420px;left:-200px;bottom:-230px;border-radius:50%;background:radial-gradient(circle,rgba(16,168,121,.09),transparent 68%)}
+.tools-heading,.tools-section .tool-grid{position:relative;z-index:1}
+.support{box-shadow:inset 0 1px rgba(255,255,255,.08)}
+footer{position:relative}
+@media(prefers-reduced-motion:no-preference){.popular-card,.cards-3 article,.directory-item,.why-grid>div,.tool-tile{animation:softRise .5s ease both}}
+@keyframes softRise{from{opacity:.7;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
