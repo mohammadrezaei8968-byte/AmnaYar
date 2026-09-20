@@ -335,3 +335,15 @@ body:before{
  .hero-v2:before{background-size:120px auto}
  .hero-v2:after{background-size:80px auto}
 }
+
+
+/* v4.3 clean signature background — refined after visual review */
+body{background:radial-gradient(circle at 8% 6%,rgba(23,79,143,.055),transparent 24%),radial-gradient(circle at 92% 12%,rgba(8,121,106,.045),transparent 22%),linear-gradient(180deg,#f9fbfd 0%,#f4f7fa 52%,#f8fafc 100%) !important}
+body:before{opacity:.10!important;background-image:radial-gradient(rgba(23,79,143,.12) .7px,transparent .7px)!important;background-size:34px 34px!important;mask-image:linear-gradient(to bottom,black,transparent 72%)!important}
+body:after{content:""!important;position:fixed!important;inset:0!important;z-index:-2!important;pointer-events:none!important;background:url("/assets/logo-amnayar.png") center 42% / min(300px,38vw) auto no-repeat!important;opacity:.018!important;filter:grayscale(1)!important}
+.hero-v2:before,.hero-v2:after,.tools-section:before,.support:after{background-image:none!important;opacity:0!important}
+body:has(.hero-v2) .hero-v2{background:linear-gradient(135deg,#ffffff 0%,#f5f8fc 58%,#f1f8f5 100%)!important}
+.section{background-image:none!important}
+body:has(.tool-panel) main.section:before{opacity:.35!important}
+.tools-section{background:linear-gradient(135deg,#f5f8fc 0%,#f2f8f6 100%)!important}
+@media(max-width:700px){body:after{background-size:190px auto!important;opacity:.014!important}}
