@@ -228,3 +228,51 @@ body:has(.tool-panel) .tool-panel h2{color:#0b315b}
 #official{background:linear-gradient(180deg,#eef3f8,#e8eef5)!important}
 .support{background:linear-gradient(135deg,#081f3b 0%,#123f70 52%,#086a5d 100%)!important}
 footer{background:linear-gradient(135deg,#071b32,#102f52)!important}
+
+
+/* v4.2 AmnaYar signature background — logo inspired */
+body:after{
+ content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
+ background-image:url("/assets/logo-amnayar.png");
+ background-repeat:no-repeat;background-position:center 44%;background-size:min(420px,58vw);
+ opacity:.035;filter:grayscale(1) saturate(.25);
+}
+body:before{
+ opacity:.22!important;
+ background-image:
+   radial-gradient(circle at 12% 18%,rgba(23,79,143,.16),transparent 24%),
+   radial-gradient(circle at 88% 24%,rgba(8,121,106,.13),transparent 22%),
+   radial-gradient(circle at 50% 88%,rgba(169,120,36,.07),transparent 25%),
+   radial-gradient(rgba(23,79,143,.10) 1px,transparent 1px)!important;
+ background-size:auto,auto,auto,30px 30px!important;
+ mask-image:linear-gradient(to bottom,black,transparent 92%)!important;
+}
+.hero-v2:before{
+ background:
+  radial-gradient(circle at center,rgba(23,79,143,.14),transparent 62%),
+  url("/assets/logo-amnayar.png") center/170px auto no-repeat;
+ opacity:.8;
+}
+.hero-v2:after{
+ background:
+  radial-gradient(circle at center,rgba(8,121,106,.11),transparent 68%),
+  url("/assets/logo-amnayar.png") center/110px auto no-repeat;
+ opacity:.45;
+}
+.section{background-image:linear-gradient(180deg,rgba(255,255,255,.58),rgba(239,245,250,.72))}
+.tools-section:before{
+ background:
+  radial-gradient(circle at center,rgba(23,79,143,.12),transparent 68%),
+  url("/assets/logo-amnayar.png") center/150px auto no-repeat;
+ opacity:.65;
+}
+.support:after{
+ content:"";position:absolute;left:7%;bottom:-35px;width:150px;height:150px;
+ background:url("/assets/logo-amnayar.png") center/contain no-repeat;
+ opacity:.07;filter:brightness(0) invert(1);pointer-events:none;
+}
+@media(max-width:700px){
+ body:after{background-size:250px auto;background-position:center 48%;opacity:.025}
+ .hero-v2:before{background-size:120px auto}
+ .hero-v2:after{background-size:80px auto}
+}
