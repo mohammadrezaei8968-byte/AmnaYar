@@ -22,6 +22,26 @@
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',window.showSelectedTool);
   else window.showSelectedTool();
 })();
+</script><script>
+(function(){
+  function addBackButtons(){
+    document.querySelectorAll('.tool-panel[id]').forEach(function(panel){
+      if(panel.querySelector(':scope > .tool-back')) return;
+      var btn=document.createElement('a');
+      btn.className='tool-back';
+      btn.href='#';
+      btn.innerHTML='↩️ بازگشت';
+      btn.addEventListener('click',function(e){
+        e.preventDefault();
+        if(history.length>1) history.back();
+        else location.href='/';
+      });
+      panel.insertBefore(btn,panel.firstChild);
+    });
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',addBackButtons);
+  else addBackButtons();
+})();
 </script><header class="nav"><a class="brand" href="/"><img src="/assets/logo-amnayar.png" alt="امنا یار"><span>امنا یار<small>ابزارهای رایگان</small></span></a><nav><a href="/">خانه</a><a href="/#official">سامانه‌های رسمی</a></nav></header><main class="section"><div class="heading"><span>رایگان</span><h1>ابزارهای کاربردی امنا یار</h1><p>ابزارهای عمومی برای استفاده روزمره، بدون نیاز به ثبت‌نام.</p></div><section id="car" class="tool-panel panel"><h2>🚗 محاسبه‌گر قیمت خودرو</h2><p>قیمت کارخانه و بازار را وارد کنید تا اختلاف، درصد اختلاف و سود یا زیان محاسبه شود.</p><div class="two-col"><div class="tool-box"><h3>اطلاعات خودرو</h3><input id="carName" placeholder="نام خودرو (اختیاری)"><input id="carFactory" type="number" min="0" placeholder="قیمت کارخانه (تومان)"><input id="carMarket" type="number" min="0" placeholder="قیمت بازار (تومان)"><button class="btn primary" onclick="carCalc()">محاسبه</button><p id="carResult"></p></div><div class="tool-box"><h3>مقایسه خرید</h3><input id="carBuy" type="number" min="0" placeholder="قیمت خرید شما (تومان)"><input id="carSell" type="number" min="0" placeholder="قیمت فروش احتمالی (تومان)"><input id="carExtra" type="number" min="0" value="0" placeholder="هزینه‌های جانبی (تومان)"><button class="btn soft" onclick="carProfitCalc()">محاسبه سود/زیان</button><p id="carProfitResult"></p></div></div></section>
 
 
