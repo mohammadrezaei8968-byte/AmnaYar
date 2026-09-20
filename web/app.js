@@ -10,7 +10,7 @@ async function login(e){e.preventDefault();const btn=e.submitter;if(btn){btn.dis
 async function api(url,method='GET',body){const headers=body?{'Content-Type':'application/json'}:{};const token=getStoredAuthToken();if(token)headers.Authorization='Bearer '+token;const r=await fetch(url,{method,credentials:'include',headers,body:body?JSON.stringify(body):undefined,cache:'no-store'});let j={};try{j=await r.json()}catch{}if(r.status===401&&url!=='/api/auth/login'&&url!=='/api/auth/register'){localStorage.removeItem(AUTH_TOKEN_KEY)}if(!r.ok&&!j.error)j.error=`خطای سرور (${r.status})`;return j}
 async function startCheck(kind){location.href='/?check='+encodeURIComponent(kind)+'#quick-check'}
 
-async function loadNavUser(){const box=document.getElementById('navActions');if(!box)return;const token=getStoredAuthToken();if(!token)return;try{const me=await api('/api/me');const user=me&&me.user;if(!user||!user.username)return;const name=String(user.username);box.innerHTML='<span class="user-chip">سلام '+name+'</span><a class="btn soft" href="/dashboard.html">داشبورد</a><button class="btn ghost" onclick="logoutNav()">خروج</button>'}catch(e){}}
+async function loadNavUser(){const box=document.getElementById('navActions');if(!box)return;const token=getStoredAuthToken();if(!token)return;try{const me=await api('/api/me');const user=me&& (me.user||me);if(!user||!user.username)return;const name=String(user.username);box.innerHTML='<span class="user-chip">سلام '+name+'</span><a class="btn soft" href="/dashboard.html">داشبورد</a><button class="btn ghost" onclick="logoutNav()">خروج</button>'}catch(e){}}
 async function logoutNav(){await api('/api/auth/logout','POST');location.reload()}
 loadNavUser();
 
