@@ -22,21 +22,12 @@
 </div></section>
 
 <section id="car-prices" class="section car-prices-section" aria-label="قیمت روز خودرو">
-  <div class="heading"><span>قیمت آنلاین خودرو</span><h2>قیمت روز خودروهای ایرانی</h2><p>قیمت بازار و کارخانه را از مرجع به‌روز بازار خودرو بررسی کنید.</p></div>
-  <details class="car-prices-accordion">
-    <summary><span class="car-price-summary-icon">🚗</span><span><b>مشاهده قیمت روز خودرو</b><small>ایران خودرو، سایپا و سایر خودروهای داخلی</small></span><i>⌄</i></summary>
-    <div class="car-prices-body">
-      <div class="car-price-tools">
-        <a class="btn primary" href="https://car.ir/prices" target="_blank" rel="noopener">مشاهده کامل قیمت‌ها ↗</a>
-        <span>منبع: Car.ir • اطلاعات آنلاین بازار</span>
-      </div>
-      <div class="car-price-frame-wrap">
-        <iframe src="https://car.ir/prices" title="قیمت روز خودرو در Car.ir" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
-      </div>
-      <div class="car-price-fallback">اگر قیمت‌ها داخل امنا یار نمایش داده نشد، <a href="https://car.ir/prices" target="_blank" rel="noopener">صفحه قیمت روز Car.ir</a> را باز کنید.</div>
-    </div>
-  </details>
-</section>
+<div class="heading"><span>قیمت آنلاین خودرو</span><h2>قیمت روز خودروهای ایرانی</h2><p>قیمت کارخانه، بازار، تفاوت قیمت و تغییرات روزانه را یکجا ببینید.</p></div>
+<details class="car-prices-accordion"><summary><span class="car-price-summary-icon">🚗</span><span><b>مشاهده قیمت روز خودرو</b><small>کارخانه • بازار • تفاوت • افزایش/کاهش روزانه</small></span><i>⌄</i></summary>
+<div class="car-prices-body"><div class="car-price-tools"><div class="car-price-filters"><select id="carBrandFilter"><option value="">همه برندهای داخلی</option></select><input id="carNameFilter" type="search" placeholder="جستجوی خودرو..." aria-label="جستجوی خودرو"></div><div class="car-price-actions"><button class="btn primary" id="carPriceRefresh" type="button">↻ بروزرسانی آنلاین</button><a class="car-price-source" href="https://car.ir/prices" target="_blank" rel="noopener">منبع: Car.ir ↗</a></div></div>
+<div id="carPriceStatus" class="car-price-status">در حال دریافت قیمت‌های آنلاین...</div>
+<div class="car-price-table-wrap"><table class="car-price-table"><thead><tr><th>خودرو</th><th>قیمت کارخانه</th><th>قیمت بازار</th><th>تفاوت بازار و کارخانه</th><th>تغییر روزانه بازار</th></tr></thead><tbody id="carPriceBody"><tr><td colspan="5">در حال دریافت اطلاعات...</td></tr></tbody></table></div>
+<div class="car-price-note">تغییر روزانه «عدد» از درصد تغییر اعلام‌شده توسط منبع و قیمت فعلی محاسبه می‌شود؛ به‌دلیل گردشدن درصد منبع، عدد تغییر ممکن است تقریبی باشد.</div></div></details></section>
 <section id="quick-check" class="section checker-home-section">
   <div class="heading"><span>بررسی رایگان</span><h2>صحت‌سنجی کد ملی، کارت بانکی و شبا</h2><p>نتیجه را ساده و واضح ببینید؛ برای کارت بانکی و شبا نام بانک هم نمایش داده می‌شود.</p></div>
   <div class="home-checker-grid">
@@ -105,4 +96,4 @@
    if(b&&t.icon)b.textContent=t.icon; if(strong)strong.textContent=t.name; if(small)small.textContent=t.description;
  });
 }catch(e){console.warn('public tools config',e)}})();
-</script></body></html>
+</script><script>(function(){const box=document.getElementById("carPriceBody"),status=document.getElementById("carPriceStatus"),brand=document.getElementById("carBrandFilter"),name=document.getElementById("carNameFilter"),refresh=document.getElementById("carPriceRefresh");if(!box)return;let rows=[];const fa=n=>new Intl.NumberFormat("fa-IR").format(Math.round(Number(n||0))),money=n=>n==null?"—":fa(n)+" تومان",change=(n,p)=>{if(n==null||p==null)return "—";const sign=n>0?"+":n<0?"−":"۰";return '<span class="car-change '+(n>0?"up":n<0?"down":"flat")+'">'+sign+" "+fa(Math.abs(n))+" تومان ("+(p>0?"+":"")+Number(p).toFixed(p%1?1:0)+"٪)</span>"};function render(){const b=brand.value,q=(name.value||"").trim().toLowerCase(),list=rows.filter(x=>(!b||x.brand===b)&&(!q||x.name.toLowerCase().includes(q))).slice(0,120);box.innerHTML=list.length?list.map(x=>'<tr><td><b>'+x.name+'</b><small>'+x.brand+'</small></td><td>'+money(x.factory)+'</td><td>'+money(x.market)+'</td><td>'+(x.diff==null?"—":'<b class="car-diff">'+money(x.diff)+'</b>')+'</td><td>'+change(x.market_change,x.market_change_pct)+'</td></tr>').join(""):'<tr><td colspan="5">موردی پیدا نشد.</td></tr>';}async function load(force){status.textContent="در حال دریافت قیمت‌های آنلاین...";try{const r=await fetch("/api/car-prices"+(force?"?refresh=1":""),{cache:"no-store"}),d=await r.json();if(!r.ok)throw new Error(d.message||"خطا");rows=d.items||[];const brands=[...new Set(rows.map(x=>x.brand).filter(Boolean))];brand.innerHTML='<option value="">همه برندهای داخلی</option>'+brands.map(x=>'<option>'+x+'</option>').join("");status.textContent="آخرین بروزرسانی: "+new Date(d.fetchedAt).toLocaleTimeString("fa-IR",{hour:"2-digit",minute:"2-digit"})+(d.stale?" • آخرین داده ذخیره‌شده":"");render();}catch(e){status.textContent="قیمت آنلاین فعلاً در دسترس نیست. برای مشاهده مستقیم، منبع Car.ir را باز کنید.";box.innerHTML='<tr><td colspan="5"><a href="https://car.ir/prices" target="_blank" rel="noopener">مشاهده قیمت روز در Car.ir ↗</a></td></tr>'}}brand.addEventListener("change",render);name.addEventListener("input",render);refresh.addEventListener("click",()=>load(true));load(false);})();</script></body></html>
