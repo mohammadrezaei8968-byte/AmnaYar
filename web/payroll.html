@@ -162,7 +162,7 @@ function cardValid(v){let s=cleanDigits(v);if(s.length!==16||/^(\d)\1{15}$/.test
 function ibanValid(v){let s=String(v||"").replace(/[\s-]/g,"").toUpperCase();s=s.startsWith("IR")?s:"IR"+s;if(!/^IR\d{24}$/.test(s))return false;let x=s.slice(4)+"1827"+s.slice(2,4),r=0;for(const c of x)r=(r*10+Number(c))%97;return r===1}
 const bins={"603799":"بانک ملی ایران","589210":"بانک سپه","627648":"بانک توسعه صادرات","627961":"بانک صنعت و معدن","603770":"بانک کشاورزی","628023":"بانک مسکن","627760":"پست بانک ایران","502229":"بانک پاسارگاد","610433":"بانک ملت","603769":"بانک صادرات ایران","627353":"بانک تجارت","627412":"بانک اقتصاد نوین","622106":"بانک پارسیان","621986":"بانک سامان","639346":"بانک سینا","639607":"بانک سرمایه","502806":"بانک شهر","504172":"بانک رسالت","505785":"بانک ایران زمین"};
 function bankName(card){return bins[cleanDigits(card).slice(0,6)]||"بانک شناسایی نشد"}
-function show(el,type,msg){el.className="message show "+type;el.textContent=msg}
+function show(el,type,msg){el.className="message show "+type;el.textContent=(type==="success"?"انجام شد. بروزرسانی شد. "+(msg||""):msg)}
 function token(){return localStorage.getItem(TOKEN_KEY)||localStorage.getItem("token")||""}
 function scopeKey(){let t=token();let scope=company.id||"local";if(!t)return baseKey+"_"+scope;let h=0;for(let i=0;i<t.length;i++)h=((h<<5)-h+t.charCodeAt(i))|0;return baseKey+"_"+scope+"_"+Math.abs(h)}
 function loadStore(){try{let x=JSON.parse(localStorage.getItem(scopeKey())||"{}");employees=Array.isArray(x.employees)?x.employees:[];settings=Object.assign({},DEFAULT_SETTINGS,x.settings||{});history=Array.isArray(x.history)?x.history:[]}catch(e){employees=[];settings={...DEFAULT_SETTINGS};history=[]}}
