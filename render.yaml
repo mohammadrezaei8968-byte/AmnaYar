@@ -7,6 +7,10 @@ services:
     staticPublishPath: .
     domains:
       - amnayar.ir
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://amnayar-api.onrender.com/api/*
     headers:
       - path: /*
         name: X-Content-Type-Options
