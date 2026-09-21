@@ -27,7 +27,7 @@ const $=id=>document.getElementById(id);
 const API_BASE=(window.AMNA_API_BASE||"https://api.amnayar.ir").replace(/\/$/,"");
 const OWNER_TOKEN_KEY="amnayar_owner_token";
 function ownerToken(){return localStorage.getItem(OWNER_TOKEN_KEY)||""}
-const API_BASES=["https://api.amnayar.ir","https://amnayar-api.onrender.com"];
+const API_BASES=["","https://amnayar-api.onrender.com","https://api.amnayar.ir"];
 async function api(u,o={}){const h=new Headers(o.headers||{});if(ownerToken())h.set("Authorization","Bearer "+ownerToken());if(o.body&&!h.has("Content-Type"))h.set("Content-Type","application/json");const urls=/^https?:\/\//i.test(u)?[u]:API_BASES.map(base=>base+u);let lastError=null;for(const url of urls){const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),7000);try{const r=await fetch(url,{...o,headers:h,cache:"no-store",signal:controller.signal});let j={};try{j=await r.json()}catch{}if(!r.ok&&!j.error)j.error=`خطای سرور (${r.status})`;if((r.status===401||r.status===403)&&u!=="/api/owner/login"){localStorage.removeItem(OWNER_TOKEN_KEY);showOwnerLogin();}return j}catch(e){lastError=e}finally{clearTimeout(timer)}}throw lastError||new Error("api_unavailable")}
 function showOwnerLogin(){document.getElementById("ownerLogin")?.classList.add("show")}
 function hideOwnerLogin(){document.getElementById("ownerLogin")?.classList.remove("show")}
