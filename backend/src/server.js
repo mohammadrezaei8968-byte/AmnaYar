@@ -243,7 +243,7 @@ app.get("/api/market",async(req,res)=>{
 // نام منبع عمداً در رابط کاربری نمایش داده نمی‌شود.
 // ============================================================
 const CAR_PRICE_CACHE={data:null,at:0};
-const CAR_PRICE_TTL_MS=5*60*1000;
+const CAR_PRICE_TTL_MS=30*60*1000;
 const CAR_PRICE_HEADERS={
   "User-Agent":"Mozilla/5.0 (compatible; AmnaYar/1.2; +https://amnayar.ir)",
   "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -412,21 +412,35 @@ async function fetchCarPrices(){
   }
   throw lastError||new Error("car_prices_unavailable");
 }
+let carPriceRefreshPromise=null;
+async function refreshCarPriceCache(){
+  if(carPriceRefreshPromise)return carPriceRefreshPromise;
+  carPriceRefreshPromise=(async()=>{
+    try{
+      const data=await fetchCarPrices();
+      CAR_PRICE_CACHE.data=data; CAR_PRICE_CACHE.at=Date.now();
+      return data;
+    }finally{carPriceRefreshPromise=null;}
+  })();
+  return carPriceRefreshPromise;
+}
 app.get("/api/car-prices",async(req,res)=>{
+  const force=String(req.query.refresh||"")==="1";
+  const fresh=CAR_PRICE_CACHE.data&&Date.now()-CAR_PRICE_CACHE.at<CAR_PRICE_TTL_MS;
+  res.setHeader("Cache-Control","public, max-age=60, stale-while-revalidate=1800");
+  if(CAR_PRICE_CACHE.data){
+    if(!fresh || force) refreshCarPriceCache().catch(e=>console.error("car_prices_refresh",e));
+    return res.json({...CAR_PRICE_CACHE.data,cached:true,stale:!fresh,refreshing:true});
+  }
   try{
-    const force=String(req.query.refresh||"")==="1";
-    if(!force&&CAR_PRICE_CACHE.data&&Date.now()-CAR_PRICE_CACHE.at<CAR_PRICE_TTL_MS)
-      return res.json({...CAR_PRICE_CACHE.data,cached:true});
-    const data=await fetchCarPrices();
-    CAR_PRICE_CACHE.data=data; CAR_PRICE_CACHE.at=Date.now();
-    res.setHeader("Cache-Control","no-store");
-    res.json({...data,cached:false});
+    const data=await refreshCarPriceCache();
+    return res.json({...data,cached:false});
   }catch(e){
     console.error("car_prices",e);
-    if(CAR_PRICE_CACHE.data)return res.json({...CAR_PRICE_CACHE.data,cached:true,stale:true});
-    res.status(503).json({error:"car_prices_unavailable",message:"قیمت خودرو از منبع آنلاین دریافت نشد؛ داده ساختگی نمایش داده نمی‌شود."});
+    return res.status(503).json({error:"car_prices_unavailable",message:"قیمت خودرو از منبع آنلاین دریافت نشد؛ داده ساختگی نمایش داده نمی‌شود."});
   }
 });
+
 function requestTranslation(url){
   return new Promise((resolve,reject)=>{
     const req=https.get(url,{headers:{"Accept":"application/json","User-Agent":"AmnaYar/1.0"}},r=>{
