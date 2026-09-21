@@ -385,6 +385,8 @@ function parseCarIrPriceRows(html){
 }
 async function fetchCarPrices(){
   const sources=[
+    {url:"https://car.ir/prices",kind:"html"},
+    {url:"https://r.jina.ai/https://car.ir/prices",kind:"reader"},
     {url:"https://car.ir/prices2",kind:"html"},
     {url:"https://r.jina.ai/https://car.ir/prices2",kind:"reader"}
   ];
@@ -402,7 +404,7 @@ async function fetchCarPrices(){
         rows=parseCarIrMarkdownRows(body);
       }
       if(!rows.length)throw new Error("car_prices_empty");
-      return {source:"Car.ir",sourceUrl:"https://car.ir/prices2",fetchedAt:new Date().toISOString(),items:rows.slice(0,180)};
+      return {fetchedAt:new Date().toISOString(),items:rows.slice(0,180)};
     }catch(e){
       lastError=e;
       console.error("car_prices_source_failed",source.url,String(e?.message||e));
