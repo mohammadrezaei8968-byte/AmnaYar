@@ -3,6 +3,10 @@
 .domestic-catalog-title{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px}.domestic-catalog-title b{color:#173a62;font-size:15px}.domestic-catalog-title span{font-size:11px;color:#7a899a}
 .domestic-catalog-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.domestic-catalog details{border:1px solid #dbe5ef;border-radius:12px;background:#fff;overflow:hidden}.domestic-catalog summary{cursor:pointer;list-style:none;padding:12px 13px;font-weight:800;color:#244c76;display:flex;justify-content:space-between;align-items:center}.domestic-catalog summary::-webkit-details-marker{display:none}.domestic-catalog summary span{font-size:14px;color:#7890a8}.domestic-models{padding:0 13px 13px;color:#5d6f82;font-size:12px;line-height:2;border-top:1px solid #edf1f5;padding-top:9px}
 @media(max-width:650px){.domestic-catalog-grid{grid-template-columns:1fr}.domestic-catalog-title{display:block}.domestic-catalog-title span{display:block;margin-top:4px}}
+</style><style id="car-speed-style">
+.car-hero-image{margin:14px 0 18px;border-radius:18px;overflow:hidden;height:190px;box-shadow:0 14px 34px rgba(20,55,90,.12);background:#e9eef4}.car-hero-image img{width:100%;height:100%;object-fit:cover;display:block}
+.car-price-status{min-height:28px}.car-price-table-wrap{content-visibility:auto}
+@media(max-width:650px){.car-hero-image{height:145px}}
 </style></head><body>
 <header class="nav"><a class="brand" href="/"><img src="/assets/logo-amnayar.png" alt="امنا یار"><span>امنا یار<small>استعلام واقعی • سامانه رسمی • ابزار رایگان</small></span></a><div class="site-search" role="search"><span class="site-search-icon">⌕</span><input id="siteSearch" type="search" autocomplete="off" placeholder="جستجو در امنا یار..." aria-label="جستجو در امنا یار"><div id="searchResults" class="search-results hidden" role="listbox"></div></div><nav class="main-nav"><a href="#popular"><span class="nav-ico">★</span><span>محبوب‌ترین‌ها</span></a><a href="#tools"><span class="nav-ico">▦</span><span>ابزارها</span></a><a href="#markets"><span class="nav-ico">↗</span><span>بازار</span></a><a href="#official"><span class="nav-ico">▤</span><span>سامانه‌های رسمی</span></a><a href="#why"><span class="nav-ico">?</span><span>چرا امنا یار؟</span></a></nav><div class="nav-actions" id="navActions"><button class="btn ghost" onclick="openAuth('login')">ورود</button><button class="btn primary" onclick="openAuth('register')">ثبت‌نام رایگان</button></div></header>
 <section class="top-market-bar" aria-label="قیمت آنلاین طلا و ارز">
@@ -27,15 +31,14 @@
 </div></section>
 
 <section id="car-prices" class="section car-prices-section" aria-label="قیمت روز خودرو">
-<div class="heading"><span>قیمت آنلاین خودرو</span><h2>قیمت روز خودروهای ایرانی</h2><p>قیمت کارخانه، بازار، تفاوت قیمت و تغییرات روزانه را یکجا ببینید.</p></div>
+<div class="heading"><span>قیمت آنلاین خودرو</span><h2>قیمت روز خودروها</h2><div class="car-hero-image" aria-hidden="true"><img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1400&q=82" alt="" loading="lazy" decoding="async"></div><p>قیمت کارخانه، بازار، تفاوت قیمت و تغییرات روزانه را یکجا ببینید.</p></div>
 <details class="car-prices-accordion"><summary><span class="car-price-summary-icon">🚗</span><span><b>مشاهده قیمت روز خودرو</b><small>کارخانه • بازار • تفاوت • افزایش/کاهش روزانه</small></span><i>⌄</i></summary>
 <div class="car-prices-body"><div class="car-price-tools"><div class="car-price-filters"><select id="carBrandFilter"><option value="">همه برندهای داخلی</option></select><input id="carNameFilter" type="search" placeholder="جستجوی خودرو..." aria-label="جستجوی خودرو"></div><div class="car-price-actions"><button class="btn primary" id="carPriceRefresh" type="button">↻ بروزرسانی آنلاین</button><span class="car-price-source">بروزرسانی آنلاین قیمت خودرو</span></div></div>
 <div id="carPriceStatus" class="car-price-status">در حال دریافت قیمت‌های آنلاین...</div>
 <div class="car-price-table-wrap"><table class="car-price-table"><thead><tr><th>خودرو</th><th>قیمت کارخانه</th><th>قیمت بازار</th><th>تفاوت بازار و کارخانه</th><th>تغییر روزانه بازار</th></tr></thead><tbody id="carPriceBody"><tr><td colspan="5">در حال دریافت اطلاعات...</td></tr></tbody></table></div>
 <div class="car-price-note">قیمت‌ها به‌صورت آنلاین از سرویس قیمت خودرو دریافت می‌شوند. اطلاعات مرجع در رابط کاربری نمایش داده نمی‌شود.</div>
 <div class="domestic-catalog" aria-label="فهرست محصولات خودروهای داخلی">
-  <div class="domestic-catalog-title"><b>فهرست محصولات داخلی</b><span>برای مشاهده مدل‌ها، برند موردنظر را باز کنید.</span></div>
-  <div class="domestic-catalog-grid">
+  <div class="domestic-catalog-title"><b>برندها و محصولات خودرو</b><span>برای مشاهده مدل‌ها، برند موردنظر را باز کنید.</span></div><div class="domestic-catalog-grid">
     <details><summary>🚗 ایران‌خودرو <span>▾</span></summary><div class="domestic-models">تارا • دنا پلاس • دنا • سورن پلاس • پژو ۲۰۷ • پژو ۲۰۷ صندوقدار • رانا پلاس • ری‌را • آریسان ۲ • هایما S5 • هایما S7 • هایما 8S</div></details>
     <details><summary>🚙 سایپا <span>▾</span></summary><div class="domestic-models">شاهین • شاهین پلاس • اطلس • سهند • ساینا S • ساینا GX • کوییک S • کوییک GX • کوییک GXR • چانگان CS35 Plus • چانگان CS55 Plus</div></details>
     <details><summary>🚘 بهمن موتور <span>▾</span></summary><div class="domestic-models">رسپکت ۲ • فیدلیتی الیت ۵ نفره • فیدلیتی الیت ۷ نفره • فیدلیتی پرستیژ • دیگنیتی پرایم • دیگنیتی پرستیژ • ریسپکت • کاپرا B • اینرودز • شوال</div></details>
