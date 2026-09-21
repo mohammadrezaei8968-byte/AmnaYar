@@ -24,7 +24,7 @@
 </main></div>
 <div id="userModal" class="owner-modal" onclick="if(event.target===this)closeUserModal()"><div class="owner-modal-card"><div class="card-head"><div><h2 id="userModalTitle">جزئیات کاربر</h2><span id="userModalSub">—</span></div><button class="btn soft" onclick="closeUserModal()">بستن</button></div><div id="userModalBody" class="muted">در حال دریافت...</div></div></div><script>
 const $=id=>document.getElementById(id);
-const API_BASE=(window.AMNA_API_BASE||"https://api.amnayar.ir").replace(/\/$/,"");
+const API_BASE=(window.AMNA_API_BASE||"").replace(/\/$/,"");
 const OWNER_TOKEN_KEY="amnayar_owner_token";
 function ownerToken(){return localStorage.getItem(OWNER_TOKEN_KEY)||""}
 const API_BASES=["","https://amnayar-api.onrender.com","https://api.amnayar.ir"];
@@ -84,5 +84,6 @@ async function toggleNotice(id,is_active){const r=await api('/api/owner/notices/
 async function deleteNotice(id){if(!confirm('این اطلاعیه حذف شود؟'))return;const r=await api('/api/owner/notices/'+id,{method:'DELETE'});if(r.error){notice(r.error,true);return}loadNotices()}
 async function loadAdmins(){const r=await api('/api/owner/admins');$('adminRows').innerHTML=(r.admins||[]).map(u=>`<tr><td><b>${esc(u.username)}</b><div class="owner-mini">#${u.id}</div></td><td>${esc(u.email)}</td><td><span class="owner-badge ${u.role==='owner'?'owner':''}">${roleLabel(u.role)}</span></td><td><span class="owner-badge ${u.is_active?'ok':'off'}">${u.is_active?'فعال':'غیرفعال'}</span></td><td><button class="btn soft" onclick="showTab('users')">مدیریت کاربر</button></td></tr>`).join('')||'<tr><td colspan="5">مدیری ثبت نشده است.</td></tr>'}
 function logout(){localStorage.removeItem(OWNER_TOKEN_KEY);location.href="/owner"}
-(async()=>{const me=await api('/api/me');if(me.error||me.user?.role!=='owner'){location.href='/';return}loadStats();loadSystem();loadAnalytics();refreshOwnerDashboard()})();
+// ورود و احراز هویت پنل مالک فقط از مسیر /api/owner/* انجام می‌شود؛
+// بررسی قدیمی /api/me حذف شد تا پنل مالک بعد از ورود به صفحه اصلی نپرد.
 </script></body></html>
