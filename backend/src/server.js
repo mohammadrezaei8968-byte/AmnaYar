@@ -243,30 +243,34 @@ app.get("/api/market",async(req,res)=>{
 const CAR_PRICE_CACHE={data:null,at:0};
 const CAR_PRICE_TTL_MS=5*60*1000;
 const CAR_PRICE_HEADERS={
-  "User-Agent":"Mozilla/5.0 (compatible; AmnaYar/1.0; +https://amnayar.ir)",
+  "User-Agent":"Mozilla/5.0 (compatible; AmnaYar/1.1; +https://amnayar.ir)",
   "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
   "Accept-Language":"fa-IR,fa;q=0.9,en;q=0.6"
 };
 const CAR_DOMESTIC_BRANDS=new Set([
-  "آریسان","اطلس","پارس نوآ","پراید","پژو","تارا","دنا","رانا","ری را","ساینا","شاهین","سهند","کوییک",
-  "سمند","وانت","ایران خودرو","ایران‌خودرو","سایپا","زامیاد","هایما","چانگان","جک","کی ام سی","فونیکس",
-  "ام وی ام","فردا","لاماری","فیدلیتی","دیگنیتی","ریسپکت","کاپرا","اطلس","دنا","سورن","پارس","تیبا",
-  "شاهین","کوییک","سهند","ساینا","سورن","رنو","کرمان موتور","مدیران خودرو","گروه بهمن","بهمن خودرو"
+  "آریسان","اطلس","پارس نوآ","پراید","پژو","تارا","دنا","رانا","ری را","ریسپکت","ساینا","شاهین","سهند","کوییک",
+  "سمند","وانت","سورن","پارس","تیبا","زامیاد","ایران خودرو","ایران‌خودرو","سایپا","چانگان","جک","کی ام سی",
+  "هایما","فونیکس","ام وی ام","فردا","لاماری","فیدلیتی","دیگنیتی","کاپرا","رنو","کرمان موتور","مدیران خودرو",
+  "گروه بهمن","بهمن خودرو","مکث","آریا","مینی","مزدا"
 ]);
 function carText(v){
   return String(v||"")
     .replace(/<[^>]*>/g," ")
     .replace(/&nbsp;/gi," ")
     .replace(/&amp;/gi,"&")
-    .replace(/&#(d+);/g,(_,n)=>String.fromCharCode(Number(n)))
+    .replace(/&#(\d+);/g,(_,n)=>String.fromCharCode(Number(n)))
     .replace(/&#x([0-9a-f]+);/gi,(_,n)=>String.fromCharCode(parseInt(n,16)))
-    .replace(/[\u200c\u200f]/g," ")
+    .replace(/[\u200b\u200c\u200d\u200f\ufeff]/g," ")
     .replace(/\s+/g," ").trim();
+}
+function carNorm(v){
+  return carText(v).replace(/ي/g,"ی").replace(/ك/g,"ک").replace(/ة/g,"ه").replace(/[\u200c\u200f]/g," ").replace(/\s+/g," ").trim();
 }
 function carDigits(v){
   return carText(v)
     .replace(/[۰-۹]/g,c=>String("۰۱۲۳۴۵۶۷۸۹".indexOf(c)))
-    .replace(/[٠-٩]/g,c=>String("٠١٢٣٤٥٦٧٨٩".indexOf(c)));
+    .replace(/[٠-٩]/g,c=>String("٠١٢٣٤٥٦٧٨٩".indexOf(c)))
+    .replace(/٪/g,"%");
 }
 function carMoney(v){
   const s=carDigits(v).replace(/[,٬،]/g,"");
@@ -283,8 +287,14 @@ function carPercent(v){
   return m?Number(m[1]):null;
 }
 function carDailyDelta(price,pct){
-  if(price==null||pct==null||pct===0)return 0;
+  if(price==null||pct==null)return null;
+  if(pct===0)return 0;
   return Math.round(price-(price/(1+pct/100)));
+}
+function isDomesticCarBrand(brand){
+  const b=carNorm(brand).replace(/^قیمت\s*/,"").trim();
+  if(CAR_DOMESTIC_BRANDS.has(b))return true;
+  return [...CAR_DOMESTIC_BRANDS].some(x=>b.startsWith(carNorm(x)+" "));
 }
 function parse1CarPriceRows(html){
   const out=[];
@@ -292,13 +302,13 @@ function parse1CarPriceRows(html){
   let bm;
   while((bm=blockRe.exec(html))){
     const rawBrand=carText(bm[1]).replace(/^قیمت\s*/,"").trim();
-    if(!CAR_DOMESTIC_BRANDS.has(rawBrand))continue;
+    if(!isDomesticCarBrand(rawBrand))continue;
     const rows=bm[2].match(/<tr[^>]*>[\s\S]*?<\/tr>/gi)||[];
     for(const row of rows){
       const cells=[...row.matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi)].map(m=>carText(m[1]));
-      if(cells.length<4||/نام خودرو/i.test(cells[0]))continue;
-      const name=cells[0];
-      const year=cells[1];
+      if(cells.length<4||/نام خودرو/.test(carNorm(cells[0])))continue;
+      const name=carText(cells[0]);
+      const year=carText(cells[1]);
       const market=carMoney(cells[2]);
       const factory=carMoney(cells[3]);
       const pct=carPercent(cells[5]||"");
