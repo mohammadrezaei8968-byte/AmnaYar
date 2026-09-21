@@ -31,43 +31,50 @@
 </div></section>
 
 <section id="car-prices" class="section car-prices-section" aria-label="قیمت روز خودرو">
-  <div class="car-dashboard">
-    <div class="car-dashboard-heading">
-      <span>قیمت آنلاین خودرو</span>
-      <h2>🚗 قیمت روز خودروها</h2>
-      <p>قیمت کارخانه، بازار، اختلاف قیمت و تغییر روزانه را یکجا و ساده ببینید.</p>
-    </div>
-    <div class="car-dashboard-banner"><img src="/assets/car-banner.svg" alt="تصویر خودروها" loading="lazy" decoding="async"></div>
-    <div class="car-price-tools car-price-tools-modern">
-      <div class="car-price-filters">
-        <select id="carBrandFilter" aria-label="انتخاب برند"><option value="">همه برندها</option></select>
-        <input id="carNameFilter" type="search" placeholder="جستجوی خودرو..." aria-label="جستجوی خودرو">
+  <div class="car-market-shell">
+    <div class="car-market-hero">
+      <div class="car-market-hero-copy">
+        <span class="car-market-kicker">بازار خودرو</span>
+        <h2>قیمت روز خودروها</h2>
+        <p>قیمت کارخانه، بازار، اختلاف و تغییرات روزانه؛ در یک نمای ساده و حرفه‌ای.</p>
       </div>
-      <button class="btn primary" id="carPriceRefresh" type="button">↻ بروزرسانی آنلاین</button>
+      <div class="car-market-hero-image"><img src="/assets/car-banner.svg" alt="خودرو" loading="lazy" decoding="async"></div>
     </div>
+
+    <div class="car-market-toolbar">
+      <div class="car-price-filters">
+        <label><span>برند</span><select id="carBrandFilter" aria-label="انتخاب برند"><option value="">همه برندها</option></select></label>
+        <label class="car-search-field"><span>جستجو</span><input id="carNameFilter" type="search" placeholder="نام خودرو..." aria-label="جستجوی خودرو"></label>
+      </div>
+      <button class="btn primary" id="carPriceRefresh" type="button">بروزرسانی قیمت‌ها</button>
+    </div>
+
     <div id="carPriceStatus" class="car-price-status">در حال دریافت قیمت‌های آنلاین...</div>
-    <div class="car-price-table-wrap car-price-table-modern">
+
+    <div class="car-market-table">
       <table class="car-price-table">
-        <thead><tr><th>مدل خودرو</th><th>قیمت کارخانه</th><th>قیمت بازار</th><th>اختلاف</th><th>تغییر روزانه</th></tr></thead>
+        <thead><tr><th>خودرو</th><th>کارخانه</th><th>بازار</th><th>اختلاف</th><th>تغییر روزانه</th></tr></thead>
         <tbody id="carPriceBody"><tr><td colspan="5">در حال دریافت اطلاعات...</td></tr></tbody>
       </table>
     </div>
-    <div class="car-price-note">اطلاعات قیمت به‌صورت آنلاین دریافت می‌شود و زمان آخرین بروزرسانی در همین بخش نمایش داده می‌شود.</div>
-    <div class="domestic-catalog domestic-catalog-modern" aria-label="برندها و محصولات خودرو">
-      <div class="domestic-catalog-title"><b>برندها و محصولات خودرو</b><span>هر ردیف را باز کنید تا محصولات آن برند نمایش داده شود.</span></div>
-      <div class="domestic-catalog-grid">
-        <details open><summary><span>ایران‌خودرو</span><b>⌃</b></summary><div class="domestic-models">پژو ۲۰۷ • پژو ۲۰۷ اتوماتیک • دنا پلاس • تارا • سورن پلاس • رانا پلاس • ری‌را • آریسان ۲ • هایما S5 • هایما S7 • هایما 8S</div></details>
-        <details><summary><span>سایپا</span><b>⌄</b></summary><div class="domestic-models">شاهین • شاهین پلاس • اطلس • سهند • ساینا S • ساینا GX • کوییک S • کوییک GX • کوییک GXR • سایپا ۱۵۱</div></details>
-        <details><summary><span>بهمن موتور</span><b>⌄</b></summary><div class="domestic-models">رسپکت ۲ • فیدلیتی • فیدلیتی پرستیژ • دیگنیتی پرایم • دیگنیتی پرستیژ • کاپرا • اینرودز • شوال</div></details>
-        <details><summary><span>کرمان موتور</span><b>⌄</b></summary><div class="domestic-models">KMC J4 • KMC J7 • KMC X5 • KMC A5 • KMC T8 • KMC T9 • KMC SR3 • KMC SR6 • ایگل</div></details>
-        <details><summary><span>مدیران خودرو</span><b>⌄</b></summary><div class="domestic-models">MVM X22 Pro • MVM X33 Cross • MVM X55 Pro • Arrizo 5 • Arrizo 6 Pro • Arrizo 6 GT • Arrizo 8 • Tiggo 7 Pro • Tiggo 7 Pro Max • Tiggo 8 Pro Max • فونیکس FX</div></details>
-        <details><summary><span>فردا موتورز</span><b>⌄</b></summary><div class="domestic-models">FMC 511 • FMC SX5 • FMC T5 • FMC M4 • سوبا M4</div></details>
-        <details><summary><span>لاماری</span><b>⌄</b></summary><div class="domestic-models">لاماری ایما • لاماری ایما هیبرید • لاماری اکو • لاماری نئو</div></details>
-        <details><summary><span>زامیاد</span><b>⌄</b></summary><div class="domestic-models">نیسان تک‌سوز • نیسان دوگانه‌سوز • پادرا پلاس • کارون • زامیاد اکستند • Z24</div></details>
-        <details><summary><span>ایران‌خودرو دیزل</span><b>⌄</b></summary><div class="domestic-models">کامیونت • کامیون • کشنده • اتوبوس و محصولات تجاری</div></details>
-        <details><summary><span>سایپا دیزل</span><b>⌄</b></summary><div class="domestic-models">کامیونت • کامیون • کشنده و محصولات تجاری</div></details>
+
+    <div class="car-market-footnote">آخرین زمان بروزرسانی پس از دریافت اطلاعات نمایش داده می‌شود.</div>
+
+    <details class="car-catalog">
+      <summary><span>فهرست برندها و مدل‌های داخلی</span><b>مشاهده فهرست</b><i>⌄</i></summary>
+      <div class="car-catalog-grid">
+        <div><strong>ایران‌خودرو</strong><p>پژو ۲۰۷، پژو ۲۰۷ اتوماتیک، دنا پلاس، تارا، سورن پلاس، رانا پلاس، ری‌را، آریسان ۲، هایما S5، هایما S7، هایما 8S</p></div>
+        <div><strong>سایپا</strong><p>شاهین، شاهین پلاس، اطلس، سهند، ساینا S، ساینا GX، کوییک S، کوییک GX، کوییک GXR، سایپا ۱۵۱</p></div>
+        <div><strong>بهمن موتور</strong><p>رسپکت ۲، فیدلیتی، فیدلیتی پرستیژ، دیگنیتی پرایم، دیگنیتی پرستیژ، کاپرا، اینرودز، شوال</p></div>
+        <div><strong>کرمان موتور</strong><p>KMC J4، KMC J7، KMC X5، KMC A5، KMC T8، KMC T9، KMC SR3، KMC SR6، ایگل</p></div>
+        <div><strong>مدیران خودرو</strong><p>MVM X22 Pro، MVM X33 Cross، MVM X55 Pro، Arrizo 5، Arrizo 6 Pro، Arrizo 6 GT، Arrizo 8، Tiggo 7 Pro، Tiggo 7 Pro Max، Tiggo 8 Pro Max، فونیکس FX</p></div>
+        <div><strong>فردا موتورز</strong><p>FMC 511، FMC SX5، FMC T5، FMC M4، سوبا M4</p></div>
+        <div><strong>لاماری</strong><p>لاماری ایما، لاماری ایما هیبرید، لاماری اکو، لاماری نئو</p></div>
+        <div><strong>زامیاد</strong><p>نیسان تک‌سوز، نیسان دوگانه‌سوز، پادرا پلاس، کارون، زامیاد اکستند، Z24</p></div>
+        <div><strong>ایران‌خودرو دیزل</strong><p>کامیونت، کامیون، کشنده، اتوبوس و محصولات تجاری</p></div>
+        <div><strong>سایپا دیزل</strong><p>کامیونت، کامیون، کشنده و محصولات تجاری</p></div>
       </div>
-    </div>
+    </details>
   </div>
 </section>
 <section id="quick-check" class="section checker-home-section">
