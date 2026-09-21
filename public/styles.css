@@ -627,3 +627,65 @@ body:has(.tool-panel) main.section:before{opacity:.35!important}
 .car-price-table-modern .car-price-table th{background:#edf5fd;color:#163f67;padding:12px 10px}.car-price-table-modern .car-price-table td{padding:11px 10px}.car-price-table-modern .car-price-table tbody tr:hover td{background:#f8fbff}
 .domestic-catalog-modern{margin-top:14px!important;padding:0!important;border:0!important;background:transparent!important}.domestic-catalog-modern .domestic-catalog-title{padding:5px 4px 10px}.domestic-catalog-modern .domestic-catalog-grid{display:grid;grid-template-columns:1fr;gap:7px}.domestic-catalog-modern details{border:1px solid #d7e5f2!important;border-radius:12px!important;background:linear-gradient(180deg,#f9fcff,#f1f7fc)!important;box-shadow:none!important}.domestic-catalog-modern summary{padding:11px 14px!important;color:#164673!important}.domestic-catalog-modern summary span{font-size:13px}.domestic-catalog-modern summary b{font-size:18px;color:#2468a2}.domestic-catalog-modern details[open] summary{background:#eaf4fd}.domestic-catalog-modern .domestic-models{background:#fff;padding:10px 14px 13px!important;color:#526a80;font-size:11px;line-height:2;border-top:1px solid #e0ebf4}
 @media(max-width:700px){.car-dashboard{padding:14px;border-radius:18px}.car-dashboard-heading h2{font-size:22px}.car-dashboard-banner{height:145px;border-radius:14px}.car-price-tools-modern{gap:8px!important}.car-price-tools-modern .car-price-filters{width:100%}.car-price-tools-modern .btn{width:100%;justify-content:center}.car-price-table-modern{max-height:440px!important}}
+
+/* v5.1 — executive automotive market redesign */
+.car-prices-section{padding:48px 0 58px!important}
+.car-market-shell{max-width:1220px;margin:0 auto;background:#fff;border:1px solid #d9e1ea;border-radius:24px;overflow:hidden;box-shadow:0 20px 55px rgba(10,31,55,.09)}
+.car-market-hero{display:grid;grid-template-columns:1.1fr .9fr;min-height:220px;background:#0b2445;position:relative;overflow:hidden}
+.car-market-hero:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,29,55,.98) 0%,rgba(8,29,55,.88) 48%,rgba(8,29,55,.16) 100%);pointer-events:none}
+.car-market-hero-copy{position:relative;z-index:2;display:flex;flex-direction:column;justify-content:center;padding:38px 46px;color:#fff}
+.car-market-kicker{font-size:10px;font-weight:800;letter-spacing:.4px;color:#b9cce0;margin-bottom:8px}
+.car-market-hero h2{margin:0 0 10px;font-size:34px;line-height:1.35;font-weight:900;color:#fff}
+.car-market-hero p{margin:0;max-width:580px;font-size:12px;line-height:2;color:#c8d5e3}
+.car-market-hero-image{position:absolute;inset:0 0 0 auto;width:58%;overflow:hidden}
+.car-market-hero-image img{width:100%;height:100%;display:block;object-fit:cover;opacity:.72}
+.car-market-toolbar{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;padding:22px 26px 14px;background:#fff}
+.car-price-filters{display:flex!important;flex:1;gap:12px!important;align-items:flex-end!important}
+.car-price-filters label{display:flex;flex-direction:column;gap:6px;min-width:180px}
+.car-price-filters label>span{font-size:9px;font-weight:800;color:#718096}
+.car-price-filters select,.car-price-filters input{width:100%;height:40px!important;box-sizing:border-box;border:1px solid #d5dee8!important;border-radius:10px!important;background:#f9fbfd!important;color:#183653!important;padding:0 12px!important;font-size:11px!important;outline:none}
+.car-price-filters select:focus,.car-price-filters input:focus{border-color:#6e91b4!important;box-shadow:0 0 0 3px rgba(23,79,143,.08)}
+.car-price-filters .car-search-field{flex:1;max-width:300px}
+.car-market-toolbar>.btn{height:40px!important;padding:0 18px!important;border-radius:10px!important;font-size:11px!important;background:#123d68!important;box-shadow:none!important}
+.car-market-toolbar>.btn:hover{background:#0b2e52!important}
+.car-market-shell .car-price-status{margin:0 26px 12px!important;padding:9px 12px!important;border:0!important;border-right:3px solid #174f8f!important;border-radius:0!important;background:#f5f8fb!important;color:#536b82!important;font-size:10px!important}
+.car-market-table{margin:0 26px;border:1px solid #dce4ec;border-radius:13px;overflow:auto;max-height:510px;background:#fff}
+.car-market-table .car-price-table{min-width:820px!important;font-size:10px!important}
+.car-market-table .car-price-table th{background:#f2f5f8!important;color:#274660!important;border-bottom:1px solid #d9e2eb!important;padding:13px 12px!important;font-size:10px!important;font-weight:900!important}
+.car-market-table .car-price-table td{padding:12px!important;border-bottom:1px solid #edf1f4!important;color:#40566b!important}
+.car-market-table .car-price-table tbody tr:hover td{background:#fafcfd!important}
+.car-market-footnote{padding:9px 26px 15px;color:#8290a0;font-size:9px}
+.car-catalog{margin:0 26px 24px;border-top:1px solid #e7edf2}
+.car-catalog summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px;padding:15px 2px;color:#183b5d}
+.car-catalog summary::-webkit-details-marker{display:none}
+.car-catalog summary span{font-size:12px;font-weight:900;flex:1}
+.car-catalog summary b{font-size:9px;font-weight:700;color:#718096}
+.car-catalog summary i{font-style:normal;font-size:18px;color:#174f8f;transition:.2s}
+.car-catalog[open] summary i{transform:rotate(180deg)}
+.car-catalog-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:2px 0 4px}
+.car-catalog-grid>div{padding:12px 14px;border:1px solid #e3e9ef;border-radius:10px;background:#fafcfd}
+.car-catalog-grid strong{display:block;font-size:11px;color:#214967;margin-bottom:5px}
+.car-catalog-grid p{margin:0;font-size:9px;line-height:2;color:#718096}
+@media(max-width:760px){
+ .car-prices-section{padding:34px 0 42px!important}
+ .car-market-shell{border-radius:18px}
+ .car-market-hero{display:block;min-height:235px}
+ .car-market-hero-image{width:100%;height:100%}
+ .car-market-hero-copy{min-height:235px;padding:28px 24px;justify-content:flex-end}
+ .car-market-hero:after{background:linear-gradient(180deg,rgba(8,29,55,.15),rgba(8,29,55,.96) 82%)}
+ .car-market-hero h2{font-size:27px}
+ .car-market-toolbar{display:block;padding:16px}
+ .car-price-filters{display:grid!important;grid-template-columns:1fr 1fr;gap:8px!important}
+ .car-price-filters label{min-width:0}
+ .car-price-filters .car-search-field{max-width:none}
+ .car-market-toolbar>.btn{width:100%;margin-top:9px}
+ .car-market-shell .car-price-status{margin:0 16px 10px!important}
+ .car-market-table{margin:0 16px}
+ .car-market-footnote{padding:8px 16px 12px}
+ .car-catalog{margin:0 16px 18px}
+ .car-catalog-grid{grid-template-columns:1fr}
+}
+@media(max-width:430px){
+ .car-price-filters{grid-template-columns:1fr}
+ .car-market-hero h2{font-size:25px}
+}
