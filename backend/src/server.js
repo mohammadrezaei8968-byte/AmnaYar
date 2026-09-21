@@ -298,6 +298,33 @@ function isDomesticCarBrand(brand){
   const b=carNorm(brand).replace(/^قیمت\s*/,"").trim();
   return [...CAR_DOMESTIC_BRANDS].some(x=>b===carNorm(x)||b.startsWith(carNorm(x)+" "));
 }
+function parseCarIrMarkdownRows(text){
+  const out=[];
+  const lines=String(text||"").split(/\r?\n/);
+  let brand="";
+  for(let i=0;i<lines.length;i++){
+    const line=lines[i].trim();
+    const hm=line.match(/^#{2,4}\s+(.+?)\s*$/);
+    if(hm){
+      const h=carText(hm[1]).replace(/^قیمت(?: محصولات)?\s*/,"").trim();
+      if(isDomesticCarBrand(h))brand=h;
+      continue;
+    }
+    if(!brand||!line.includes("|"))continue;
+    const cells=line.split("|").map(x=>carText(x)).filter(Boolean);
+    if(cells.length<3||/نام خودرو|---|:--/.test(cells[0]))continue;
+    const factory=carMoney(cells[1]),market=carMoney(cells[2]),pct=carPercent(cells[2]);
+    if(market.value==null&&factory.value==null)continue;
+    out.push({
+      brand,name:cells[0],factory:factory.value,market:market.value,
+      factory_min:factory.min,factory_max:factory.max,market_min:market.min,market_max:market.max,
+      diff:(factory.value!=null&&market.value!=null)?market.value-factory.value:null,
+      market_change:market.value!=null?carDailyDelta(market.value,pct):null,
+      market_change_pct:pct,source:"Car.ir"
+    });
+  }
+  return out;
+}
 function parseCarIrPriceRows(html){
   const out=[];
   // Car.ir currently renders brand sections followed by a table:
@@ -357,12 +384,31 @@ function parseCarIrPriceRows(html){
   return out;
 }
 async function fetchCarPrices(){
-  const r=await fetch("https://car.ir/prices2",{headers:CAR_PRICE_HEADERS,signal:AbortSignal.timeout(20000)});
-  if(!r.ok)throw new Error("car_prices_"+r.status);
-  const html=await r.text();
-  const rows=parseCarIrPriceRows(html);
-  if(!rows.length)throw new Error("car_prices_empty");
-  return {source:"Car.ir",sourceUrl:"https://car.ir/prices",fetchedAt:new Date().toISOString(),items:rows.slice(0,180)};
+  const sources=[
+    {url:"https://car.ir/prices2",kind:"html"},
+    {url:"https://r.jina.ai/https://car.ir/prices2",kind:"reader"}
+  ];
+  let lastError=null;
+  for(const source of sources){
+    try{
+      const headers=source.kind==="reader"
+        ? {"Accept":"text/plain","User-Agent":"Mozilla/5.0 (compatible; AmnaYar/1.2)"}
+        : CAR_PRICE_HEADERS;
+      const r=await fetch(source.url,{headers,signal:AbortSignal.timeout(25000)});
+      if(!r.ok)throw new Error("car_prices_"+r.status);
+      const body=await r.text();
+      let rows=parseCarIrPriceRows(body);
+      if(!rows.length && source.kind==="reader"){
+        rows=parseCarIrMarkdownRows(body);
+      }
+      if(!rows.length)throw new Error("car_prices_empty");
+      return {source:"Car.ir",sourceUrl:"https://car.ir/prices2",fetchedAt:new Date().toISOString(),items:rows.slice(0,180)};
+    }catch(e){
+      lastError=e;
+      console.error("car_prices_source_failed",source.url,String(e?.message||e));
+    }
+  }
+  throw lastError||new Error("car_prices_unavailable");
 }
 app.get("/api/car-prices",async(req,res)=>{
   try{
