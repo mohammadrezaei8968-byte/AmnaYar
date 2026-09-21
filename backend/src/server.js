@@ -31,6 +31,7 @@ app.use(cors({
   exposedHeaders: ["X-Request-ID"]
 }));
 app.use(express.json({limit:"2mb"}));
+app.use(express.urlencoded({extended:false,limit:"50kb"}));
 app.use((req,res,next)=>{ req.requestId=crypto.randomUUID(); res.setHeader("X-Request-ID",req.requestId); next(); });
 app.use("/api/", rateLimit({windowMs:60*1000,max:120,standardHeaders:true,legacyHeaders:false}));
 app.use("/api/auth/", rateLimit({windowMs:15*60*1000,max:30,standardHeaders:true,legacyHeaders:false}));
@@ -635,11 +636,17 @@ function ownerAuth(req,res,next){
 }
 
 app.post("/api/owner/login", rateLimit({windowMs:15*60*1000,max:10,standardHeaders:true,legacyHeaders:false}),(req,res)=>{
+  const isForm=req.is("application/x-www-form-urlencoded");
   const identifier=String(req.body.email||req.body.identifier||req.body.username||"").trim().toLowerCase();
   const password=String(req.body.password||"");
-  if(!OWNER_EMAIL || !OWNER_PASSWORD) return res.status(503).json({error:"owner_credentials_not_configured",message:"مشخصات مالک در Environment Variables تنظیم نشده است."});
-  if(identifier!==OWNER_EMAIL || password!==OWNER_PASSWORD) return res.status(401).json({error:"owner_login_invalid",message:"ایمیل یا رمز مالک نادرست است."});
+  const fail=(status,error,message)=>{
+    if(isForm) return res.redirect(303,"https://amnayar.ir/owner#owner_error="+encodeURIComponent(message));
+    return res.status(status).json({error,message});
+  };
+  if(!OWNER_EMAIL || !OWNER_PASSWORD) return fail(503,"owner_credentials_not_configured","مشخصات مالک در Environment Variables تنظیم نشده است.");
+  if(identifier!==OWNER_EMAIL || password!==OWNER_PASSWORD) return fail(401,"owner_login_invalid","ایمیل یا رمز مالک نادرست است.");
   const token=jwt.sign({admin:true,owner:true,username:OWNER_EMAIL},SECRET,{expiresIn:"8h"});
+  if(isForm) return res.redirect(303,"https://amnayar.ir/owner#owner_token="+encodeURIComponent(token));
   res.json({ok:true,token,user:{username:OWNER_EMAIL,email:OWNER_EMAIL,role:"owner"},role:"owner"});
 });
 
