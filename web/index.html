@@ -14,7 +14,59 @@
 .car-hero-image{margin:14px 0 18px;border-radius:18px;overflow:hidden;height:190px;box-shadow:0 14px 34px rgba(20,55,90,.12);background:#e9eef4}.car-hero-image img{width:100%;height:100%;object-fit:cover;display:block}
 .car-price-status{min-height:28px}.car-price-table-wrap{content-visibility:auto}
 @media(max-width:650px){.car-hero-image{height:145px}}
-</style></head><body>
+</style><style id="car-reference-layout">/* 2026-09-21 — car market layout aligned to supplied reference */
+#car-prices.car-prices-section{padding:28px 0 44px!important}
+#car-prices .car-reference-shell{max-width:1468px;margin:0 auto;padding:0 0 18px;background:#fff;border:1px solid #d8e6f7;border-radius:18px;box-shadow:0 12px 34px rgba(25,76,128,.08);overflow:hidden}
+#car-prices .car-reference-hero{height:190px;margin:0 0 10px;border-radius:0 0 15px 15px;overflow:hidden;background:#0d4c8f;position:relative}
+#car-prices .car-reference-hero img{width:100%;height:100%;display:block;object-fit:cover}
+#car-prices .car-reference-toolbar{display:grid;grid-template-columns:1fr auto auto 1fr;gap:14px;align-items:center;padding:0 14px 10px}
+#car-prices .car-reference-toolbar .car-search-field{grid-column:1;grid-row:1}
+#car-prices .car-reference-toolbar .brand-filter{grid-column:2;grid-row:1}
+#car-prices .car-reference-toolbar .model-filter{grid-column:3;grid-row:1}
+#car-prices .car-reference-toolbar .refresh-box{grid-column:4;grid-row:1;justify-self:end}
+#car-prices .car-reference-toolbar select,#car-prices .car-reference-toolbar input{height:40px!important;box-sizing:border-box;border:1px solid #d5e4f6!important;border-radius:10px!important;background:#fff!important;color:#234d78!important;font-size:11px!important;outline:none;padding:0 12px!important;box-shadow:0 3px 10px rgba(31,92,151,.04)}
+#car-prices .car-reference-toolbar .car-search-field{display:flex;align-items:center;position:relative;min-width:300px}
+#car-prices .car-reference-toolbar .car-search-field input{width:100%;padding-right:38px!important}
+#car-prices .car-reference-toolbar .car-search-field:before{content:"⌕";position:absolute;right:12px;z-index:2;color:#6f8eaf;font-size:22px}
+#car-prices .car-reference-toolbar .brand-filter,#car-prices .car-reference-toolbar .model-filter{min-width:165px}
+#car-prices .car-reference-toolbar .refresh-box{display:flex;align-items:center;gap:9px;color:#245b91;font-size:10px;font-weight:800}
+#car-prices .car-reference-toolbar .refresh-box .btn{height:40px!important;border:1px solid #d5e4f6!important;background:#fff!important;color:#245b91!important;border-radius:10px!important;box-shadow:0 3px 10px rgba(31,92,151,.04)!important}
+#car-prices .car-reference-status{margin:0 14px 10px!important;padding:7px 10px!important;border:0!important;background:#f5f9fe!important;color:#7089a4!important;border-radius:8px!important;font-size:9px!important;text-align:right}
+#car-prices .car-reference-open{margin:0 14px;border:1px solid #d7e7f8;border-radius:12px;overflow:hidden;background:#fff}
+#car-prices .car-reference-brand-head{height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 15px;background:linear-gradient(180deg,#eaf5ff,#f4f9ff);color:#123e69;font-weight:900}
+#car-prices .car-reference-brand-head span{font-size:14px}
+#car-prices .car-reference-brand-head i{font-style:normal;font-size:22px;color:#1f5e9a}
+#car-prices .car-reference-table{padding:8px 8px 0;background:#fff}
+#car-prices .car-reference-table .car-price-table{width:100%;min-width:0!important;border-collapse:separate;border-spacing:0;font-size:10px!important}
+#car-prices .car-reference-table .car-price-table th{background:#eff6ff!important;color:#325b83!important;padding:11px 9px!important;border-bottom:1px solid #dce9f7!important}
+#car-prices .car-reference-table .car-price-table td{padding:10px 9px!important;border-bottom:1px solid #e8f0f8!important;color:#355d84!important}
+#car-prices .car-reference-table .car-price-table td:first-child b{color:#274f79!important;font-size:11px}
+#car-prices .car-reference-table .car-price-table td:first-child small{display:none!important}
+#car-prices .car-reference-table .car-price-table tbody tr:hover td{background:#fbfdff!important}
+#car-prices .car-reference-all{height:42px;display:flex;align-items:center;justify-content:center;background:#edf6ff;color:#1260ad;font-size:10px;font-weight:900}
+#car-prices .car-reference-brands{margin:8px 14px 0;border-top:0}
+#car-prices .car-reference-brands details{border:1px solid #d6e5f6;border-radius:10px;background:linear-gradient(180deg,#f5faff,#edf5fc);margin-bottom:6px;overflow:hidden}
+#car-prices .car-reference-brands summary{list-style:none;cursor:pointer;height:34px;padding:0 14px;display:flex;align-items:center;justify-content:space-between;color:#173f69;font-size:11px;font-weight:900}
+#car-prices .car-reference-brands summary::-webkit-details-marker{display:none}
+#car-prices .car-reference-brands summary:before{content:"⌄";font-size:18px;color:#1d5f9d}
+#car-prices .car-reference-brands details[open] summary:before{content:"⌃"}
+#car-prices .car-reference-brands .brand-models{padding:10px 14px 12px;background:#fff;border-top:1px solid #e2edf7;color:#627b95;font-size:10px;line-height:2}
+@media(max-width:900px){
+ #car-prices .car-reference-toolbar{grid-template-columns:1fr 1fr;gap:8px}
+ #car-prices .car-reference-toolbar .car-search-field{grid-column:1/3;grid-row:1;min-width:0}
+ #car-prices .car-reference-toolbar .brand-filter{grid-column:1;grid-row:2}
+ #car-prices .car-reference-toolbar .model-filter{grid-column:2;grid-row:2}
+ #car-prices .car-reference-toolbar .refresh-box{grid-column:1/3;grid-row:3;justify-self:stretch}
+ #car-prices .car-reference-toolbar .refresh-box .btn{flex:1}
+}
+@media(max-width:600px){
+ #car-prices .car-reference-shell{border-radius:14px}
+ #car-prices .car-reference-hero{height:145px}
+ #car-prices .car-reference-toolbar{padding:0 10px 8px}
+ #car-prices .car-reference-open,#car-prices .car-reference-brands{margin-left:10px;margin-right:10px}
+ #car-prices .car-reference-table{overflow:auto}
+ #car-prices .car-reference-table .car-price-table{min-width:700px!important}
+}</style></head><body>
 <header class="nav"><a class="brand" href="/"><img src="/assets/logo-amnayar.png" alt="امنا یار"><span>امنا یار<small>استعلام واقعی • سامانه رسمی • ابزار رایگان</small></span></a><div class="site-search" role="search"><span class="site-search-icon">⌕</span><input id="siteSearch" type="search" autocomplete="off" placeholder="جستجو در امنا یار..." aria-label="جستجو در امنا یار"><div id="searchResults" class="search-results hidden" role="listbox"></div></div><div class="header-date" aria-label="تاریخ امروز"><span class="header-date-icon">📅</span><div><small>امروز</small><strong id="todayPersian">در حال نمایش تاریخ...</strong><span id="todayGregorian"></span></div></div><nav class="main-nav"><a href="#popular"><span class="nav-ico">★</span><span>محبوب‌ترین‌ها</span></a><a href="#tools"><span class="nav-ico">▦</span><span>ابزارها</span></a><a href="/payroll.html"><span class="nav-ico">🧾</span><span>حقوق و دستمزد</span></a><a href="#official"><span class="nav-ico">▤</span><span>سامانه‌های رسمی</span></a><a href="#why"><span class="nav-ico">?</span><span>چرا امنا یار؟</span></a><a href="/advertising.html"><span class="nav-ico">📣</span><span>تبلیغات</span></a></nav><div class="nav-actions" id="navActions"><div class="site-language" title="زبان سایت"><span>🌐</span><select id="siteLanguage" aria-label="زبان سایت"><option value="fa">فارسی</option><option value="en">English</option><option value="zh-CN">中文</option><option value="hi">हिन्दी</option><option value="es">Español</option><option value="ar">العربية</option><option value="fr">Français</option><option value="bn">বাংলা</option><option value="pt">Português</option><option value="ru">Русский</option><option value="tr">Türkçe</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="de">Deutsch</option><option value="it">Italiano</option><option value="ur">اردو</option></select></div><button class="btn ghost" onclick="openAuth('login')">ورود</button><button class="btn primary" onclick="openAuth('register')">ثبت‌نام رایگان</button></div></header>
 
 <main>
@@ -41,50 +93,36 @@
 </section>
 
 <section id="car-prices" class="section car-prices-section" aria-label="قیمت روز خودرو">
-  <div class="car-market-shell">
-    <div class="car-market-hero">
-      <div class="car-market-hero-copy">
-        <span class="car-market-kicker">بازار خودرو</span>
-        <h2>قیمت روز خودروها</h2>
-        <p>قیمت کارخانه، بازار، اختلاف و تغییرات روزانه؛ در یک نمای ساده و حرفه‌ای.</p>
-      </div>
-      <div class="car-market-hero-image"><img src="/assets/car-banner.svg" alt="خودرو" loading="lazy" decoding="async"></div>
+  <div class="car-reference-shell">
+    <div class="car-reference-hero"><img src="/assets/car-banner.svg" alt="قیمت روز خودروها" loading="lazy" decoding="async"></div>
+    <div class="car-reference-toolbar">
+      <label class="car-search-field"><input id="carNameFilter" type="search" placeholder="جستجوی خودرو..." aria-label="جستجوی خودرو"></label>
+      <label class="brand-filter"><select id="carBrandFilter" aria-label="انتخاب برند"><option value="">همه برندها</option></select></label>
+      <label class="model-filter"><select id="carModelFilter" aria-label="انتخاب مدل"><option value="">همه مدل‌ها</option></select></label>
+      <div class="refresh-box"><button class="btn primary" id="carPriceRefresh" type="button">↻ بروزرسانی</button><span>آخرین بروزرسانی: آنلاین</span></div>
     </div>
-
-    <div class="car-market-toolbar">
-      <div class="car-price-filters">
-        <label><span>برند</span><select id="carBrandFilter" aria-label="انتخاب برند"><option value="">همه برندها</option></select></label>
-        <label class="car-search-field"><span>جستجو</span><input id="carNameFilter" type="search" placeholder="نام خودرو..." aria-label="جستجوی خودرو"></label>
+    <div id="carPriceStatus" class="car-reference-status">در حال دریافت قیمت‌های آنلاین...</div>
+    <div class="car-reference-open">
+      <div class="car-reference-brand-head"><span>ایران‌خودرو</span><i>⌃</i></div>
+      <div class="car-reference-table">
+        <table class="car-price-table">
+          <thead><tr><th>مدل خودرو</th><th>قیمت کارخانه (تومان)</th><th>قیمت بازار (تومان)</th><th>اختلاف (تومان)</th><th>تغییر روزانه (تومان)</th><th>تغییر روزانه (%)</th></tr></thead>
+          <tbody id="carPriceBody"><tr><td colspan="6">در حال دریافت اطلاعات...</td></tr></tbody>
+        </table>
       </div>
-      <button class="btn primary" id="carPriceRefresh" type="button">بروزرسانی قیمت‌ها</button>
+      <div class="car-reference-all">› مشاهده همه مدل‌های ایران‌خودرو</div>
     </div>
-
-    <div id="carPriceStatus" class="car-price-status">در حال دریافت قیمت‌های آنلاین...</div>
-
-    <div class="car-market-table">
-      <table class="car-price-table">
-        <thead><tr><th>خودرو</th><th>کارخانه</th><th>بازار</th><th>اختلاف</th><th>تغییر روزانه</th></tr></thead>
-        <tbody id="carPriceBody"><tr><td colspan="5">در حال دریافت اطلاعات...</td></tr></tbody>
-      </table>
+    <div class="car-reference-brands">
+      <details><summary>سایپا</summary><div class="brand-models">شاهین • شاهین پلاس • اطلس • سهند • ساینا S • کوییک S • کوییک GX • سایپا ۱۵۱</div></details>
+      <details><summary>بهمن موتور</summary><div class="brand-models">رسپکت ۲ • فیدلیتی • فیدلیتی پرستیژ • دیگنیتی پرایم • دیگنیتی پرستیژ • کاپرا • اینرودز • شوال</div></details>
+      <details><summary>کرمان موتور</summary><div class="brand-models">KMC J4 • KMC J7 • KMC X5 • KMC A5 • KMC T8 • KMC T9 • KMC SR3 • KMC SR6 • ایگل</div></details>
+      <details><summary>مدیران خودرو</summary><div class="brand-models">MVM X22 Pro • MVM X33 Cross • MVM X55 Pro • Arrizo 5 • Arrizo 6 Pro • Arrizo 6 GT • Arrizo 8 • Tiggo 7 Pro • Tiggo 7 Pro Max • Tiggo 8 Pro Max • فونیکس FX</div></details>
+      <details><summary>فردا موتورز</summary><div class="brand-models">FMC 511 • FMC SX5 • FMC T5 • FMC M4 • سوبا M4</div></details>
+      <details><summary>لاماری</summary><div class="brand-models">لاماری ایما • لاماری ایما هیبرید • لاماری اکو • لاماری نئو</div></details>
+      <details><summary>زامیاد</summary><div class="brand-models">نیسان تک‌سوز • نیسان دوگانه‌سوز • پادرا پلاس • کارون • زامیاد اکستند • Z24</div></details>
+      <details><summary>ایران‌خودرو دیزل</summary><div class="brand-models">کامیونت • کامیون • کشنده • اتوبوس و محصولات تجاری</div></details>
+      <details><summary>سایپا دیزل</summary><div class="brand-models">کامیونت • کامیون • کشنده و محصولات تجاری</div></details>
     </div>
-
-    <div class="car-market-footnote">آخرین زمان بروزرسانی پس از دریافت اطلاعات نمایش داده می‌شود.</div>
-
-    <details class="car-catalog">
-      <summary><span>فهرست برندها و مدل‌های داخلی</span><b>مشاهده فهرست</b><i>⌄</i></summary>
-      <div class="car-catalog-grid">
-        <div><strong>ایران‌خودرو</strong><p>پژو ۲۰۷، پژو ۲۰۷ اتوماتیک، دنا پلاس، تارا، سورن پلاس، رانا پلاس، ری‌را، آریسان ۲، هایما S5، هایما S7، هایما 8S</p></div>
-        <div><strong>سایپا</strong><p>شاهین، شاهین پلاس، اطلس، سهند، ساینا S، ساینا GX، کوییک S، کوییک GX، کوییک GXR، سایپا ۱۵۱</p></div>
-        <div><strong>بهمن موتور</strong><p>رسپکت ۲، فیدلیتی، فیدلیتی پرستیژ، دیگنیتی پرایم، دیگنیتی پرستیژ، کاپرا، اینرودز، شوال</p></div>
-        <div><strong>کرمان موتور</strong><p>KMC J4، KMC J7، KMC X5، KMC A5، KMC T8، KMC T9، KMC SR3، KMC SR6، ایگل</p></div>
-        <div><strong>مدیران خودرو</strong><p>MVM X22 Pro، MVM X33 Cross، MVM X55 Pro، Arrizo 5، Arrizo 6 Pro، Arrizo 6 GT، Arrizo 8، Tiggo 7 Pro، Tiggo 7 Pro Max، Tiggo 8 Pro Max، فونیکس FX</p></div>
-        <div><strong>فردا موتورز</strong><p>FMC 511، FMC SX5، FMC T5، FMC M4، سوبا M4</p></div>
-        <div><strong>لاماری</strong><p>لاماری ایما، لاماری ایما هیبرید، لاماری اکو، لاماری نئو</p></div>
-        <div><strong>زامیاد</strong><p>نیسان تک‌سوز، نیسان دوگانه‌سوز، پادرا پلاس، کارون، زامیاد اکستند، Z24</p></div>
-        <div><strong>ایران‌خودرو دیزل</strong><p>کامیونت، کامیون، کشنده، اتوبوس و محصولات تجاری</p></div>
-        <div><strong>سایپا دیزل</strong><p>کامیونت، کامیون، کشنده و محصولات تجاری</p></div>
-      </div>
-    </details>
   </div>
 </section>
 <section id="quick-check" class="section checker-home-section">
@@ -156,4 +194,4 @@
  if(p)p.textContent=fa;
  if(g)g.textContent='تاریخ میلادی: '+gr;
 })();
-</script><script>(function(){const box=document.getElementById("carPriceBody"),status=document.getElementById("carPriceStatus"),brand=document.getElementById("carBrandFilter"),name=document.getElementById("carNameFilter"),refresh=document.getElementById("carPriceRefresh");if(!box)return;let rows=[];const fa=n=>new Intl.NumberFormat("fa-IR").format(Math.round(Number(n||0))),money=n=>n==null?"—":fa(n)+" تومان",change=(n,p)=>{if(n==null||p==null)return "—";const sign=n>0?"+":n<0?"−":"۰";return '<span class="car-change '+(n>0?"up":n<0?"down":"flat")+'">'+sign+" "+fa(Math.abs(n))+" تومان ("+(p>0?"+":"")+Number(p).toFixed(p%1?1:0)+"٪)</span>"};function render(){const b=brand.value,q=(name.value||"").trim().toLowerCase(),list=rows.filter(x=>(!b||x.brand===b)&&(!q||x.name.toLowerCase().includes(q))).slice(0,120);box.innerHTML=list.length?list.map(x=>'<tr><td><b>'+x.name+'</b><small>'+x.brand+'</small></td><td>'+money(x.factory)+'</td><td>'+money(x.market)+'</td><td>'+(x.diff==null?"—":'<b class="car-diff">'+money(x.diff)+'</b>')+'</td><td>'+change(x.market_change,x.market_change_pct)+'</td></tr>').join(""):'<tr><td colspan="5">موردی پیدا نشد.</td></tr>';}async function load(force){status.textContent="در حال دریافت قیمت‌های آنلاین...";try{const bases=["https://amnayar-api.onrender.com","https://api.amnayar.ir"];let r=null,d=null,lastErr=null;for(const base of bases){try{r=await fetch(base+"/api/car-prices"+(force?"?refresh=1":""),{cache:"no-store"});d=await r.json();if(r.ok)break;lastErr=new Error(d.message||"خطا")}catch(e){lastErr=e}}if(!r||!r.ok)throw lastErr||new Error(d?.message||"خطا");if(!r.ok)throw new Error(d.message||"خطا");rows=d.items||[];const brands=[...new Set(rows.map(x=>x.brand).filter(Boolean))];brand.innerHTML='<option value="">همه برندهای داخلی</option>'+brands.map(x=>'<option>'+x+'</option>').join("");status.textContent="آخرین بروزرسانی: "+new Date(d.fetchedAt).toLocaleTimeString("fa-IR",{hour:"2-digit",minute:"2-digit"})+(d.stale?" • آخرین داده ذخیره‌شده":"");render();}catch(e){status.textContent="قیمت آنلاین فعلاً در دسترس نیست. برای مشاهده مستقیم، صفحه قیمت خودرو را باز کنید.";box.innerHTML='<tr><td colspan="5">اطلاعات آنلاین قیمت خودرو فعلاً در دسترس نیست.</td></tr>'}}brand.addEventListener("change",render);name.addEventListener("input",render);refresh.addEventListener("click",()=>load(true));load(false);})();</script><style>.site-language{display:inline-flex;align-items:center;gap:5px;padding:6px 8px;border:1px solid #d9e4f2;border-radius:11px;background:#fff;box-shadow:0 5px 16px rgba(20,70,120,.06)}.site-language span{font-size:15px}.site-language select{border:0;background:transparent;color:#173a62;font-size:11px;font-weight:800;outline:0;cursor:pointer;max-width:112px}@media(max-width:700px){.site-language{padding:5px 6px}.site-language select{max-width:82px;font-size:10px}}.goog-te-banner-frame.skiptranslate{display:none!important}body{top:0!important}.goog-tooltip,.goog-tooltip:hover{display:none!important}.goog-text-highlight{background:transparent!important;box-shadow:none!important}.goog-te-gadget{font-size:0!important}</style><div id="google_translate_element" style="display:none"></div><script>function googleTranslateElementInit(){new google.translate.TranslateElement({pageLanguage:'fa',includedLanguages:'en,zh-CN,hi,es,ar,fr,bn,pt,ru,tr,ja,ko,de,it,ur',autoDisplay:false},'google_translate_element');}window.addEventListener('DOMContentLoaded',function(){const s=document.getElementById('siteLanguage');if(!s)return;s.addEventListener('change',function(){const v=this.value;if(v==='fa'){document.cookie='googtrans=/fa/fa;path=/';location.reload();return}document.cookie='googtrans=/fa/'+v+';path=/';location.reload();});});</script><script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" async></script></body></html>
+</script><script>(function(){const box=document.getElementById("carPriceBody"),status=document.getElementById("carPriceStatus"),brand=document.getElementById("carBrandFilter"),name=document.getElementById("carNameFilter"),refresh=document.getElementById("carPriceRefresh");if(!box)return;let rows=[];const fa=n=>new Intl.NumberFormat("fa-IR").format(Math.round(Number(n||0))),money=n=>n==null?"—":fa(n)+" تومان",change=(n,p)=>{if(n==null||p==null)return "—";const sign=n>0?"+":n<0?"−":"۰";return '<span class="car-change '+(n>0?"up":n<0?"down":"flat")+'">'+sign+" "+fa(Math.abs(n))+" تومان ("+(p>0?"+":"")+Number(p).toFixed(p%1?1:0)+"٪)</span>"};function render(){const b=brand.value,q=(name.value||"").trim().toLowerCase(),list=rows.filter(x=>(!b||x.brand===b)&&(!q||x.name.toLowerCase().includes(q))).slice(0,120);box.innerHTML=list.length?list.map(x=>'<tr><td><b>'+x.name+'</b><small>'+x.brand+'</small></td><td>'+money(x.factory)+'</td><td>'+money(x.market)+'</td><td>'+(x.diff==null?"—":'<b class="car-diff">'+money(x.diff)+'</b>')+'</td><td>'+change(x.market_change,x.market_change_pct)+'</td></tr>').join(""):'<tr><td colspan="5">موردی پیدا نشد.</td></tr>';}async function load(force){status.textContent="در حال دریافت قیمت‌های آنلاین...";try{const bases=["https://amnayar-api.onrender.com","https://api.amnayar.ir"];let r=null,d=null,lastErr=null;for(const base of bases){try{r=await fetch(base+"/api/car-prices"+(force?"?refresh=1":""),{cache:"no-store"});d=await r.json();if(r.ok)break;lastErr=new Error(d.message||"خطا")}catch(e){lastErr=e}}if(!r||!r.ok)throw lastErr||new Error(d?.message||"خطا");if(!r.ok)throw new Error(d.message||"خطا");rows=d.items||[];const brands=[...new Set(rows.map(x=>x.brand).filter(Boolean))];brand.innerHTML='<option value="">همه برندهای داخلی</option>'+brands.map(x=>'<option>'+x+'</option>').join("");status.textContent="آخرین بروزرسانی: "+new Date(d.fetchedAt).toLocaleTimeString("fa-IR",{hour:"2-digit",minute:"2-digit"})+(d.stale?" • آخرین داده ذخیره‌شده":"");render();}catch(e){status.textContent="قیمت آنلاین فعلاً در دسترس نیست. برای مشاهده مستقیم، صفحه قیمت خودرو را باز کنید.";box.innerHTML='<tr><td colspan="5">اطلاعات آنلاین قیمت خودرو فعلاً در دسترس نیست.</td></tr>'}}brand.addEventListener("change",render);name.addEventListener("input",render);refresh.addEventListener("click",()=>load(true));load(false);})();</script><style>.site-language{display:inline-flex;align-items:center;gap:5px;padding:6px 8px;border:1px solid #d9e4f2;border-radius:11px;background:#fff;box-shadow:0 5px 16px rgba(20,70,120,.06)}.site-language span{font-size:15px}.site-language select{border:0;background:transparent;color:#173a62;font-size:11px;font-weight:800;outline:0;cursor:pointer;max-width:112px}@media(max-width:700px){.site-language{padding:5px 6px}.site-language select{max-width:82px;font-size:10px}}.goog-te-banner-frame.skiptranslate{display:none!important}body{top:0!important}.goog-tooltip,.goog-tooltip:hover{display:none!important}.goog-text-highlight{background:transparent!important;box-shadow:none!important}.goog-te-gadget{font-size:0!important}</style><div id="google_translate_element" style="display:none"></div><script>function googleTranslateElementInit(){new google.translate.TranslateElement({pageLanguage:'fa',includedLanguages:'en,zh-CN,hi,es,ar,fr,bn,pt,ru,tr,ja,ko,de,it,ur',autoDisplay:false},'google_translate_element');}window.addEventListener('DOMContentLoaded',function(){const s=document.getElementById('siteLanguage');if(!s)return;s.addEventListener('change',function(){const v=this.value;if(v==='fa'){document.cookie='googtrans=/fa/fa;path=/';location.reload();return}document.cookie='googtrans=/fa/'+v+';path=/';location.reload();});});</script><script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" async></script><script id="car-reference-model-filter">(function(){const box=document.getElementById("carPriceBody"),model=document.getElementById("carModelFilter"),name=document.getElementById("carNameFilter");if(!box||!model||!name)return;function sync(){const names=[...box.querySelectorAll("tr td:first-child b")].map(x=>x.textContent.trim()).filter(Boolean);const keep=model.value;model.innerHTML='<option value="">همه مدل‌ها</option>'+[...new Set(names)].map(x=>'<option value="'+x.replace(/"/g,"&quot;")+'">'+x+'</option>').join("");if(names.includes(keep))model.value=keep;}new MutationObserver(sync).observe(box,{childList:true,subtree:true});model.addEventListener("change",function(){name.value=this.value;name.dispatchEvent(new Event("input",{bubbles:true}));});setTimeout(sync,800);})();</script></body></html>
