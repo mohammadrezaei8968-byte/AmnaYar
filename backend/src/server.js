@@ -357,7 +357,7 @@ function parseCarIrPriceRows(html){
   return out;
 }
 async function fetchCarPrices(){
-  const r=await fetch("https://car.ir/prices",{headers:CAR_PRICE_HEADERS,signal:AbortSignal.timeout(20000)});
+  const r=await fetch("https://car.ir/prices2",{headers:CAR_PRICE_HEADERS,signal:AbortSignal.timeout(20000)});
   if(!r.ok)throw new Error("car_prices_"+r.status);
   const html=await r.text();
   const rows=parseCarIrPriceRows(html);
