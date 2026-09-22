@@ -1,7 +1,7 @@
 // AmnaYar frontend API routing with automatic fallback.
 // Prefer the custom API domain so users do not depend on Render's onrender.com hostname.
 (() => {
-  const API_BASES = ['https://api.amnayar.ir', 'https://amnayar-api.onrender.com', ''];
+  const API_BASES = ['', 'https://api.amnayar.ir', 'https://amnayar-api.onrender.com'];
   const RENDER_API = 'https://amnayar-api.onrender.com';
   const CUSTOM_API = 'https://api.amnayar.ir';
   const nativeFetch = window.fetch.bind(window);
