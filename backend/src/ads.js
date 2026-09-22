@@ -106,7 +106,7 @@ module.exports = function registerAds({app, db, ownerAuth, now, crypto}) {
     logEvent(req,id,'click',c.placement); res.redirect(c.destination_url);
   });
 
-  app.get('/api/owner/ads/overview',ownerAuth,(req,res)=>{
+  // If someone opens the login endpoint directly in a browser, send them to the owner login page instead of returning Cannot GET.\n  app.get('/api/owner/login',(req,res)=>res.redirect(303,'/owner'));\n  app.get('/api/owner/',(req,res)=>res.redirect(303,'/owner'));\n\n  app.get('/api/owner/ads/overview',ownerAuth,(req,res)=>{
     const campaigns=db.prepare(`
       SELECT c.*,a.name advertiser_name,
         COALESCE((SELECT COUNT(*) FROM ad_events e WHERE e.campaign_id=c.id AND e.event_type='impression'),0) impressions,
