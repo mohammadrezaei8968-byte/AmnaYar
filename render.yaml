@@ -7,6 +7,7 @@ services:
     staticPublishPath: .
     domains:
       - amnayar.ir
+      - www.amnayar.ir
     routes:
       - type: rewrite
         source: /api/*
