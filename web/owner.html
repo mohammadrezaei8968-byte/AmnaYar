@@ -43,19 +43,36 @@ async function ownerLogin(e){
     return false;
   }
   if(btn){btn.disabled=true;btn.textContent="در حال ورود...";}
+  const endpoints=[
+    "https://api.amnayar.ir/api/owner/login",
+    "https://amnayar-api.onrender.com/api/owner/login",
+    "/api/owner/login"
+  ];
+  let lastMessage="ارتباط با سرور برقرار نشد.";
   try{
-    const r=await api("/api/owner/login",{method:"POST",body:JSON.stringify({email,password})});
-    if(r?.ok&&r.token){
-      localStorage.setItem(OWNER_TOKEN_KEY,r.token);
-      hideOwnerLogin();
-      if(err){err.textContent="";err.style.display="none";}
-      await refreshOwnerDashboard().catch(()=>{});
-      return false;
+    for(const url of endpoints){
+      try{
+        const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({email,password}),cache:"no-store"});
+        const type=(r.headers.get("content-type")||"").toLowerCase();
+        let data=null;
+        if(type.includes("application/json")){data=await r.json();}
+        else {await r.text();}
+        if(data?.ok&&data.token){
+          localStorage.setItem(OWNER_TOKEN_KEY,data.token);
+          hideOwnerLogin();
+          if(err){err.textContent="";err.style.display="none";}
+          await refreshOwnerDashboard().catch(()=>{});
+          return false;
+        }
+        if(data?.message||data?.error){
+          lastMessage=data.message||data.error;
+          if(r.status===401||r.status===403||r.status===503) break;
+        } else if(r.status>=500){lastMessage="سرور موقتاً در دسترس نیست.";}
+      }catch(ex){
+        continue;
+      }
     }
-    const msg=r?.message||r?.error||"ایمیل یا رمز مالک نادرست است.";
-    if(err){err.textContent=msg;err.style.display="block";}
-  }catch(ex){
-    if(err){err.textContent="ارتباط با سرور برقرار نشد. لطفاً دوباره تلاش کنید.";err.style.display="block";}
+    if(err){err.textContent=lastMessage==="owner_login_invalid"?"ایمیل یا رمز مالک نادرست است.":lastMessage;err.style.display="block";}
   }finally{
     if(btn){btn.disabled=false;btn.textContent="ورود به پنل مالک";}
   }
