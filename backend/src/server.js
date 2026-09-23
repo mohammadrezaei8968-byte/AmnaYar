@@ -646,14 +646,29 @@ app.post("/api/owner/login", rateLimit({windowMs:15*60*1000,max:10,standardHeade
     if(isForm) return res.redirect(303,"https://amnayar.ir/owner#owner_error="+encodeURIComponent(message));
     return res.status(status).json({error,message});
   };
-  if(!OWNER_EMAIL || !OWNER_PASSWORD) return fail(503,"owner_credentials_not_configured","مشخصات مالک در Environment Variables تنظیم نشده است.");
-  if(identifier!==OWNER_EMAIL || password!==OWNER_PASSWORD) return fail(401,"owner_login_invalid","ایمیل یا رمز مالک نادرست است.");
-  const token=jwt.sign({admin:true,owner:true,username:OWNER_EMAIL},SECRET,{expiresIn:"8h"});
+
+  // مالک می‌تواند با OWNER_EMAIL/OWNER_PASSWORD وارد شود.
+  // برای جلوگیری از قفل شدن پنل، ADMIN_USERNAME/ADMIN_PASSWORD_HASH
+  // نیز به‌عنوان مسیر پشتیبان معتبر است؛ رمز ادمین به‌صورت bcrypt بررسی می‌شود.
+  const ownerConfigured=Boolean(OWNER_EMAIL && OWNER_PASSWORD);
+  const ownerMatch=ownerConfigured && identifier===OWNER_EMAIL && password===OWNER_PASSWORD;
+  let adminMatch=false;
+  if(ADMIN_USERNAME && ADMIN_PASSWORD_HASH && identifier===String(ADMIN_USERNAME).trim().toLowerCase()){
+    try{ adminMatch=bcrypt.compareSync(password,ADMIN_PASSWORD_HASH); }catch(e){ adminMatch=false; }
+  }
+  if(!ownerConfigured && !ADMIN_PASSWORD_HASH){
+    return fail(503,"owner_credentials_not_configured","مشخصات ورود مدیریت در Environment Variables تنظیم نشده است.");
+  }
+  if(!ownerMatch && !adminMatch) return fail(401,"owner_login_invalid","ایمیل/نام کاربری یا رمز مدیریت نادرست است.");
+
+  const username=ownerMatch?OWNER_EMAIL:String(ADMIN_USERNAME||identifier);
+  const token=jwt.sign({admin:true,owner:true,username},SECRET,{expiresIn:"8h"});
   if(isForm) return res.redirect(303,"https://amnayar.ir/owner#owner_token="+encodeURIComponent(token));
-  res.json({ok:true,token,user:{username:OWNER_EMAIL,email:OWNER_EMAIL,role:"owner"},role:"owner"});
+  res.json({ok:true,token,user:{username,email:ownerMatch?OWNER_EMAIL:null,role:"owner"},role:"owner"});
 });
 
-app.get("/api/owner/me",ownerAuth,(req,res)=>res.json({ok:true,user:{username:OWNER_EMAIL,email:OWNER_EMAIL,role:"owner"}}));
+app.get("/api/owner/me",ownerAuth,(req,res)=>res.json({ok:true,user:{username:req.owner?.username||OWNER_EMAIL||ADMIN_USERNAME,email:OWNER_EMAIL||null,role:"owner"}}));
+app.post("/api/owner/logout",ownerAuth,(req,res)=>res.json({ok:true}));
 function ownerJsonSetting(key,fallback){const row=db.prepare("SELECT value FROM settings WHERE key=?").get(key);if(!row)return fallback;try{return JSON.parse(row.value)}catch{return row.value}}
 function saveOwnerSetting(key,value){db.prepare("INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(key,typeof value==="string"?value:JSON.stringify(value))}
 app.get("/api/owner/system",ownerAuth,(req,res)=>{try{db.prepare("SELECT 1").get();res.json({ok:true,db:true,version:APP_VERSION,node:process.version})}catch(e){res.json({ok:true,db:false,version:APP_VERSION,node:process.version})}});
