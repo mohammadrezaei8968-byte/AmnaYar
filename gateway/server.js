@@ -1,0 +1,10 @@
+const express=require("express");
+const path=require("path");
+const {createProxyMiddleware}=require("http-proxy-middleware");
+const app=express();
+const PORT=process.env.PORT||10000;
+const API_TARGET=process.env.API_TARGET||"https://amnayar-api.onrender.com";
+app.use("/api",createProxyMiddleware({target:API_TARGET,changeOrigin:true,secure:true,pathRewrite:(p)=>"/api"+p}));
+app.use(express.static(path.join(__dirname,"public")));
+app.get("*",(req,res)=>res.sendFile(path.join(__dirname,"public","index.html")));
+app.listen(PORT,()=>console.log("AmnaYar gateway listening on "+PORT));
