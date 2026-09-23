@@ -43,10 +43,12 @@ async function ownerLogin(e){
     return false;
   }
   if(btn){btn.disabled=true;btn.textContent="در حال ورود...";}
+  // اول از مسیر /api روی دامنه اصلی استفاده می‌کنیم؛ این مسیر در Render به API متصل است.
+  // در صورت خطای شبکه/سرور، دو مسیر مستقیم API نیز امتحان می‌شوند.
   const endpoints=[
+    "/api/owner/login",
     "https://api.amnayar.ir/api/owner/login",
-    "https://amnayar-api.onrender.com/api/owner/login",
-    "/api/owner/login"
+    "https://amnayar-api.onrender.com/api/owner/login"
   ];
   let lastMessage="ارتباط با سرور برقرار نشد.";
   try{
@@ -66,7 +68,7 @@ async function ownerLogin(e){
         }
         if(data?.message||data?.error){
           lastMessage=data.message||data.error;
-          if(r.status===401||r.status===403||r.status===503) break;
+          if(r.status===401||r.status===403) break;
         } else if(r.status>=500){lastMessage="سرور موقتاً در دسترس نیست.";}
       }catch(ex){
         continue;
@@ -132,7 +134,14 @@ async function toggleNotice(id,is_active){const r=await api('/api/owner/notices/
 async function deleteNotice(id){if(!confirm('این اطلاعیه حذف شود؟'))return;const r=await api('/api/owner/notices/'+id,{method:'DELETE'});if(r.error){notice(r.error,true);return}loadNotices()}
 async function loadAdmins(){const r=await api('/api/owner/admins');$('adminRows').innerHTML=(r.admins||[]).map(u=>`<tr><td><b>${esc(u.username)}</b><div class="owner-mini">#${u.id}</div></td><td>${esc(u.email)}</td><td><span class="owner-badge ${u.role==='owner'?'owner':''}">${roleLabel(u.role)}</span></td><td><span class="owner-badge ${u.is_active?'ok':'off'}">${u.is_active?'فعال':'غیرفعال'}</span></td><td><button class="btn soft" onclick="showTab('users')">مدیریت کاربر</button></td></tr>`).join('')||'<tr><td colspan="5">مدیری ثبت نشده است.</td></tr>'}
 async function exportOwnerExcel(){try{const r=await fetch("/api/owner/export.xlsx",{headers:{Authorization:"Bearer "+ownerToken()},cache:"no-store"});if(!r.ok){notice("دریافت فایل گزارش ممکن نشد.",true);return}const blob=await r.blob();const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="amnayar-owner-report.xls";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);notice("گزارش Excel آماده شد.")}catch(e){notice("ارتباط با API برای خروجی Excel برقرار نشد.",true)}}
-function logout(){localStorage.removeItem(OWNER_TOKEN_KEY);location.href="/owner"}
+async function logout(){
+  try{await api('/api/owner/logout',{method:'POST'})}catch(e){}
+  localStorage.removeItem(OWNER_TOKEN_KEY);
+  // توکن‌های احتمالی قدیمی پنل مدیریت هم پاک شوند.
+  localStorage.removeItem('owner_token');
+  localStorage.removeItem('amnayar_admin_token');
+  location.replace('/owner');
+}
 // ورود و احراز هویت پنل مالک فقط از مسیر /api/owner/* انجام می‌شود؛
 // بررسی قدیمی /api/me حذف شد تا پنل مالک بعد از ورود به صفحه اصلی نپرد.
 </script></body></html>
