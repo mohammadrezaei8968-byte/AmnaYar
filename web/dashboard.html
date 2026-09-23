@@ -59,6 +59,10 @@ async function load(){
   const k=new URLSearchParams(location.search).get('check');
   if(k&&labels[k]){history.replaceState({},'',location.pathname);openChecker(k)}
 }
-async function logout(){await api('/api/auth/logout',{method:'POST'});location.href='/'}
+async function logout(){
+  try{await api('/api/auth/logout',{method:'POST'})}catch(e){}
+  ['amnayar_auth_token','amnayar_token','amnayar_access_token','auth_token'].forEach(k=>localStorage.removeItem(k));
+  location.href='/';
+}
 renderOfficial();renderExtras();load();
 </script></body></html>
