@@ -782,11 +782,3 @@ body:has(.tool-panel) main.section:before{opacity:.35!important}
 }
 
 
-/* منوی کشویی ابزارهای کاربردی */
-.tools-accordion{max-width:1180px;margin:24px auto 34px;display:grid;gap:10px}
-.tools-accordion details{background:#fff;border:1px solid #dce6f0;border-radius:15px;overflow:hidden;box-shadow:0 8px 25px rgba(16,42,78,.05)}
-.tools-accordion summary{cursor:pointer;list-style:none;padding:15px 18px;display:flex;align-items:center;gap:10px;color:#123b63;font-size:13px;font-weight:900}
-.tools-accordion summary::-webkit-details-marker{display:none}.tools-accordion summary:after{content:'⌄';margin-right:auto;font-size:18px;color:#527391;transition:.2s}.tools-accordion details[open] summary:after{transform:rotate(180deg)}
-.tools-accordion summary b{font-size:10px;color:#7b8da0;font-weight:700}.tools-accordion details[open] summary{background:#f5f9fd;border-bottom:1px solid #e2eaf2}
-.tool-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:12px}.tool-list button{border:1px solid #e1e9f1;background:#fff;border-radius:10px;padding:10px 12px;text-align:right;color:#3e5870;font:inherit;font-size:11px;cursor:pointer;transition:.18s}.tool-list button:hover{background:#eef5ff;border-color:#bdd2e8;color:#174f8f;transform:translateY(-1px)}
-@media(max-width:600px){.tools-accordion{margin:18px 12px 26px}.tool-list{grid-template-columns:1fr}.tools-accordion summary{padding:13px 14px;font-size:12px}}
