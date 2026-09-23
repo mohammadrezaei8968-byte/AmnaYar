@@ -11,10 +11,10 @@ services:
     routes:
       - type: rewrite
         source: /api/owner/login
-        destination: https://amnayar-api.onrender.com/api/owner/login
+        destination: https://api.amnayar.ir/api/owner/login
       - type: rewrite
         source: /api/*
-        destination: https://amnayar-api.onrender.com/api/*
+        destination: https://api.amnayar.ir/api/*
     headers:
       - path: /*
         name: X-Content-Type-Options
