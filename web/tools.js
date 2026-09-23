@@ -310,5 +310,6 @@ if(n==='قفل‌گذاری PDF'||n==='حذف رمز PDF'||n==='امضای دی�
 }catch(e){console.error(e);o().textContent='عملیات انجام نشد؛ ورودی‌ها یا فایل را بررسی کنید.'}
 });
 }
+document.addEventListener('DOMContentLoaded',()=>{const raw=location.hash.startsWith('#utility=')?decodeURIComponent(location.hash.slice(9)):'';if(raw){setTimeout(()=>{if(typeof openUtility==='function')openUtility(raw)},150)}});
 document.addEventListener('click',e=>{const b=e.target.closest('.tool-list button');if(!b)return;const n=b.textContent.trim();if(b.hasAttribute('onclick'))return;openUtility(n)});
 })();
