@@ -189,9 +189,80 @@ function download(bytes,name,mime){
   document.body.appendChild(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1500);
 }
-function clearImagePdf(){const i=$('#imagePdfFiles'),p=$('#imagePdfPreview'),s=$('#imagePdfStatus');if(i)i.value='';if(p)p.innerHTML='';if(s)s.textContent='';}
-function imagePdfPreview(){const i=$('#imagePdfFiles'),p=$('#imagePdfPreview'),s=$('#imagePdfStatus');if(!i||!p)return;p.innerHTML='';const fs=[...i.files];if(!fs.length){if(s)s.textContent='یک یا چند عکس انتخاب کنید.';return;}fs.forEach((f,n)=>{const c=document.createElement('div');c.className='image-pdf-preview-item';const img=document.createElement('img');img.alt=f.name;const u=URL.createObjectURL(f);img.src=u;img.onload=()=>URL.revokeObjectURL(u);const name=document.createElement('small');name.textContent=(n+1)+'. '+f.name;c.append(img,name);p.appendChild(c)});if(s)s.textContent=fa(fs.length)+' عکس انتخاب شده است.';}
-document.addEventListener('DOMContentLoaded',()=>$('#imagePdfFiles')?.addEventListener('change',imagePdfPreview));
+let imagePdfSelectedFiles=[];
+
+function syncImagePdfInput(){
+  const input=$('#imagePdfFiles');
+  if(!input)return;
+  try{
+    const dt=new DataTransfer();
+    imagePdfSelectedFiles.forEach(f=>dt.items.add(f));
+    input.files=dt.files;
+  }catch(e){}
+}
+
+function clearImagePdf(){
+  const i=$('#imagePdfFiles'),p=$('#imagePdfPreview'),s=$('#imagePdfStatus'),c=$('#imagePdfSelectedCount');
+  imagePdfSelectedFiles=[];
+  if(i)i.value='';
+  if(p)p.innerHTML='';
+  if(c)c.textContent='';
+  if(s)s.textContent='';
+}
+
+function removeImagePdfFile(index){
+  if(index<0||index>=imagePdfSelectedFiles.length)return;
+  imagePdfSelectedFiles.splice(index,1);
+  syncImagePdfInput();
+  imagePdfPreview();
+}
+
+function imagePdfPreview(){
+  const i=$('#imagePdfFiles'),p=$('#imagePdfPreview'),s=$('#imagePdfStatus'),c=$('#imagePdfSelectedCount');
+  if(!i||!p)return;
+  p.innerHTML='';
+  const fs=imagePdfSelectedFiles;
+  if(!fs.length){
+    if(c)c.textContent='';
+    if(s)s.textContent='یک یا چند عکس انتخاب کنید.';
+    return;
+  }
+  fs.forEach((f,n)=>{
+    const item=document.createElement('div');
+    item.className='image-pdf-preview-item';
+    item.style.position='relative';
+    const img=document.createElement('img');
+    img.alt=f.name;
+    const u=URL.createObjectURL(f);
+    img.src=u;
+    img.onload=()=>URL.revokeObjectURL(u);
+    const name=document.createElement('small');
+    name.textContent=(n+1)+'. '+f.name;
+    const del=document.createElement('button');
+    del.type='button';
+    del.textContent='✕ حذف';
+    del.setAttribute('aria-label','حذف '+f.name);
+    del.style.cssText='border:0;background:#fff0f0;color:#b33a3a;border-radius:8px;padding:6px 9px;margin-top:7px;cursor:pointer;font:inherit;font-size:10px;font-weight:800;width:100%';
+    del.onclick=()=>removeImagePdfFile(n);
+    item.append(img,name,del);
+    p.appendChild(item);
+  });
+  if(c)c.textContent='تعداد عکس‌های انتخاب‌شده: '+fa(fs.length);
+  if(s)s.textContent=fa(fs.length)+' عکس انتخاب شده است. برای حذف هر عکس، دکمه «✕ حذف» همان عکس را بزنید.';
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  $('#imagePdfFiles')?.addEventListener('change',e=>{
+    const newly=[...e.target.files];
+    const keys=new Set(imagePdfSelectedFiles.map(f=>f.name+'|'+f.size+'|'+f.lastModified));
+    newly.forEach(f=>{
+      const key=f.name+'|'+f.size+'|'+f.lastModified;
+      if(!keys.has(key)){imagePdfSelectedFiles.push(f);keys.add(key);}
+    });
+    syncImagePdfInput();
+    imagePdfPreview();
+  });
+});
 async function buildImagePdfAtSettings(files,maxDim,quality){const doc=await PDFLib.PDFDocument.create();for(let n=0;n<files.length;n++){const f=files[n];const img=await new Promise((res,rej)=>{const x=new Image(),u=URL.createObjectURL(f);x.onload=()=>{URL.revokeObjectURL(u);res(x)};x.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('image_load_failed'))};x.src=u});const sc=Math.min(1,maxDim/Math.max(img.naturalWidth,img.naturalHeight)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.naturalWidth*sc));c.height=Math.max(1,Math.round(img.naturalHeight*sc));const ctx=c.getContext('2d',{alpha:false});ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,0,0,c.width,c.height);const jpg=await new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('image_export_failed')),'image/jpeg',quality));const emb=await doc.embedJpg(await jpg.arrayBuffer());const portrait=c.height>=c.width,pw=portrait?595:842,ph=portrait?842:595,ratio=Math.min(pw/c.width,ph/c.height),dw=c.width*ratio,dh=c.height*ratio,page=doc.addPage([pw,ph]);page.drawImage(emb,{x:(pw-dw)/2,y:(ph-dh)/2,width:dw,height:dh});}return await doc.save({useObjectStreams:true});}
 async function imagesToPDF(){const input=$('#imagePdfFiles'),s=$('#imagePdfStatus'),fs=input?[...input.files]:[];if(!fs.length){if(s)s.textContent='حداقل یک عکس انتخاب کنید.';return}if(!window.PDFLib){if(s)s.textContent='کتابخانه PDF آماده نیست؛ صفحه را یک بار تازه‌سازی کنید.';return}let target=Number($('#imagePdfTargetMB')?.value||0);if($('#imagePdfTargetMB')?.value==='custom')target=Number($('#imagePdfCustomMB')?.value||0);if(target<0)target=0;const targetBytes=target*1024*1024;s.textContent='در حال ساخت PDF و تنظیم خودکار حجم...';try{let bytes=await buildImagePdfAtSettings(fs,1800,.9);if(targetBytes>0&&bytes.length>targetBytes){const settings=[[1600,.82],[1400,.75],[1200,.68],[1000,.60],[850,.52],[700,.45],[600,.38],[500,.32],[400,.26],[320,.20]];for(const [d,q] of settings){s.textContent='در حال کاهش حجم: '+d+'px / '+Math.round(q*100)+'٪ کیفیت...';bytes=await buildImagePdfAtSettings(fs,d,q);if(bytes.length<=targetBytes)break}}const name=fs.length===1?'amnayar-image-to-pdf.pdf':'amnayar-images-to-pdf.pdf';download(bytes,name,'application/pdf');const mb=(bytes.length/1048576).toFixed(2);if(targetBytes&&bytes.length>targetBytes)s.textContent='PDF ساخته شد: '+fa(mb)+' MB؛ برای این تصاویر کمتر از این مقدار با تنظیمات فعلی ممکن نشد.';else if(targetBytes)s.textContent='✅ PDF با حجم '+fa(mb)+' MB ساخته شد؛ هدف: '+fa(target)+' MB.';else s.textContent='✅ PDF با '+fa(fs.length)+' عکس آماده شد؛ حجم فایل '+fa(mb)+' MB است.';}catch(e){console.error('imagesToPDF',e);s.textContent='❌ تبدیل عکس به PDF انجام نشد؛ فایل یا فرمت عکس را بررسی کنید.';}}
 
