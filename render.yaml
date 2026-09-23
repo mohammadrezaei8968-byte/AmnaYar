@@ -10,6 +10,9 @@ services:
       - www.amnayar.ir
     routes:
       - type: rewrite
+        source: /api/owner/login
+        destination: https://amnayar-api.onrender.com/api/owner/login
+      - type: rewrite
         source: /api/*
         destination: https://amnayar-api.onrender.com/api/*
     headers:
