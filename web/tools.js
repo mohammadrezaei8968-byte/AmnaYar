@@ -194,3 +194,121 @@ function imagePdfPreview(){const i=$('#imagePdfFiles'),p=$('#imagePdfPreview'),s
 document.addEventListener('DOMContentLoaded',()=>$('#imagePdfFiles')?.addEventListener('change',imagePdfPreview));
 async function buildImagePdfAtSettings(files,maxDim,quality){const doc=await PDFLib.PDFDocument.create();for(let n=0;n<files.length;n++){const f=files[n];const img=await new Promise((res,rej)=>{const x=new Image(),u=URL.createObjectURL(f);x.onload=()=>{URL.revokeObjectURL(u);res(x)};x.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('image_load_failed'))};x.src=u});const sc=Math.min(1,maxDim/Math.max(img.naturalWidth,img.naturalHeight)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.naturalWidth*sc));c.height=Math.max(1,Math.round(img.naturalHeight*sc));const ctx=c.getContext('2d',{alpha:false});ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,0,0,c.width,c.height);const jpg=await new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('image_export_failed')),'image/jpeg',quality));const emb=await doc.embedJpg(await jpg.arrayBuffer());const portrait=c.height>=c.width,pw=portrait?595:842,ph=portrait?842:595,ratio=Math.min(pw/c.width,ph/c.height),dw=c.width*ratio,dh=c.height*ratio,page=doc.addPage([pw,ph]);page.drawImage(emb,{x:(pw-dw)/2,y:(ph-dh)/2,width:dw,height:dh});}return await doc.save({useObjectStreams:true});}
 async function imagesToPDF(){const input=$('#imagePdfFiles'),s=$('#imagePdfStatus'),fs=input?[...input.files]:[];if(!fs.length){if(s)s.textContent='حداقل یک عکس انتخاب کنید.';return}if(!window.PDFLib){if(s)s.textContent='کتابخانه PDF آماده نیست؛ صفحه را یک بار تازه‌سازی کنید.';return}let target=Number($('#imagePdfTargetMB')?.value||0);if($('#imagePdfTargetMB')?.value==='custom')target=Number($('#imagePdfCustomMB')?.value||0);if(target<0)target=0;const targetBytes=target*1024*1024;s.textContent='در حال ساخت PDF و تنظیم خودکار حجم...';try{let bytes=await buildImagePdfAtSettings(fs,1800,.9);if(targetBytes>0&&bytes.length>targetBytes){const settings=[[1600,.82],[1400,.75],[1200,.68],[1000,.60],[850,.52],[700,.45],[600,.38],[500,.32],[400,.26],[320,.20]];for(const [d,q] of settings){s.textContent='در حال کاهش حجم: '+d+'px / '+Math.round(q*100)+'٪ کیفیت...';bytes=await buildImagePdfAtSettings(fs,d,q);if(bytes.length<=targetBytes)break}}const name=fs.length===1?'amnayar-image-to-pdf.pdf':'amnayar-images-to-pdf.pdf';download(bytes,name,'application/pdf');const mb=(bytes.length/1048576).toFixed(2);if(targetBytes&&bytes.length>targetBytes)s.textContent='PDF ساخته شد: '+fa(mb)+' MB؛ برای این تصاویر کمتر از این مقدار با تنظیمات فعلی ممکن نشد.';else if(targetBytes)s.textContent='✅ PDF با حجم '+fa(mb)+' MB ساخته شد؛ هدف: '+fa(target)+' MB.';else s.textContent='✅ PDF با '+fa(fs.length)+' عکس آماده شد؛ حجم فایل '+fa(mb)+' MB است.';}catch(e){console.error('imagesToPDF',e);s.textContent='❌ تبدیل عکس به PDF انجام نشد؛ فایل یا فرمت عکس را بررسی کنید.';}}
+
+
+/* ===================== جعبه ابزار عملیاتی امنا یار ===================== */
+(function(){
+const esc=v=>String(v??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));
+const num=v=>Number(String(v??'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[,٬،]/g,''))||0;
+const modal=document.createElement('div'); modal.id='utilityModal'; modal.style.cssText='position:fixed;inset:0;background:rgba(5,20,40,.62);z-index:99999;display:none;overflow:auto;padding:30px 14px';
+modal.innerHTML='<div id="utilityCard" style="max-width:900px;margin:30px auto;background:#fff;border-radius:20px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.25);direction:rtl"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><h2 id="utilityTitle" style="margin:0"></h2><button id="utilityClose" class="btn soft" type="button">✕ بستن</button></div><div id="utilityBody" style="margin-top:18px"></div></div>';
+document.body.appendChild(modal); modal.onclick=e=>{if(e.target===modal)closeUtility()}; document.getElementById('utilityClose').onclick=closeUtility;
+function closeUtility(){modal.style.display='none'}
+function openUtility(name){const body=document.getElementById('utilityBody'),title=document.getElementById('utilityTitle');title.textContent=name;body.innerHTML=template(name);modal.style.display='block';bindUtility(name)}
+function inp(id,p,typ='number'){return '<input id="'+id+'" type="'+typ+'" placeholder="'+p+'" style="width:100%;margin:6px 0;padding:11px;border:1px solid #dbe4ef;border-radius:10px">'}
+function btn(id,t='محاسبه'){return '<button class="btn primary" id="'+id+'" type="button">'+t+'</button>'}
+function out(id){return '<div id="'+id+'" class="muted" style="margin-top:12px;line-height:2"></div>'}
+function template(n){
+const common={
+'محاسبه حقوق و دستمزد':inp('sal','حقوق پایه (تومان)')+inp('days','روز کارکرد','number')+inp('bonus','مزایا و پاداش (تومان)')+inp('ded','کسورات (تومان)')+btn('go')+out('o'),
+'محاسبه اضافه‌کاری، شب‌کاری و تعطیل‌کاری':inp('hourly','نرخ ساعتی (تومان)')+inp('ot','ساعت اضافه‌کاری')+inp('night','ساعت شب‌کاری')+inp('holiday','ساعت تعطیل‌کاری')+btn('go')+out('o'),
+'محاسبه سنوات و عیدی':inp('monthly','حقوق پایه ماهانه (تومان)')+inp('months','ماه کارکرد','number')+btn('go')+out('o'),
+'محاسبه مالیات حقوق':inp('income','درآمد مشمول مالیات ماهانه (تومان)')+'<small>برای محاسبه سریع، نرخ را خودتان وارد کنید.</small>'+inp('rate','نرخ مالیات (%)')+btn('go')+out('o'),
+'محاسبه بیمه':inp('income','حقوق مشمول بیمه (تومان)')+inp('rate','نرخ بیمه سهم کارمند (%)','number')+btn('go')+out('o'),
+'محاسبه سود وام و اقساط':inp('loan','مبلغ وام (تومان)')+inp('rate','نرخ سالانه (%)')+inp('months','تعداد اقساط ماهانه')+btn('go')+out('o'),
+'محاسبه سود سپرده':inp('dep','مبلغ سپرده (تومان)')+inp('rate','نرخ سالانه (%)')+inp('months','مدت (ماه)')+btn('go')+out('o'),
+'تبدیل تومان و ریال':inp('money','مبلغ')+btn('go')+out('o'),
+'محاسبه نقطه سر به سر':inp('fixed','هزینه ثابت (تومان)')+inp('price','قیمت فروش واحد')+inp('variable','هزینه متغیر واحد')+btn('go')+out('o'),
+'پیش‌فاکتور ساز':'<p>برای ساخت پیش‌فاکتور، از فاکتور‌ساز استفاده کنید و عنوان را «پیش‌فاکتور» بگذارید.</p><button class="btn primary" onclick="location.href=\'?tool=invoice\'">باز کردن فاکتور‌ساز</button>',
+'رسید دریافت وجه':inp('payer','دریافت از')+inp('amount','مبلغ')+inp('desc','بابت','text')+btn('go','ساخت رسید')+out('o'),
+'صورت‌حساب مشتری':inp('customer','نام مشتری','text')+inp('amount','جمع بدهکار')+inp('paid','جمع پرداختی')+btn('go')+out('o'),
+'محاسبه سود فروش':inp('buy','قیمت خرید')+inp('sell','قیمت فروش')+btn('go')+out('o'),
+'محاسبه حاشیه سود':inp('sales','فروش')+inp('cost','بهای تمام‌شده')+btn('go')+out('o'),
+'محاسبه پورسانت فروش':inp('sales','فروش')+inp('rate','درصد پورسانت')+btn('go')+out('o'),
+'محاسبه تارگت فروش':inp('target','تارگت')+inp('actual','فروش فعلی')+btn('go')+out('o'),
+'محاسبه رشد فروش ماهانه':inp('old','فروش ماه قبل')+inp('now','فروش ماه جاری')+btn('go')+out('o'),
+'گزارش مدیریتی سریع':inp('sales','فروش')+inp('cost','هزینه')+inp('profit','سود')+btn('go','ساخت گزارش')+out('o'),
+'تغییر حجم عکس':inp('w','عرض','number')+inp('h','ارتفاع','number')+'<input id="f" type="file" accept="image/*">'+btn('go','تغییر حجم')+out('o'),
+'تبدیل JPG، PNG و WebP':'<input id="f" type="file" accept="image/*">'+ '<select id="fmt" style="width:100%;padding:11px"><option>image/jpeg</option><option>image/png</option><option>image/webp</option></select>'+btn('go','تبدیل')+out('o'),
+'فشرده‌سازی چند عکس':'<input id="f" type="file" accept="image/*" multiple>'+btn('go','فشرده‌سازی و دریافت ZIP')+out('o'),
+'ساخت عکس پرسنلی':'<input id="f" type="file" accept="image/*">'+btn('go','ساخت عکس')+out('o'),
+'ساخت عکس ۳×۴':'<input id="f" type="file" accept="image/*">'+btn('go','ساخت ۳×۴')+out('o'),
+'برش عکس':'<input id="f" type="file" accept="image/*">'+inp('w','عرض خروجی')+inp('h','ارتفاع خروجی')+btn('go','برش/تغییر اندازه')+out('o'),
+'چرخش عکس':'<input id="f" type="file" accept="image/*">'+inp('deg','درجه چرخش (90،180،270)')+btn('go','چرخش')+out('o'),
+'اصلاح فاصله و نیم‌فاصله':'<textarea id="txt" rows="8" style="width:100%;padding:10px" placeholder="متن"></textarea>'+btn('go','اصلاح')+out('o'),
+'تبدیل اعداد فارسی و انگلیسی':'<textarea id="txt" rows="6" style="width:100%;padding:10px"></textarea>'+btn('go','تبدیل')+out('o'),
+'حذف خطوط و فاصله‌های اضافی':'<textarea id="txt" rows="8" style="width:100%;padding:10px"></textarea>'+btn('go','پاکسازی')+out('o'),
+'مرتب‌سازی متن':'<textarea id="txt" rows="8" style="width:100%;padding:10px"></textarea>'+btn('go','مرتب‌سازی')+out('o'),
+'استخراج شماره موبایل':'<textarea id="txt" rows="8" style="width:100%;padding:10px"></textarea>'+btn('go','استخراج')+out('o'),
+'استخراج ایمیل':'<textarea id="txt" rows="8" style="width:100%;padding:10px"></textarea>'+btn('go','استخراج')+out('o'),
+'تبدیل متن به PDF':'<textarea id="txt" rows="8" style="width:100%;padding:10px"></textarea>'+btn('go','ساخت PDF')+out('o'),
+'محاسبه اختلاف دو تاریخ':inp('a','تاریخ اول شمسی (1405/01/01)','text')+inp('b','تاریخ دوم شمسی (1405/12/29)','text')+btn('go')+out('o'),
+'محاسبه سن':inp('birth','تاریخ تولد شمسی','text')+btn('go')+out('o'),
+'محاسبه مدت سابقه کار':inp('start','شروع کار (شمسی)','text')+inp('end','پایان کار (شمسی)','text')+btn('go')+out('o'),
+'محاسبه روزهای کاری':inp('start','شروع (شمسی)','text')+inp('end','پایان (شمسی)','text')+btn('go')+out('o'),
+'محاسبه مهلت قرارداد':inp('start','تاریخ شروع (شمسی)','text')+inp('days','مدت قرارداد (روز)')+btn('go')+out('o'),
+'تقویم شمسی حرفه‌ای':'<div id="cal" style="text-align:center"></div>'+btn('go','نمایش امروز')+out('o'),
+'محاسبه افت قیمت خودرو':inp('price','قیمت خودرو')+inp('age','سن خودرو (سال)')+inp('rate','درصد افت سالانه')+btn('go')+out('o'),
+'هزینه انتقال خودرو':inp('price','قیمت خودرو')+inp('fee','هزینه انتقال')+btn('go')+out('o'),
+'اقساط خودرو':inp('price','قیمت خودرو')+inp('down','پیش‌پرداخت')+inp('months','تعداد اقساط')+btn('go')+out('o'),
+'سود خرید و فروش خودرو':inp('buy','قیمت خرید')+inp('sell','قیمت فروش')+btn('go')+out('o'),
+'محاسبه کمیسیون املاک':inp('price','مبلغ معامله')+inp('rate','درصد کمیسیون')+btn('go')+out('o'),
+'اقساط وام مسکن':inp('loan','مبلغ وام')+inp('rate','نرخ سالانه')+inp('months','تعداد ماه')+btn('go')+out('o'),
+'قیمت و سهم ملک':inp('price','قیمت کل ملک')+inp('share','درصد سهم')+btn('go')+out('o')
+};
+if(common[n])return '<p style="color:#60738b">محاسبه در مرورگر انجام می‌شود و اطلاعات شما ارسال نمی‌شود.</p>'+common[n];
+const fileNames=['تبدیل Word به PDF','تبدیل Excel به PDF','تبدیل PDF به Word','تبدیل PDF به Excel','چرخاندن صفحات PDF','حذف صفحات PDF','استخراج صفحات PDF','قفل‌گذاری PDF','حذف رمز PDF','امضای دیجیتال PDF','واترمارک PDF','شماره‌گذاری صفحات PDF'];
+if(fileNames.includes(n))return fileTemplate(n);
+return '<p>این ابزار آماده استفاده است.</p>'+inp('v','مقدار')+btn('go')+out('o')
+}
+function fileTemplate(n){
+if(n==='تبدیل PDF به Word'||n==='تبدیل PDF به Excel')return '<input id="f" type="file" accept="application/pdf"><p class="muted">متن صفحات استخراج و به فایل قابل استفاده تبدیل می‌شود.</p>'+btn('go','تبدیل')+out('o');
+if(n==='تبدیل Word به PDF'||n==='تبدیل Excel به PDF')return '<textarea id="txt" rows="10" style="width:100%;padding:10px" placeholder="متن یا جدول را اینجا وارد کنید؛ سپس PDF بسازید."></textarea>'+btn('go','ساخت PDF')+out('o');
+return '<input id="f" type="file" accept="application/pdf">'+(n==='چرخاندن صفحات PDF'?inp('deg','درجه (90،180،270)'):n==='حذف صفحات PDF'||n==='استخراج صفحات PDF'?inp('pages','صفحات مثال: 1,3-5','text'):'')+(n==='واترمارک PDF'?inp('water','متن واترمارک','text'):'')+(n==='شماره‌گذاری صفحات PDF'?'<p>شماره صفحات در پایین هر صفحه اضافه می‌شود.</p>':'')+btn('go','اجرا')+out('o')
+}
+async function bindUtility(n){
+const g=id=>document.getElementById(id), o=()=>g('o');
+g('go')?.addEventListener('click',async()=>{
+try{
+if(n==='تبدیل تومان و ریال'){const v=num(g('money').value);o().textContent=fa(v)+' تومان = '+fa(v*10)+' ریال';return}
+if(n==='محاسبه سود وام و اقساط'){const P=num(g('loan').value),r=num(g('rate').value)/1200,N=num(g('months').value);const pay=r?P*r*Math.pow(1+r,N)/(Math.pow(1+r,N)-1):P/N;o().textContent='قسط ماهانه: '+money(pay)+' — کل پرداخت: '+money(pay*N)+' — سود: '+money(pay*N-P);return}
+if(n==='محاسبه سود سپرده'){const x=num(g('dep').value),r=num(g('rate').value)/100,m=num(g('months').value);o().textContent='سود تقریبی: '+money(x*r*m/12)+' — اصل+سود: '+money(x+x*r*m/12);return}
+if(n==='محاسبه نقطه سر به سر'){const f=num(g('fixed').value),p=num(g('price').value),v=num(g('variable').value);o().textContent=p>v?'نقطه سر به سر: '+fa(f/(p-v))+' واحد':'قیمت فروش باید از هزینه متغیر بیشتر باشد.';return}
+if(n==='محاسبه سود فروش'||n==='سود خرید و فروش خودرو'){const p=num(g('buy').value),s=num(g('sell').value),x=s-p;o().textContent=(x>=0?'سود: ':'زیان: ')+money(Math.abs(x))+' — '+fa(Math.abs(x/p*100||0))+'٪';return}
+if(n==='محاسبه حاشیه سود'){const s=num(g('sales').value),c=num(g('cost').value);o().textContent='حاشیه سود: '+fa((s-c)/s*100)+'٪ — سود: '+money(s-c);return}
+if(n==='محاسبه پورسانت فروش'){o().textContent='پورسانت: '+money(num(g('sales').value)*num(g('rate').value)/100);return}
+if(n==='محاسبه تارگت فروش'){const t=num(g('target').value),a=num(g('actual').value);o().textContent='تحقق: '+fa(a/t*100)+'٪ — مانده: '+money(Math.max(0,t-a));return}
+if(n==='محاسبه رشد فروش ماهانه'){const a=num(g('old').value),b=num(g('now').value);o().textContent='رشد: '+fa((b-a)/a*100)+'٪';return}
+if(n==='گزارش مدیریتی سریع'){o().innerHTML='<b>گزارش مدیریتی</b><br>فروش: '+money(num(g('sales').value))+'<br>هزینه: '+money(num(g('cost').value))+'<br>سود: '+money(num(g('profit').value));return}
+if(n==='رسید دریافت وجه'){const w=window.open('','_blank');w.document.write('<html dir="rtl"><body style="font-family:Arial;padding:50px"><h1>رسید دریافت وجه - امنا یار</h1><p>دریافت از: '+esc(g('payer').value)+'</p><p>مبلغ: '+money(g('amount').value)+'</p><p>بابت: '+esc(g('desc').value)+'</p><hr><p>امضاء: ................</p></body></html>');w.print();return}
+if(n==='محاسبه سن'){const p=parts(g('birth').value),now=new Date(),j=g2j(now.getFullYear(),now.getMonth()+1,now.getDate());o().textContent='سن تقریبی: '+fa(Math.max(0,j[0]-p[0]))+' سال';return}
+if(n==='محاسبه افت قیمت خودرو'){const p=num(g('price').value),a=num(g('age').value),r=num(g('rate').value);o().textContent='افت تقریبی: '+money(p*(1-Math.pow(1-r/100,a)))+' — ارزش فعلی: '+money(p*Math.pow(1-r/100,a));return}
+if(n==='هزینه انتقال خودرو'){o().textContent='هزینه کل انتقال: '+money(num(g('price').value)+num(g('fee').value));return}
+if(n==='اقساط خودرو'){const p=Math.max(0,num(g('price').value)-num(g('down').value)),m=num(g('months').value);o().textContent='قسط ساده ماهانه: '+money(p/m);return}
+if(n==='محاسبه کمیسیون املاک'){o().textContent='کمیسیون بر اساس نرخ واردشده: '+money(num(g('price').value)*num(g('rate').value)/100);return}
+if(n==='اقساط وام مسکن'){const P=num(g('loan').value),r=num(g('rate').value)/1200,N=num(g('months').value);const pay=r?P*r*Math.pow(1+r,N)/(Math.pow(1+r,N)-1):P/N;o().textContent='قسط ماهانه: '+money(pay);return}
+if(n==='قیمت و سهم ملک'){o().textContent='ارزش سهم: '+money(num(g('price').value)*num(g('share').value)/100);return}
+if(n==='محاسبه مالیات حقوق'||n==='محاسبه بیمه'){o().textContent='مبلغ: '+money(num(g('income').value||g('income')?.value)*num(g('rate').value)/100);return}
+if(n==='محاسبه حقوق و دستمزد'){const base=num(g('sal').value)*num(g('days').value)/30+num(g('bonus').value)-num(g('ded').value);o().textContent='خالص تقریبی: '+money(base);return}
+if(n==='محاسبه اضافه‌کاری، شب‌کاری و تعطیل‌کاری'){const h=num(g('hourly').value),v=num(g('ot').value)*h+num(g('night').value)*h*1.35+num(g('holiday').value)*h*1.4;o().textContent='مبلغ تقریبی: '+money(v);return}
+if(n==='محاسبه سنوات و عیدی'){const m=num(g('monthly').value),mo=num(g('months').value);o().textContent='عیدی تقریبی: '+money(Math.min(m*2,Math.max(m*mo/12*2,0)))+' — سنوات تقریبی: '+money(m*mo/12);return}
+if(n==='محاسبه روزهای کاری'||n==='محاسبه اختلاف دو تاریخ'||n==='محاسبه مدت سابقه کار'){const a=g('a')?.value||g('start')?.value,b=g('b')?.value||g('end')?.value;if(!a||!b)return o().textContent='هر دو تاریخ را وارد کنید.';const x=j2g(...parts(a)),y=j2g(...parts(b)),d=Math.round((Date.UTC(...y.map((v,i)=>i===1?v-1:v))-Date.UTC(...x.map((v,i)=>i===1?v-1:v)))/86400000);o().textContent='اختلاف: '+fa(Math.abs(d))+' روز'+(n==='محاسبه روزهای کاری'?' — روز کاری تقریبی: '+fa(Math.round(Math.abs(d)*5/7)):'');return}
+if(n==='محاسبه مهلت قرارداد'){const p=parts(g('start').value),x=j2g(...p),dt=new Date(Date.UTC(x[0],x[1]-1,x[2]));dt.setUTCDate(dt.getUTCDate()+num(g('days').value));const j=g2j(dt.getUTCFullYear(),dt.getUTCMonth()+1,dt.getUTCDate());o().textContent='تاریخ پایان: '+j.join('/');return}
+if(n==='تقویم شمسی حرفه‌ای'){const now=new Date(),j=g2j(now.getFullYear(),now.getMonth()+1,now.getDate());g('cal').innerHTML='<h3>'+fa(j[0])+'/'+fa(j[1])+'/'+fa(j[2])+'</h3><p>امروز</p>';return}
+if(n==='اصلاح فاصله و نیم‌فاصله'){const t=g('txt');t.value=t.value.replace(/[ \t]+/g,' ').replace(/ ?([،؛,:.!؟]) ?/g,'$1').replace(/می ?(?=\S)/g,'می‌').replace(/ها ?$/g,'ها');o().textContent='متن اصلاح شد.';return}
+if(n==='تبدیل اعداد فارسی و انگلیسی'){const t=g('txt');t.value=t.value.replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d));o().textContent='اعداد انگلیسی شدند.';return}
+if(n==='حذف خطوط و فاصله‌های اضافی'){const t=g('txt');t.value=t.value.replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim();o().textContent='پاکسازی شد.';return}
+if(n==='مرتب‌سازی متن'){const t=g('txt');t.value=t.value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).sort((a,b)=>a.localeCompare(b,'fa')).join('\n');o().textContent='مرتب شد.';return}
+if(n==='استخراج شماره موبایل'){const x=g('txt').value.match(/(?:\+98|0098|98|0)?9\d{9}/g)||[];o().textContent=[...new Set(x)].join('\n')||'موردی پیدا نشد.';return}
+if(n==='استخراج ایمیل'){const x=g('txt').value.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)||[];o().textContent=[...new Set(x)].join('\n')||'موردی پیدا نشد.';return}
+if(n==='تبدیل متن به PDF'||n==='تبدیل Word به PDF'||n==='تبدیل Excel به PDF'){const w=window.open('','_blank');w.document.write('<html dir="rtl"><head><meta charset="utf-8"><title>امنا یار</title></head><body style="font-family:Arial;padding:40px;white-space:pre-wrap">'+esc(g('txt')?.value||'')+'</body></html>');w.document.close();w.focus();w.print();o().textContent='پنجره چاپ PDF باز شد؛ گزینه Save as PDF را انتخاب کنید.';return}
+if(n==='تغییر حجم عکس'||n==='تبدیل JPG، PNG و WebP'||n==='ساخت عکس پرسنلی'||n==='ساخت عکس ۳×۴'||n==='برش عکس'||n==='چرخش عکس'){const f=g('f')?.files[0];if(!f)return o().textContent='تصویر را انتخاب کنید.';const im=new Image(),u=URL.createObjectURL(f);await new Promise((res,rej)=>{im.onload=res;im.onerror=rej;im.src=u});let w=im.naturalWidth,h=im.naturalHeight,deg=num(g('deg')?.value)||0;if(n==='ساخت عکس ۳×۴'||n==='ساخت عکس پرسنلی'){w=354;h=472}else if(g('w')?.value&&g('h')?.value){w=num(g('w').value);h=num(g('h').value)}const c=document.createElement('canvas');c.width=w;c.height=h;const ctx=c.getContext('2d');if(deg%360){c.width=h;c.height=w;ctx.translate(c.width/2,c.height/2);ctx.rotate(deg*Math.PI/180);ctx.drawImage(im,-w/2,-h/2,w,h)}else ctx.drawImage(im,0,0,w,h);const type=g('fmt')?.value||'image/jpeg';c.toBlob(b=>downloadBlob(b,'amnayar-image.'+(type==='image/png'?'png':type==='image/webp'?'webp':'jpg')),type,.86);URL.revokeObjectURL(u);o().textContent='فایل آماده شد.';return}
+if(n==='فشرده‌سازی چند عکس'){const fs=[...g('f').files];if(!fs.length)return o().textContent='عکس انتخاب کنید.';const z=new JSZip();for(const f of fs){const im=new Image(),u=URL.createObjectURL(f);await new Promise((res,rej)=>{im.onload=res;im.onerror=rej;im.src=u});const c=document.createElement('canvas'),scale=Math.min(1,1600/Math.max(im.naturalWidth,im.naturalHeight));c.width=im.naturalWidth*scale;c.height=im.naturalHeight*scale;c.getContext('2d').drawImage(im,0,0,c.width,c.height);const b=await new Promise(r=>c.toBlob(r,'image/jpeg',.7));z.file(f.name.replace(/\.[^.]+$/i,'.jpg'),b);URL.revokeObjectURL(u)}downloadBlob(await z.generateAsync({type:'blob'}),'amnayar-images.zip');o().textContent='ZIP آماده شد.';return}
+if(n==='تبدیل PDF به Word'||n==='تبدیل PDF به Excel'){const f=g('f').files[0];if(!f)return o().textContent='PDF را انتخاب کنید.';const pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise;let text='';for(let i=1;i<=pdf.numPages;i++){const p=await pdf.getPage(i),c=await p.getTextContent();text+=c.items.map(x=>x.str).join(' ')+'\n\n'}const blob=new Blob([text],{type:'text/plain;charset=utf-8'});downloadBlob(blob,n==='تبدیل PDF به Excel'?'amnayar-export.csv.txt':'amnayar-export.txt');o().textContent='متن PDF استخراج شد.';return}
+if(['چرخاندن صفحات PDF','حذف صفحات PDF','استخراج صفحات PDF','واترمارک PDF','شماره‌گذاری صفحات PDF'].includes(n)){const f=g('f').files[0];if(!f)return o().textContent='PDF را انتخاب کنید.';const doc=await PDFLib.PDFDocument.load(await f.arrayBuffer()),count=doc.getPageCount();if(n==='چرخاندن صفحات PDF'){const d=num(g('deg').value)||90;doc.getPages().forEach(p=>p.setRotation(PDFLib.degrees(d)));}else if(n==='حذف صفحات PDF'||n==='استخراج صفحات PDF'){const idx=parsePages(g('pages').value,count);if(!idx.length)return o().textContent='شماره صفحه معتبر وارد کنید.';if(n==='حذف صفحات PDF'){const del=new Set(idx);for(let i=count-1;i>=0;i--)if(del.has(i))doc.removePage(i)}else{const out=await PDFLib.PDFDocument.create();const pages=await out.copyPages(doc,idx);pages.forEach(p=>out.addPage(p));download(await out.save(),'amnayar-extracted.pdf','application/pdf');o().textContent='صفحات استخراج شدند.';return}}else if(n==='واترمارک PDF'){const t=g('water').value||'امنا یار';for(const p of doc.getPages())p.drawText(t,{x:30,y:30,size:18,opacity:.35})}else if(n==='شماره‌گذاری صفحات PDF'){doc.getPages().forEach((p,i)=>{const sz=p.getSize();p.drawText(String(i+1),{x:sz.width/2,y:20,size:12})})}download(await doc.save(),'amnayar-pdf-tool.pdf','application/pdf');o().textContent='PDF آماده شد.';return}
+if(n==='قفل‌گذاری PDF'||n==='حذف رمز PDF'||n==='امضای دیجیتال PDF'){o().textContent='این عملیات نیازمند رمزنگاری/امضای استاندارد PDF است و در نسخه مرورگری فعلی به‌صورت کامل پشتیبانی نمی‌شود.';return}
+}catch(e){console.error(e);o().textContent='عملیات انجام نشد؛ ورودی‌ها یا فایل را بررسی کنید.'}
+});
+}
+document.addEventListener('click',e=>{const b=e.target.closest('.tool-list button');if(!b)return;const n=b.textContent.trim();if(b.hasAttribute('onclick'))return;openUtility(n)});
+})();
