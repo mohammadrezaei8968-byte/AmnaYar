@@ -11,7 +11,14 @@ async function api(url,method='GET',body){const headers=body?{'Content-Type':'ap
 async function startCheck(kind){location.href='/?check='+encodeURIComponent(kind)+'#quick-check'}
 
 async function loadNavUser(){const box=document.getElementById('navActions');if(!box)return;const token=getStoredAuthToken();if(!token)return;try{const me=await api('/api/me');const user=me&& (me.user||me);if(!user||!user.username)return;const name=String(user.username);box.innerHTML='<span class="user-chip">سلام '+name+'</span><a class="btn soft" href="/dashboard.html">داشبورد</a><button class="btn ghost" onclick="logoutNav()">خروج</button>'}catch(e){}}
-async function logoutNav(){await api('/api/auth/logout','POST');location.reload()}
+async function logoutNav(){
+  try{await api('/api/auth/logout','POST')}catch(e){}
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+  localStorage.removeItem('amnayar_token');
+  localStorage.removeItem('amnayar_access_token');
+  localStorage.removeItem('auth_token');
+  location.href='/';
+}
 loadNavUser();
 
 // جستجوی داخلی سایت — بدون ارسال متن جستجو به سرور
