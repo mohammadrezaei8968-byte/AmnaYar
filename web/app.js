@@ -96,7 +96,7 @@ async function loadPublicConfig(){
   try{
     const cached=localStorage.getItem('amnayar_public_config');
     if(cached){try{applyPublicConfig(JSON.parse(cached));}catch(e){}}
-    const r=await fetch('/api/public-config?ts='+Date.now(),{cache:'no-store'}); if(!r.ok)return; const c=await r.json(); localStorage.setItem('amnayar_public_config',JSON.stringify(c)); applyPublicConfig(c);
+    const r=await fetch('/api/public-config',{cache:'no-cache'}); if(!r.ok)return; const c=await r.json(); localStorage.setItem('amnayar_public_config',JSON.stringify(c)); applyPublicConfig(c);
   }catch(e){}
 }
 function applyPublicConfig(c){
