@@ -90,18 +90,6 @@
 <section id="support" class="support"><div><span>پشتیبانی</span><h2>امنا یار را بهتر کنیم</h2><p>اگر سامانه رسمی یا استعلام پرکاربردی می‌شناسید، پیشنهادتان را برای ما بفرستید.</p><a class="btn light" href="/advertising.html">درخواست همکاری و تبلیغات</a></div><div class="support-card"><b>اینستاگرام امنا یار</b><p>آموزش‌های کوتاه و معرفی استعلام‌های کاربردی</p><a class="btn light" href="https://www.instagram.com/amnayar.2026/" target="_blank" rel="noopener">@amnayar.2026</a><a class="btn light" href="/en.html">English</a></div></section>
 <section class="section monetization-section monetization-bottom"><div class="ad-grid"><div class="ad-slot"><span class="ad-label">تبلیغات</span><div class="ad-placeholder"><b>تبلیغ برند شما</b><small>برای همکاری تبلیغاتی با امنا یار تماس بگیرید.</small></div></div><div class="ad-slot"><span class="ad-label">تبلیغات</span><div class="ad-placeholder"><b>جایگاه تبلیغاتی</b><small>نمایش بنری، همسان یا کمپین مستقیم.</small></div></div></div></section></main><footer><div class="brand"><img src="/assets/logo-amnayar.png"><span>امنا یار<small>مرکز خدمات، اعتبارسنجی و سامانه‌های رسمی</small></span></div><span>© ۱۴۰۵ امنا یار</span></footer>
 <div id="modal" class="modal hidden"><div class="modal-box"><button class="close" onclick="closeModal()">×</button><div id="modalContent"></div></div></div><script defer src="/api-config.js?v=3944"></script><script defer src="/ad-runtime.js?v=3935"></script><script defer src="/app.js?v=3940"></script><script>
-(async()=>{try{
- const r=await fetch('/api/public/tools?ts='+Date.now(),{cache:'no-store'}); if(!r.ok)return;
- const d=await r.json(), all=d.tools||[], map=new Map(all.map(t=>[t.slug,t]));
- document.querySelectorAll('.tool-tile[href^="/tools.html?tool="]').forEach(a=>{
-   const slug=((new URL(a.href,location.origin)).searchParams.get('tool')||''||''),t=map.get(slug);
-   a.style.display=(t&&t.enabled)?'':'none';
-   if(!t)return;
-   const b=a.querySelector('b'),strong=a.querySelector('strong'),small=a.querySelector('small');
-   if(b&&t.icon)b.textContent=t.icon; if(strong)strong.textContent=t.name; if(small)small.textContent=t.description;
- });
-}catch(e){console.warn('public tools config',e)}})();
-</script><script>
 (function(){
  const now=new Date();
  const fa=new Intl.DateTimeFormat('fa-IR-u-ca-persian',{weekday:'long',year:'numeric',month:'long',day:'numeric'}).format(now);
@@ -110,4 +98,16 @@
  if(p)p.textContent=fa;
  if(g)g.textContent='تاریخ میلادی: '+gr;
 })();
-</script><style>.site-language{display:inline-flex;align-items:center;gap:5px;padding:6px 8px;border:1px solid #d9e4f2;border-radius:11px;background:#fff;box-shadow:0 5px 16px rgba(20,70,120,.06)}.site-language span{font-size:15px}.site-language select{border:0;background:transparent;color:#173a62;font-size:11px;font-weight:800;outline:0;cursor:pointer;max-width:112px}@media(max-width:700px){.site-language{padding:5px 6px}.site-language select{max-width:82px;font-size:10px}}.goog-te-banner-frame.skiptranslate{display:none!important}body{top:0!important}.goog-tooltip,.goog-tooltip:hover{display:none!important}.goog-text-highlight{background:transparent!important;box-shadow:none!important}.goog-te-gadget{font-size:0!important}</style><div id="google_translate_element" style="display:none"></div><script>function googleTranslateElementInit(){new google.translate.TranslateElement({pageLanguage:'fa',includedLanguages:'en,zh-CN,hi,es,ar,fr,bn,pt,ru,tr,ja,ko,de,it,ur',autoDisplay:false},'google_translate_element');}window.addEventListener('DOMContentLoaded',function(){const s=document.getElementById('siteLanguage');if(!s)return;s.addEventListener('change',function(){const v=this.value;if(v==='fa'){document.cookie='googtrans=/fa/fa;path=/';location.reload();return}document.cookie='googtrans=/fa/'+v+';path=/';location.reload();});});</script><script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" async></script></body></html>
+</script><style>.site-language{display:inline-flex;align-items:center;gap:5px;padding:6px 8px;border:1px solid #d9e4f2;border-radius:11px;background:#fff;box-shadow:0 5px 16px rgba(20,70,120,.06)}.site-language span{font-size:15px}.site-language select{border:0;background:transparent;color:#173a62;font-size:11px;font-weight:800;outline:0;cursor:pointer;max-width:112px}@media(max-width:700px){.site-language{padding:5px 6px}.site-language select{max-width:82px;font-size:10px}}.goog-te-banner-frame.skiptranslate{display:none!important}body{top:0!important}.goog-tooltip,.goog-tooltip:hover{display:none!important}.goog-text-highlight{background:transparent!important;box-shadow:none!important}.goog-te-gadget{font-size:0!important}</style><div id="google_translate_element" style="display:none"></div><script>function googleTranslateElementInit(){new google.translate.TranslateElement({pageLanguage:'fa',includedLanguages:'en,zh-CN,hi,es,ar,fr,bn,pt,ru,tr,ja,ko,de,it,ur',autoDisplay:false},'google_translate_element');}window.addEventListener('DOMContentLoaded',function(){const s=document.getElementById('siteLanguage');if(!s)return;s.addEventListener('change',function(){const v=this.value;if(window.loadGoogleTranslate)window.loadGoogleTranslate();if(v==='fa'){document.cookie='googtrans=/fa/fa;path=/';location.reload();return}document.cookie='googtrans=/fa/'+v+';path=/';location.reload();});});</script><script>
+(function(){
+  let loaded=false;
+  window.loadGoogleTranslate=function(){
+    if(loaded)return;
+    loaded=true;
+    const s=document.createElement('script');
+    s.src='https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+    s.async=true;
+    document.head.appendChild(s);
+  };
+})();
+</script></body></html>
