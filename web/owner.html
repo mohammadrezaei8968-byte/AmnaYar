@@ -39,14 +39,11 @@ async function ownerLogin(e){
   const err=$("ownerLoginError"), btn=$("ownerLoginBtn");
   if(err){err.textContent="";err.style.display="none";}
   if(!email||!password){
-    if(err){err.textContent="ایمیل و رمز مالک را وارد کنید.";err.style.display="block";}
+    if(err){err.textContent="ایمیل/نام کاربری و رمز عبور را وارد کنید.";err.style.display="block";}
     return false;
   }
   if(btn){btn.disabled=true;btn.textContent="در حال ورود...";}
-  // اول از مسیر /api روی دامنه اصلی استفاده می‌کنیم؛ این مسیر در Render به API متصل است.
-  // در صورت خطای شبکه/سرور، دو مسیر مستقیم API نیز امتحان می‌شوند.
   const endpoints=[
-    "/api/owner/login",
     "https://api.amnayar.ir/api/owner/login",
     "https://amnayar-api.onrender.com/api/owner/login"
   ];
@@ -54,27 +51,24 @@ async function ownerLogin(e){
   try{
     for(const url of endpoints){
       try{
-        const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({email,password}),cache:"no-store"});
+        const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({email,password}),cache:"no-store",credentials:"omit"});
         const type=(r.headers.get("content-type")||"").toLowerCase();
-        let data=null;
-        if(type.includes("application/json")){data=await r.json();}
-        else {await r.text();}
-        if(data?.ok&&data.token){
+        const data=type.includes("application/json")?await r.json():{};
+        if(r.ok&&data?.ok&&data.token){
           localStorage.setItem(OWNER_TOKEN_KEY,data.token);
           hideOwnerLogin();
           if(err){err.textContent="";err.style.display="none";}
           await refreshOwnerDashboard().catch(()=>{});
           return false;
         }
-        if(data?.message||data?.error){
-          lastMessage=data.message||data.error;
-          if(r.status===401||r.status===403) break;
-        } else if(r.status>=500){lastMessage="سرور موقتاً در دسترس نیست.";}
-      }catch(ex){
-        continue;
-      }
+        lastMessage=data?.message||data?.error||("خطای ورود ("+r.status+")");
+        if(r.status===401||r.status===403) break;
+      }catch(ex){lastMessage="ارتباط با API برقرار نشد.";}
     }
-    if(err){err.textContent=lastMessage==="owner_login_invalid"?"ایمیل یا رمز مالک نادرست است.":lastMessage;err.style.display="block";}
+    if(err){
+      err.textContent=lastMessage==="owner_login_invalid"?"ایمیل/نام کاربری یا رمز مدیریت نادرست است.":lastMessage;
+      err.style.display="block";
+    }
   }finally{
     if(btn){btn.disabled=false;btn.textContent="ورود به پنل مالک";}
   }
