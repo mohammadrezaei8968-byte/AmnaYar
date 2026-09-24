@@ -57,6 +57,19 @@ CREATE TABLE IF NOT EXISTS audit_logs(id INTEGER PRIMARY KEY AUTOINCREMENT, user
 CREATE TABLE IF NOT EXISTS payment_events(id INTEGER PRIMARY KEY AUTOINCREMENT, provider TEXT NOT NULL, event_id TEXT UNIQUE NOT NULL, order_id TEXT, raw_hash TEXT NOT NULL, created_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS sales_channels(id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT UNIQUE NOT NULL, title TEXT NOT NULL, enabled INTEGER NOT NULL DEFAULT 1, purchase_enabled INTEGER NOT NULL DEFAULT 1, app_download_enabled INTEGER NOT NULL DEFAULT 1, webhook_enabled INTEGER NOT NULL DEFAULT 0, notes TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS login_logs(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, identifier TEXT, username TEXT, email TEXT, success INTEGER NOT NULL DEFAULT 0, ip TEXT, user_agent TEXT, request_id TEXT, created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS analytics_events(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  event_type TEXT NOT NULL,
+  path TEXT NOT NULL,
+  visitor_hash TEXT NOT NULL,
+  session_id TEXT,
+  user_id INTEGER,
+  meta_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_created ON analytics_events(created_at);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_type_created ON analytics_events(event_type,created_at);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_path ON analytics_events(path);
 `);
 
 // Lightweight migrations for existing databases.
@@ -684,7 +697,49 @@ const defaultOwnerTools=[{slug:"calculator",name:"محاسبات روزمره",d
 app.get("/api/owner/tools",ownerAuth,(req,res)=>res.json({tools:ownerJsonSetting("owner_tools",defaultOwnerTools)}));
 app.patch("/api/owner/tools/:slug",ownerAuth,(req,res)=>{const tools=ownerJsonSetting("owner_tools",defaultOwnerTools),t=tools.find(x=>x.slug===req.params.slug);if(!t)return res.status(404).json({error:"tool_not_found"});for(const k of ["name","description","category","sort_order","enabled"])if(req.body[k]!==undefined)t[k]=k==="sort_order"?Number(req.body[k]):k==="enabled"?!!req.body[k]:String(req.body[k]);saveOwnerSetting("owner_tools",tools);res.json({ok:true,tool:t})});
 app.post("/api/owner/tools/reorder",ownerAuth,(req,res)=>{const tools=ownerJsonSetting("owner_tools",defaultOwnerTools),items=Array.isArray(req.body.items)?req.body.items:[];items.forEach((x,i)=>{const t=tools.find(y=>y.slug===x.slug);if(t)t.sort_order=i+1});saveOwnerSetting("owner_tools",tools);res.json({ok:true})});
-app.get("/api/owner/analytics",ownerAuth,(req,res)=>{const days=Math.max(1,Math.min(90,Number(req.query.days||30)));res.json({totals:{views:0,tool_uses:0,checks:db.prepare("SELECT COUNT(*) c FROM verifications").get().c},days:[],paths:[],tools:[]})});
+function analyticsVisitorHash(req){
+  const ip=String(req.ip||"").slice(0,120);
+  const ua=String(req.get("user-agent")||"").slice(0,300);
+  return crypto.createHash("sha256").update(ip+"|"+ua+"|"+SECRET).digest("hex");
+}
+function buildAnalytics(days){
+  const n=Math.max(1,Math.min(90,Number(days||30)));
+  const start=new Date(Date.now()-n*86400000).toISOString();
+  const eventBase=db.prepare("SELECT event_type,path,visitor_hash,session_id,meta_json,created_at FROM analytics_events WHERE created_at>=?").all(start);
+  const successLogins=db.prepare("SELECT user_id,created_at FROM login_logs WHERE success=1 AND created_at>=?").all(start);
+  const registrations=db.prepare("SELECT id,created_at FROM users WHERE created_at>=?").all(start);
+  const checks=db.prepare("SELECT id,user_id,type,created_at FROM verifications WHERE created_at>=?").all(start);
+  const paid=db.prepare("SELECT id,user_id,amount_toman,store,created_at FROM purchases WHERE status='paid' AND created_at>=?").all(start);
+  const dayKey=d=>d.toISOString().slice(0,10);
+  const daysMap=new Map();
+  for(let i=n-1;i>=0;i--){const d=new Date(Date.now()-i*86400000);daysMap.set(dayKey(d),{day:dayKey(d),views:0,visitors:0,logins:0,registrations:0,checks:0,orders:0,revenue:0,_visitors:new Set()});}
+  for(const e of eventBase){
+    const k=String(e.created_at).slice(0,10),row=daysMap.get(k); if(!row)continue;
+    if(e.event_type==="page_view"){row.views++;row._visitors.add(e.visitor_hash)}
+  }
+  for(const x of successLogins){const row=daysMap.get(String(x.created_at).slice(0,10));if(row)row.logins++}
+  for(const x of registrations){const row=daysMap.get(String(x.created_at).slice(0,10));if(row)row.registrations++}
+  for(const x of checks){const row=daysMap.get(String(x.created_at).slice(0,10));if(row)row.checks++}
+  for(const x of paid){const row=daysMap.get(String(x.created_at).slice(0,10));if(row){row.orders++;row.revenue+=Number(x.amount_toman||0)}}
+  const dayRows=[...daysMap.values()].map(x=>{const y={...x,visitors:x._visitors.size};delete y._visitors;return y});
+  const paths=db.prepare("SELECT path,COUNT(*) views,COUNT(DISTINCT visitor_hash) visitors FROM analytics_events WHERE event_type='page_view' AND created_at>=? GROUP BY path ORDER BY views DESC LIMIT 20").all(start);
+  const toolRows=db.prepare("SELECT meta_json FROM analytics_events WHERE event_type='tool_use' AND created_at>=?").all(start);
+  const toolMap=new Map();
+  for(const r of toolRows){try{const m=JSON.parse(r.meta_json||"{}");const key=String(m.tool||m.name||"نامشخص").slice(0,120);toolMap.set(key,(toolMap.get(key)||0)+1)}catch{}}
+  const tools=[...toolMap.entries()].map(([name,uses])=>({name,uses})).sort((a,b)=>b.uses-a.uses).slice(0,20);
+  const totals={
+    views:eventBase.filter(e=>e.event_type==="page_view").length,
+    visitors:new Set(eventBase.filter(e=>e.event_type==="page_view").map(e=>e.visitor_hash)).size,
+    tool_uses:eventBase.filter(e=>e.event_type==="tool_use").length,
+    logins:successLogins.length,
+    registrations:registrations.length,
+    checks:checks.length,
+    orders:paid.length,
+    revenue_toman:paid.reduce((s,x)=>s+Number(x.amount_toman||0),0)
+  };
+  return {days:dayRows,paths,tools,totals,period_days:n,generated_at:now()};
+}
+app.get("/api/owner/analytics",ownerAuth,(req,res)=>{const days=Math.max(1,Math.min(90,Number(req.query.days||30)));res.json(buildAnalytics(days))});
 app.get("/api/owner/export.xlsx",ownerAuth,(req,res)=>{const esc=x=>String(x??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");const users=db.prepare("SELECT id,username,email,credits,active,role,created_at FROM users ORDER BY id DESC").all();const rows=users.map(x=>"<tr>"+[x.id,x.username,x.email,x.credits,x.active?"فعال":"غیرفعال",x.role||"user",x.created_at].map(v=>"<td>"+esc(v)+"</td>").join("")+"</tr>").join("");const html="\\ufeff<!doctype html><meta charset='utf-8'><table border='1'><tr><th>شناسه</th><th>نام کاربری</th><th>ایمیل</th><th>اعتبار</th><th>وضعیت</th><th>نقش</th><th>تاریخ ثبت</th></tr>"+rows+"</table>";res.setHeader("Content-Type","application/vnd.ms-excel; charset=utf-8");res.setHeader("Content-Disposition",'attachment; filename="amnayar-owner-report.xls"');res.send(html)});
 
 
@@ -712,9 +767,25 @@ app.get("/api/owner/audit",ownerAuth,(req,res)=>{
 
 
 
+app.post("/api/analytics/event",rateLimit({windowMs:60*1000,max:90,standardHeaders:true,legacyHeaders:false}),(req,res)=>{
+  try{
+    const type=String(req.body?.event_type||"").trim();
+    if(!["page_view","tool_use","click","session_start"].includes(type)) return res.status(400).json({error:"invalid_event"});
+    const path=String(req.body?.path||"/").slice(0,300);
+    const sessionId=String(req.body?.session_id||"").slice(0,120)||null;
+    const userId=Number.isInteger(Number(req.body?.user_id))?Number(req.body.user_id):null;
+    const meta=req.body?.meta&&typeof req.body.meta==="object"?req.body.meta:{};
+    const safeMeta={};
+    for(const [k,v] of Object.entries(meta)) if(["tool","name","label","category","referrer"].includes(k)) safeMeta[k]=String(v??"").slice(0,200);
+    db.prepare("INSERT INTO analytics_events(event_type,path,visitor_hash,session_id,user_id,meta_json,created_at) VALUES(?,?,?,?,?,?,?)")
+      .run(type,path,analyticsVisitorHash(req),sessionId,userId,JSON.stringify(safeMeta),now());
+    res.status(204).end();
+  }catch(e){res.status(204).end()}
+});
 app.post("/api/admin/login", rateLimit({windowMs:15*60*1000,max:10,standardHeaders:true,legacyHeaders:false}),(req,res)=>{const isForm=req.is("application/x-www-form-urlencoded");const username=String(req.body.username||req.body.email||"").trim();const password=String(req.body.password||"");const adminMatch=Boolean(ADMIN_USERNAME&&ADMIN_PASSWORD_HASH)&&username===ADMIN_USERNAME&&(()=>{try{return bcrypt.compareSync(password,ADMIN_PASSWORD_HASH)}catch{return false}})();const ownerMatch=Boolean(OWNER_EMAIL&&OWNER_PASSWORD)&&username.toLowerCase()===OWNER_EMAIL&&password===OWNER_PASSWORD;if(!adminMatch&&!ownerMatch)return res.status(401).json({error:"اطلاعات مدیر نادرست است"});const token=jwt.sign({admin:true,owner:ownerMatch,username:ownerMatch?OWNER_EMAIL:ADMIN_USERNAME},SECRET,{expiresIn:"8h"});if(isForm)return res.redirect(303,"https://amnayar.ir/admin-panel#admin_token="+encodeURIComponent(token));res.json({token});});
 
-app.get("/api/admin/summary",adminAuth,(req,res)=>{const users=db.prepare("SELECT COUNT(*) c FROM users").get().c;const active=db.prepare("SELECT COUNT(*) c FROM users WHERE active=1").get().c;const checks=db.prepare("SELECT COUNT(*) c FROM verifications").get().c;const sales=db.prepare("SELECT COALESCE(SUM(amount_toman),0) s FROM purchases WHERE status='paid'").get().s;const pending=db.prepare("SELECT COUNT(*) c FROM purchases WHERE status='pending'").get().c;res.json({users,active,verifications:checks,sales_toman:sales,pending_purchases:pending});});
+app.get("/api/admin/summary",adminAuth,(req,res)=>{const users=db.prepare("SELECT COUNT(*) c FROM users").get().c;const active=db.prepare("SELECT COUNT(*) c FROM users WHERE active=1").get().c;const checks=db.prepare("SELECT COUNT(*) c FROM verifications").get().c;const sales=db.prepare("SELECT COALESCE(SUM(amount_toman),0) s FROM purchases WHERE status='paid'").get().s;const pending=db.prepare("SELECT COUNT(*) c FROM purchases WHERE status='pending'").get().c;const today=new Date().toISOString().slice(0,10);const todayUsers=db.prepare("SELECT COUNT(*) c FROM users WHERE substr(created_at,1,10)=?").get(today).c;const todayChecks=db.prepare("SELECT COUNT(*) c FROM verifications WHERE substr(created_at,1,10)=?").get(today).c;const todayViews=db.prepare("SELECT COUNT(*) c FROM analytics_events WHERE event_type='page_view' AND substr(created_at,1,10)=?").get(today).c;res.json({users,active,verifications:checks,sales_toman:sales,pending_purchases:pending,today_users:todayUsers,today_checks:todayChecks,today_views:todayViews});});
+app.get("/api/admin/analytics",adminAuth,(req,res)=>{res.json(buildAnalytics(req.query.days||30));});
 app.get("/api/admin/users",adminAuth,(req,res)=>res.json(db.prepare("SELECT id,public_id,username,credits,active,created_at FROM users ORDER BY id DESC LIMIT 500").all()));
 app.post("/api/admin/users/:id/credits",adminAuth,(req,res)=>{const amount=Number(req.body.amount||0);if(!Number.isInteger(amount)||amount===0||Math.abs(amount)>1000000)return res.status(400).json({error:"invalid_amount"});db.prepare("UPDATE users SET credits=MAX(0,credits+?) WHERE id=?").run(amount,req.params.id);res.json({ok:true});});
 app.post("/api/admin/users/:id/status",adminAuth,(req,res)=>{db.prepare("UPDATE users SET active=? WHERE id=?").run(req.body.active?1:0,req.params.id);res.json({ok:true});});
