@@ -637,9 +637,6 @@ function ownerAuth(req,res,next){
     req.owner=token; next();
   }catch{res.status(401).json({error:"owner_auth_required"});}
 }
-    return res.status(403).json({error:"owner_required"});
-  }catch(e){ return res.status(401).json({error:"owner_auth_required"}); }
-}
 
 app.post("/api/owner/login", rateLimit({windowMs:15*60*1000,max:10,standardHeaders:true,legacyHeaders:false}),(req,res)=>{
   const isForm=req.is("application/x-www-form-urlencoded");
