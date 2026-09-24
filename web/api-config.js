@@ -77,5 +77,38 @@
         form.setAttribute('action', normalizeApiUrl(action));
       }
     });
+
+    // Privacy-conscious first-party analytics. We store only a short-lived
+    // session id in sessionStorage; the server hashes IP + user-agent.
+    try {
+      const path = location.pathname || '/';
+      if (!path.startsWith('/admin-panel') && !path.startsWith('/owner')) {
+        let sid = sessionStorage.getItem('amna_analytics_session');
+        if (!sid) {
+          sid = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random());
+          sessionStorage.setItem('amna_analytics_session', sid);
+        }
+        const send = (event_type, meta={}) => {
+          const payload = JSON.stringify({event_type,path,session_id:sid,meta});
+          nativeFetch(CUSTOM_API + '/api/analytics/event', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:payload,
+            keepalive:true,
+            mode:'cors'
+          }).catch(()=>{});
+        };
+        send('page_view', {referrer: document.referrer || ''});
+        if (path.includes('/tools')) {
+          document.addEventListener('click', ev => {
+            const button = ev.target.closest?.('button');
+            const panel = ev.target.closest?.('.tool-panel');
+            if (!button || !panel || !panel.id) return;
+            const label = String(button.textContent || '').trim();
+            send('tool_use', {tool:panel.id,name:label});
+          }, {passive:true});
+        }
+      }
+    } catch {}
   });
 })();
