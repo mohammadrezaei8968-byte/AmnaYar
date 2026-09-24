@@ -781,3 +781,10 @@ body:has(.tool-panel) main.section:before{opacity:.35!important}
 }
 
 
+
+/* AmnaYar live 3D logo */
+.brand{perspective:900px}
+.brand img{transform-origin:center;transform-style:preserve-3d;animation:amnayarLogoFloat 5.5s ease-in-out infinite;filter:drop-shadow(0 9px 18px rgba(9,42,86,.22));will-change:transform,filter}
+.brand:hover img{animation-play-state:paused;transform:perspective(900px) rotateY(-12deg) rotateX(5deg) translateY(-2px) scale(1.06);filter:drop-shadow(0 15px 26px rgba(9,42,86,.30)) brightness(1.06)}
+@keyframes amnayarLogoFloat{0%,100%{transform:perspective(900px) translateY(0) rotateY(-2deg) rotateX(0deg) scale(1)}25%{transform:perspective(900px) translateY(-3px) rotateY(3deg) rotateX(1.5deg) scale(1.015)}50%{transform:perspective(900px) translateY(0) rotateY(0deg) rotateX(-1deg) scale(1.025)}75%{transform:perspective(900px) translateY(-2px) rotateY(-3deg) rotateX(1deg) scale(1.015)}}
+@media (prefers-reduced-motion:reduce){.brand img{animation:none!important;transition:none!important}}
