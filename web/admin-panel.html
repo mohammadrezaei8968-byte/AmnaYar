@@ -137,7 +137,34 @@ async function api(path,opt={}){const h=new Headers(opt.headers||{});if(token())
 function consumeToken(){const m=location.hash.match(/(?:^|#|&)admin_token=([^&]+)/);if(!m)return false;try{localStorage.setItem(TOKEN_KEY,decodeURIComponent(m[1]));history.replaceState(null,"",location.pathname+location.search)}catch{}return true}
 function showTab(id){document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.id===id));document.querySelectorAll(".menu button").forEach(x=>x.classList.toggle("active",x.dataset.tab===id));$("pageTitle").textContent=titles[id][0];$("pageSub").textContent=titles[id][1];if(id==="dashboard")loadDashboard();if(id==="analytics")loadAnalytics();if(id==="users")loadUsers();if(id==="reports")loadReports();if(id==="sales")loadSales();if(id==="packages")loadPackages();if(id==="devices")loadDevices();if(id==="channels")loadChannels();if(id==="tools")loadTools();if(id==="system")loadSystem();if(id==="settings")loadSettings()}
 document.querySelectorAll(".menu button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
-$("loginForm").addEventListener("submit",e=>{e.preventDefault();$("loginErr").className="notice error";e.currentTarget.submit()});
+$("loginForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const form=e.currentTarget,btn=form.querySelector("button[type=submit]");
+  const username=$("username").value.trim(),password=$("password").value;
+  $("loginErr").className="notice";
+  $("loginErr").textContent="";
+  btn.disabled=true;btn.textContent="در حال ورود...";
+  try{
+    const r=await fetch(API+"/api/admin/login",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Accept":"application/json"},
+      body:JSON.stringify({username,password}),
+      cache:"no-store"
+    });
+    let j={};try{j=await r.json()}catch{}
+    if(!r.ok)throw new Error(j.error||"ورود به پنل مدیریت انجام نشد.");
+    if(!j.token)throw new Error("توکن مدیریت از سرور دریافت نشد.");
+    localStorage.setItem(TOKEN_KEY,j.token);
+    form.reset();
+    showApp();
+    await loadDashboard();
+  }catch(err){
+    $("loginErr").textContent=err.message||"خطا در ورود";
+    $("loginErr").className="notice error show";
+  }finally{
+    btn.disabled=false;btn.textContent="ورود به مدیریت";
+  }
+});
 async function loadDashboard(){try{const [s,p,d,c]=await Promise.all([api("/api/admin/summary"),api("/api/admin/packages"),api("/api/admin/devices"),api("/api/admin/channels")]);$("kUsers").textContent=num(s.users);$("kActive").textContent=num(s.active);$("kChecks").textContent=num(s.verifications);$("kSales").textContent=num(s.sales_toman)+" تومان";$("kPending").textContent=num(s.pending_purchases);$("kPackages").textContent=num(p.length);$("kDevices").textContent=num(d.length);$("kChannels").textContent=num(c.filter(x=>x.enabled).length);$("pageSub").textContent="امروز: "+num(s.today_views)+" بازدید صفحه، "+num(s.today_users)+" ثبت‌نام و "+num(s.today_checks)+" استعلام"}catch(e){if(e.message!=="unauthorized")msg(e.message,true)}}
 function chartBar(label,value,max,extra=""){const pct=max?Math.max(3,Math.round(Number(value||0)/max*100)):3;return "<div class='statline'><span><b>"+esc(label)+"</b>"+(extra?"<br><small class='muted'>"+esc(extra)+"</small>":"")+"</span><span style='min-width:190px;text-align:left'><b>"+num(value)+"</b><div class='bar'><i style='width:"+pct+"%'></i></div></span></div>"}
 async function loadAnalytics(){
