@@ -633,38 +633,33 @@ function ownerAuth(req,res,next){
   try{
     const h=req.headers.authorization||"";
     const token=jwt.verify(h.startsWith("Bearer ")?h.slice(7):"",SECRET);
-    if(token && token.admin && token.owner) { req.owner=token; return next(); }
+    if(token.admin!==true || token.owner!==true) throw 0;
+    req.owner=token; next();
+  }catch{res.status(401).json({error:"owner_auth_required"});}
+}
     return res.status(403).json({error:"owner_required"});
   }catch(e){ return res.status(401).json({error:"owner_auth_required"}); }
 }
 
 app.post("/api/owner/login", rateLimit({windowMs:15*60*1000,max:10,standardHeaders:true,legacyHeaders:false}),(req,res)=>{
   const isForm=req.is("application/x-www-form-urlencoded");
-  const identifier=String(req.body.email||req.body.identifier||req.body.username||"").trim().toLowerCase();
+  const identifier=String(req.body.email||req.body.identifier||req.body.username||"").trim();
+  const normalizedIdentifier=identifier.toLowerCase();
   const password=String(req.body.password||"");
-  const fail=(status,error,message)=>{
-    if(isForm) return res.redirect(303,"https://amnayar.ir/owner#owner_error="+encodeURIComponent(message));
-    return res.status(status).json({error,message});
-  };
-
-  // مالک می‌تواند با OWNER_EMAIL/OWNER_PASSWORD وارد شود.
-  // برای جلوگیری از قفل شدن پنل، ADMIN_USERNAME/ADMIN_PASSWORD_HASH
-  // نیز به‌عنوان مسیر پشتیبان معتبر است؛ رمز ادمین به‌صورت bcrypt بررسی می‌شود.
-  const ownerConfigured=Boolean(OWNER_EMAIL && OWNER_PASSWORD);
-  const ownerMatch=ownerConfigured && identifier===OWNER_EMAIL && password===OWNER_PASSWORD;
+  const ownerMatch=Boolean(OWNER_EMAIL && OWNER_PASSWORD) && normalizedIdentifier===OWNER_EMAIL && password===OWNER_PASSWORD;
   let adminMatch=false;
-  if(ADMIN_USERNAME && ADMIN_PASSWORD_HASH && identifier===String(ADMIN_USERNAME).trim().toLowerCase()){
-    try{ adminMatch=bcrypt.compareSync(password,ADMIN_PASSWORD_HASH); }catch(e){ adminMatch=false; }
+  if(ADMIN_USERNAME && ADMIN_PASSWORD_HASH){
+    try{adminMatch=normalizedIdentifier===String(ADMIN_USERNAME).trim().toLowerCase() && bcrypt.compareSync(password,ADMIN_PASSWORD_HASH);}catch{}
   }
-  if(!ownerConfigured && !ADMIN_PASSWORD_HASH){
-    return fail(503,"owner_credentials_not_configured","مشخصات ورود مدیریت در Environment Variables تنظیم نشده است.");
-  }
-  if(!ownerMatch && !adminMatch) return fail(401,"owner_login_invalid","ایمیل/نام کاربری یا رمز مدیریت نادرست است.");
-
-  const username=ownerMatch?OWNER_EMAIL:String(ADMIN_USERNAME||identifier);
+  const authenticated=ownerMatch||adminMatch;
+  const username=ownerMatch?OWNER_EMAIL:String(ADMIN_USERNAME||OWNER_EMAIL||identifier);
+  const email=OWNER_EMAIL||null;
+  const fail=(status,error,message)=>{db.prepare("INSERT INTO login_logs(identifier,username,email,success,ip,user_agent,request_id,created_at) VALUES(?,?,?,?,?,?,?,?)").run(identifier,identifier,email,0,req.ip,req.headers["user-agent"]||"",req.requestId,now());return res.status(status).json({error,message});};
+  if(!authenticated)return fail(401,"owner_login_invalid","ایمیل/نام کاربری یا رمز مدیریت نادرست است.");
   const token=jwt.sign({admin:true,owner:true,username},SECRET,{expiresIn:"8h"});
-  if(isForm) return res.redirect(303,"https://amnayar.ir/owner#owner_token="+encodeURIComponent(token));
-  res.json({ok:true,token,user:{username,email:ownerMatch?OWNER_EMAIL:null,role:"owner"},role:"owner"});
+  db.prepare("INSERT INTO login_logs(identifier,username,email,success,ip,user_agent,request_id,created_at) VALUES(?,?,?,?,?,?,?,?)").run(identifier,username,email,1,req.ip,req.headers["user-agent"]||"",req.requestId,now());
+  if(isForm)return res.redirect(303,"https://amnayar.ir/owner#owner_token="+encodeURIComponent(token));
+  res.json({ok:true,token,user:{username,email,role:"owner"},role:"owner"});
 });
 
 app.get("/api/owner/me",ownerAuth,(req,res)=>res.json({ok:true,user:{username:req.owner?.username||OWNER_EMAIL||ADMIN_USERNAME,email:OWNER_EMAIL||null,role:"owner"}}));
