@@ -727,6 +727,7 @@ function buildAnalytics(days){
   const toolMap=new Map();
   for(const r of toolRows){try{const m=JSON.parse(r.meta_json||"{}");const key=String(m.tool||m.name||"نامشخص").slice(0,120);toolMap.set(key,(toolMap.get(key)||0)+1)}catch{}}
   const tools=[...toolMap.entries()].map(([name,uses])=>({name,uses})).sort((a,b)=>b.uses-a.uses).slice(0,20);
+  const recent_logins=db.prepare("SELECT username,email,identifier,success,created_at FROM login_logs ORDER BY id DESC LIMIT 20").all();
   const totals={
     views:eventBase.filter(e=>e.event_type==="page_view").length,
     visitors:new Set(eventBase.filter(e=>e.event_type==="page_view").map(e=>e.visitor_hash)).size,
@@ -737,7 +738,7 @@ function buildAnalytics(days){
     orders:paid.length,
     revenue_toman:paid.reduce((s,x)=>s+Number(x.amount_toman||0),0)
   };
-  return {days:dayRows,paths,tools,totals,period_days:n,generated_at:now()};
+  return {days:dayRows,paths,tools,recent_logins,totals,period_days:n,generated_at:now()};
 }
 app.get("/api/owner/analytics",ownerAuth,(req,res)=>{const days=Math.max(1,Math.min(90,Number(req.query.days||30)));res.json(buildAnalytics(days))});
 app.get("/api/owner/export.xlsx",ownerAuth,(req,res)=>{const esc=x=>String(x??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");const users=db.prepare("SELECT id,username,email,credits,active,role,created_at FROM users ORDER BY id DESC").all();const rows=users.map(x=>"<tr>"+[x.id,x.username,x.email,x.credits,x.active?"فعال":"غیرفعال",x.role||"user",x.created_at].map(v=>"<td>"+esc(v)+"</td>").join("")+"</tr>").join("");const html="\\ufeff<!doctype html><meta charset='utf-8'><table border='1'><tr><th>شناسه</th><th>نام کاربری</th><th>ایمیل</th><th>اعتبار</th><th>وضعیت</th><th>نقش</th><th>تاریخ ثبت</th></tr>"+rows+"</table>";res.setHeader("Content-Type","application/vnd.ms-excel; charset=utf-8");res.setHeader("Content-Disposition",'attachment; filename="amnayar-owner-report.xls"');res.send(html)});
