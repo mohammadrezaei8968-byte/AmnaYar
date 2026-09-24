@@ -36,22 +36,18 @@ function ownerLoginErrorMessage(r){const code=String(r?.error||"");if(code==="ow
 
 async function ownerLoginSubmit(e){
   if(e)e.preventDefault();
+  const form=e?.currentTarget||document.getElementById("ownerLoginForm");
   const btn=document.getElementById("ownerLoginBtn"),err=document.getElementById("ownerLoginError");
   const identifier=String(document.getElementById("ownerEmail")?.value||"").trim();
   const password=String(document.getElementById("ownerPassword")?.value||"");
   if(!identifier||!password){showOwnerLogin("ایمیل/نام کاربری و رمز عبور را وارد کنید.");return false}
-  btn.disabled=true;btn.textContent="در حال ورود...";err.textContent="";err.style.display="none";
-  try{
-    const r=await api(OWNER_LOGIN_API+"/api/owner/login",{method:"POST",body:JSON.stringify({email:identifier,identifier,username:identifier,password})});
-    if(!r?.token){showOwnerLogin(ownerLoginErrorMessage(r));return false}
-    localStorage.setItem(OWNER_TOKEN_KEY,r.token);
-    const me=await api("/api/owner/me");
-    if(!me?.ok){localStorage.removeItem(OWNER_TOKEN_KEY);showOwnerLogin(ownerLoginErrorMessage(me));return false}
-    hideOwnerLogin();
-    await refreshOwnerDashboard();
-  }catch(e){
-    showOwnerLogin(e?.name==="AbortError"?"زمان اتصال به سرور تمام شد. لطفاً دوباره تلاش کنید.":e?.message==="Failed to fetch"?"ارتباط با سرور برقرار نشد. لطفاً دوباره تلاش کنید.":"خطا در ورود به پنل مدیریت؛ لطفاً دوباره تلاش کنید.");
-  }finally{btn.disabled=false;btn.textContent="ورود به پنل مالک"}
+  err.textContent="";err.style.display="none";btn.disabled=true;btn.textContent="در حال ورود...";
+  // ارسال native به API: بدون fetch/CORS و با redirect امن به /owner#owner_token.
+  if(form){
+    form.setAttribute("action","https://api.amnayar.ir/api/owner/login");
+    form.setAttribute("method","post");
+    form.submit();
+  }
   return false;
 }
 
@@ -59,7 +55,13 @@ function showTab(id){document.querySelectorAll('.owner-tab').forEach(x=>x.classL
 document.querySelectorAll('.owner-menu button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));document.querySelectorAll('[id^=set_]').forEach(el=>el.addEventListener('input',updateContentPreview));
 function consumeOwnerLoginHash(){const hash=location.hash||"";if(!hash.includes("owner_token="))return;const p=new URLSearchParams(hash.replace(/^#/,""));const token=p.get("owner_token");if(token){localStorage.setItem(OWNER_TOKEN_KEY,token);history.replaceState(null,"",location.pathname+location.search)}const error=p.get("owner_error");if(error){const el=document.getElementById("ownerLoginError");if(el)el.textContent=error;history.replaceState(null,"",location.pathname+location.search)}}
 consumeOwnerLoginHash();
-(async function bootstrapOwner(){if(!ownerToken()){showOwnerLogin();return}const r=await api('/api/owner/me');if(r.error){showOwnerLogin();return}hideOwnerLogin();refreshOwnerDashboard().catch(()=>{})})();
+(async function bootstrapOwner(){
+  if(!ownerToken()){showOwnerLogin();return}
+  // توکن پس از redirect از API در hash ذخیره شده؛ برای نمایش پنل نیازی به
+  // درخواست /me در همین مرحله نیست. اولین درخواست داشبورد توکن را اعتبارسنجی می‌کند.
+  hideOwnerLogin();
+  try{await refreshOwnerDashboard()}catch(e){showOwnerLogin("نشست مدیریت معتبر نیست یا ارتباط با API برقرار نشد.") }
+})();
 function notice(t,error=false){$('notice').textContent=t;$('notice').className='notice show '+(error?'error':'success');setTimeout(()=>$('notice').className='notice',3500)}
 function fmtNum(v){return Number(v||0).toLocaleString('fa-IR')} function relTime(v){try{return new Date(v).toLocaleString('fa-IR',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}catch{return '—'}} function sparkRow(days){const max=Math.max(1,...days.map(x=>Number(x.views||0)));return days.map(x=>{const pct=Math.max(4,Math.round(Number(x.views||0)/max*100));const label=String(x.day||'').slice(5).replace('-','/');return `<div class="spark-day" title="${esc(x.day)}: ${fmtNum(x.views)} بازدید"><b>${fmtNum(x.views)}</b><i style="height:${pct}%"></i><small>${esc(label)}</small></div>`}).join('')} async function refreshOwnerDashboard(){const r=await api('/api/owner/dashboard');if(r.error){notice(r.error,true);return}const s=r.stats||{};$('dUsers').textContent=fmtNum(s.users);$('dUsersMeta').textContent=`${fmtNum(s.newUsers7)} کاربر جدید در ۷ روز`;$('dActive').textContent=fmtNum(s.activeUsers);$('dViewsToday').textContent=fmtNum(s.viewsToday);$('dViewsTrend').textContent=`۷ روز: ${fmtNum(s.views7)}`;$('dToolUses').textContent=fmtNum(s.toolUses30);$('dChecks').textContent=fmtNum(s.checks);$('dOrgs').textContent=fmtNum(s.organizations);$('dHrMeta').textContent=`${fmtNum(s.hr)} مدیر HR`;$('dashboardDays').innerHTML=r.days?.length?sparkRow(r.days):'<span class="muted">هنوز بازدیدی ثبت نشده است.</span>';const tools=r.tools||[];const maxT=Math.max(1,...tools.map(x=>Number(x.uses||0)));$('dashboardTools').innerHTML=tools.map(x=>rowBar(x.name||x.tool_slug,x.uses,maxT)).join('')||'<span class="muted">هنوز استفاده‌ای ثبت نشده است.</span>';$('dashboardChecks').innerHTML=(r.checks||[]).map(x=>`<div class="activity-item"><div><strong>${esc(x.username)}</strong><small>${esc(x.kind)} · ${relTime(x.created_at)}</small></div><span class="activity-result">${esc(x.result)}</span></div>`).join('')||'<span class="muted">هنوز فعالیتی ثبت نشده است.</span>';$('dashboardUsers').innerHTML=(r.users||[]).map(x=>`<div class="activity-item"><div><strong>${esc(x.username)}</strong><small>${esc(x.email)}</small></div><span class="activity-result">${relTime(x.created_at)}</span></div>`).join('')||'<span class="muted">کاربری ثبت نشده است.</span>';const h=await api('/api/owner/system');$('dashApi').textContent=h.ok?'سالم':'خطا';$('dashDb').textContent=h.db?'سالم':'خطا';$('dashVersion').textContent=h.version||'—';$('dashApiDot').className=h.ok?'':'bad';$('dashDbDot').className=h.db?'':'bad'}
 async function loadStats(){const s=await api('/api/owner/stats');if(s.error)return; $('sUsers').textContent=s.users;$('sActive').textContent=s.activeUsers;$('sChecks').textContent=s.checks;$('sConvs').textContent=s.conversations;$('sOrgs').textContent=s.organizations}
