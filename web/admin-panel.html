@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>مدیریت سریع | امنا یار</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f5f7fb;color:#172033;font-family:Tahoma,Arial,sans-serif}.wrap{max-width:1180px;margin:auto;padding:24px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:20px}.brand{font-size:22px;font-weight:800}.muted{color:#667085}.card{background:#fff;border:1px solid #e5e9f0;border-radius:18px;padding:20px;margin-bottom:16px;box-shadow:0 6px 22px #10182808}.login{max-width:430px;margin:8vh auto}.label{display:grid;gap:7px;margin:12px 0}.input{width:100%;padding:12px;border:1px solid #d5dae3;border-radius:10px;font:inherit}.btn{border:0;border-radius:10px;padding:11px 15px;font:inherit;cursor:pointer}.primary{background:#1769e0;color:#fff}.soft{background:#edf3fb;color:#174a8a}.danger{background:#fff0f0;color:#a42323}.notice{padding:11px;border-radius:10px;margin:10px 0;display:none}.notice.show{display:block}.error{background:#fff0f0;color:#a42323}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.kpi{padding:16px;border:1px solid #e6eaf0;border-radius:14px}.kpi small{display:block;color:#667085}.kpi b{display:block;font-size:25px;margin-top:5px}.actions{display:flex;gap:8px;flex-wrap:wrap}.table{width:100%;border-collapse:collapse}.table th,.table td{padding:10px;border-bottom:1px solid #edf0f4;text-align:right}.scroll{overflow:auto}.hidden{display:none!important}@media(max-width:800px){.grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:520px){.grid{grid-template-columns:1fr}.wrap{padding:12px}}
+</style>
+</head>
+<body>
+<div id="login" class="wrap login card">
+<h1>پنل مدیریت سریع</h1><p class="muted">نسخه مستقل برای مدیریت امنا یار؛ جدا از پنل مالک.</p>
+<div id="err" class="notice error"></div>
+<form id="loginForm" action="https://api.amnayar.ir/api/admin/login" method="post">
+<label class="label">نام کاربری یا ایمیل<input id="username" name="username" class="input" autocomplete="username" required></label>
+<label class="label">رمز عبور<input id="password" name="password" type="password" class="input" autocomplete="current-password" required></label>
+<button class="btn primary" style="width:100%" type="submit">ورود به مدیریت</button>
+</form>
+<p class="muted" style="font-size:12px;margin-top:14px">آدرس این پنل: /admin-panel</p>
+</div>
+<div id="app" class="wrap hidden">
+<div class="top"><div><div class="brand">مدیریت سریع امنا یار</div><div class="muted">کاربران، اعتبار، فروش و وضعیت سرویس‌ها</div></div><div class="actions"><a class="btn soft" href="/">سایت</a><button class="btn danger" onclick="logout()">خروج</button></div></div>
+<div id="msg" class="notice"></div>
+<div class="grid">
+<div class="kpi"><small>کاربران</small><b id="users">—</b></div><div class="kpi"><small>کاربران فعال</small><b id="active">—</b></div><div class="kpi"><small>بررسی‌ها</small><b id="checks">—</b></div><div class="kpi"><small>فروش</small><b id="sales">—</b></div>
+</div>
+<div class="card"><div class="top"><h2 style="margin:0">کاربران</h2><button class="btn soft" onclick="loadAll()">↻ به‌روزرسانی</button></div><div class="scroll"><table class="table"><thead><tr><th>کاربر</th><th>اعتبار</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody id="rows"></tbody></table></div></div>
+<div class="card"><h2>بسته‌های اعتبار</h2><div id="packages" class="scroll"></div></div>
+</div>
+<script>
+const TOKEN_KEY="amnayar_admin_token";
+const API="https://api.amnayar.ir";
+const $=id=>document.getElementById(id);
+function token(){return localStorage.getItem(TOKEN_KEY)||""}
+function showErr(s){$("err").textContent=s;$("err").classList.toggle("show",!!s)}
+async function api(path,opt={}){
+ const h=new Headers(opt.headers||{});if(token())h.set("Authorization","Bearer "+token());
+ if(opt.body&&!h.has("Content-Type"))h.set("Content-Type","application/json");
+ const r=await fetch(API+path,{...opt,headers:h,cache:"no-store"});let j={};try{j=await r.json()}catch{}
+ if(r.status===401){localStorage.removeItem(TOKEN_KEY);showLogin("نشست مدیریت منقضی شده است.");throw Error("unauthorized")}
+ if(!r.ok)throw Error(j.error||"خطا در ارتباط با سامانه");return j
+}
+function showLogin(msg=""){ $("app").classList.add("hidden");$("login").classList.remove("hidden");showErr(msg)}
+function showApp(){ $("login").classList.add("hidden");$("app").classList.remove("hidden")}
+$("loginForm").addEventListener("submit",async e=>{e.preventDefault();showErr("");const fd=new URLSearchParams(new FormData(e.currentTarget));try{const r=await fetch(API+"/api/admin/login",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:fd});if(!r.ok){let j={};try{j=await r.json()}catch{}showErr(j.error||"نام کاربری یا رمز عبور نادرست است.");return}const j=await r.json();if(!j.token)throw Error("توکن ورود دریافت نشد");localStorage.setItem(TOKEN_KEY,j.token);showApp();loadAll()}catch(x){showErr("ارتباط با سرور مدیریت برقرار نشد.")}});
+async function loadAll(){try{const [s,u,p]=await Promise.all([api("/api/admin/summary"),api("/api/admin/users"),api("/api/admin/packages")]);$("users").textContent=Number(s.users).toLocaleString("fa-IR");$("active").textContent=Number(s.active).toLocaleString("fa-IR");$("checks").textContent=Number(s.verifications).toLocaleString("fa-IR");$("sales").textContent=Number(s.sales_toman).toLocaleString("fa-IR")+" تومان";$("rows").innerHTML=(u||[]).map(x=>"<tr><td><b>"+esc(x.username)+"</b><div class='muted'>#"+x.id+"</div></td><td>"+Number(x.credits).toLocaleString("fa-IR")+"</td><td>"+(x.active?"فعال":"غیرفعال")+"</td><td><div class='actions'><button class='btn soft' onclick='changeCredit("+x.id+",1)'>+۱ اعتبار</button><button class='btn soft' onclick='changeCredit("+x.id+",-1)'>−۱ اعتبار</button><button class='btn soft' onclick='changeStatus("+x.id+","+(!x.active)+")'>"+(x.active?"غیرفعال":"فعال")+"</button></div></td></tr>").join("")||"<tr><td colspan='4'>کاربری وجود ندارد.</td></tr>";$("packages").innerHTML=(p||[]).map(x=>"<div style='display:flex;justify-content:space-between;padding:11px;border-bottom:1px solid #eee'><span>"+esc(x.title)+" — "+Number(x.credits).toLocaleString("fa-IR")+" اعتبار</span><b>"+Number(x.price_toman).toLocaleString("fa-IR")+" تومان</b></div>").join("")||"—"}catch(e){if(e.message!=="unauthorized"){$("msg").textContent=e.message;$("msg").className="notice show error"}}}
+async function changeCredit(id,amount){try{await api("/api/admin/users/"+id+"/credits",{method:"POST",body:JSON.stringify({amount})});loadAll()}catch(e){alert(e.message)}}
+async function changeStatus(id,active){try{await api("/api/admin/users/"+id+"/status",{method:"POST",body:JSON.stringify({active})});loadAll()}catch(e){alert(e.message)}}
+function esc(v){return String(v??"").replace(/[&<>'"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;"}[m]||m))}
+function logout(){localStorage.removeItem(TOKEN_KEY);location.reload()}
+if(token()){showApp();loadAll()}
+</script>
+</body></html>
