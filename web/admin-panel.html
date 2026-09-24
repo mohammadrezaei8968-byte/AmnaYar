@@ -124,7 +124,7 @@
 </div>
 
 <script>
-const TOKEN_KEY="amnayar_admin_token",API="https://api.amnayar.ir",$=id=>document.getElementById(id);
+const TOKEN_KEY="amnayar_admin_token",API="/api",DIRECT_API="https://api.amnayar.ir",API_FALLBACK="https://amnayar-api.onrender.com",$=id=>document.getElementById(id);
 const titles={dashboard:["داشبورد مدیریت","نمای کلی وضعیت سامانه"],analytics:["آمار و تحلیل سایت","بازدید و رفتار کاربران"],users:["کاربران و دسترسی‌ها","مدیریت حساب‌ها و اعتبار"],reports:["گزارشات","بررسی‌ها و فروش"],sales:["فروش و تراکنش‌ها","سفارش‌ها و پرداخت‌ها"],packages:["بسته‌های اعتبار","مدیریت بسته‌های خرید"],devices:["دستگاه‌ها","مدیریت دسترسی دستگاه‌ها"],channels:["کانال‌های فروش","کنترل فروش و اتصال‌ها"],system:["سلامت سامانه","وضعیت سرویس‌های اصلی"],settings:["تنظیمات","تنظیمات ذخیره‌شده سامانه"]};
 function token(){return localStorage.getItem(TOKEN_KEY)||""}
 function esc(v){return String(v??"").replace(/[&<>'"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;"}[m]||m))}
@@ -133,7 +133,7 @@ function date(v){try{return new Date(v).toLocaleString("fa-IR",{year:"numeric",m
 function msg(t,error=false){$("msg").textContent=t;$("msg").className="notice show "+(error?"error":"success");setTimeout(()=>$("msg").className="notice",3500)}
 function showLogin(t=""){ $("app").classList.add("hidden");$("login").classList.remove("hidden");$("loginErr").textContent=t;$("loginErr").className="notice error"+(t?" show":"") }
 function showApp(){ $("login").classList.add("hidden");$("app").classList.remove("hidden") }
-async function api(path,opt={}){const h=new Headers(opt.headers||{});if(token())h.set("Authorization","Bearer "+token());if(opt.body&&!h.has("Content-Type"))h.set("Content-Type","application/json");const r=await fetch(API+path,{...opt,headers:h,cache:"no-store"});let j={};try{j=await r.json()}catch{}if(r.status===401||r.status===403){localStorage.removeItem(TOKEN_KEY);showLogin("نشست مدیریت منقضی شده است.");throw Error("unauthorized")}if(!r.ok)throw Error(j.error||"خطا در سامانه");return j}
+async function api(path,opt={}){const h=new Headers(opt.headers||{});if(token())h.set("Authorization","Bearer "+token());if(opt.body&&!h.has("Content-Type"))h.set("Content-Type","application/json");let r,j={};try{r=await fetch(API+path,{...opt,headers:h,cache:"no-store"});try{j=await r.json()}catch{}}catch(e){throw Error("ارتباط با سرور برقرار نشد. لطفاً دوباره تلاش کنید.")}if(r.status===401||r.status===403){localStorage.removeItem(TOKEN_KEY);showLogin("نشست مدیریت منقضی شده است.");throw Error("unauthorized")}if(!r.ok)throw Error(j.error||"خطا در سامانه");return j}
 function consumeToken(){const m=location.hash.match(/(?:^|#|&)admin_token=([^&]+)/);if(!m)return false;try{localStorage.setItem(TOKEN_KEY,decodeURIComponent(m[1]));history.replaceState(null,"",location.pathname+location.search)}catch{}return true}
 function showTab(id){document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.id===id));document.querySelectorAll(".menu button").forEach(x=>x.classList.toggle("active",x.dataset.tab===id));$("pageTitle").textContent=titles[id][0];$("pageSub").textContent=titles[id][1];if(id==="dashboard")loadDashboard();if(id==="analytics")loadAnalytics();if(id==="users")loadUsers();if(id==="reports")loadReports();if(id==="sales")loadSales();if(id==="packages")loadPackages();if(id==="devices")loadDevices();if(id==="channels")loadChannels();if(id==="tools")loadTools();if(id==="system")loadSystem();if(id==="settings")loadSettings()}
 document.querySelectorAll(".menu button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
@@ -145,7 +145,7 @@ $("loginForm").addEventListener("submit",async e=>{
   $("loginErr").textContent="";
   btn.disabled=true;btn.textContent="در حال ورود...";
   try{
-    const r=await fetch(API+"/api/admin/login",{
+    const r=await fetch(API+"/admin/login",{
       method:"POST",
       headers:{"Content-Type":"application/json","Accept":"application/json"},
       body:JSON.stringify({username,password}),
