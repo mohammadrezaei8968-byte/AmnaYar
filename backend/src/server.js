@@ -702,6 +702,17 @@ function analyticsVisitorHash(req){
   const ua=String(req.get("user-agent")||"").slice(0,300);
   return crypto.createHash("sha256").update(ip+"|"+ua+"|"+SECRET).digest("hex");
 }
+const ANALYTICS_HUB_URL=String(process.env.ANALYTICS_HUB_URL||"https://amnayar-modern.onrender.com").replace(/\/$/,"");
+const ANALYTICS_HUB_KEY=String(process.env.ANALYTICS_HUB_KEY||"");
+function pushAnalyticsHub(event_type,path,meta={}){
+  if(!ANALYTICS_HUB_KEY)return;
+  fetch(ANALYTICS_HUB_URL+"/api/analytics/ingest",{
+    method:"POST",
+    headers:{"Content-Type":"application/json","X-Amna-Analytics-Key":ANALYTICS_HUB_KEY},
+    body:JSON.stringify({event_type,path,meta,tool_slug:meta.tool||""}),
+    signal:AbortSignal.timeout(5000)
+  }).catch(()=>{});
+}
 function buildAnalytics(days){
   const n=Math.max(1,Math.min(90,Number(days||30)));
   const start=new Date(Date.now()-n*86400000).toISOString();
@@ -780,13 +791,23 @@ app.post("/api/analytics/event",rateLimit({windowMs:60*1000,max:90,standardHeade
     for(const [k,v] of Object.entries(meta)) if(["tool","name","label","category","referrer"].includes(k)) safeMeta[k]=String(v??"").slice(0,200);
     db.prepare("INSERT INTO analytics_events(event_type,path,visitor_hash,session_id,user_id,meta_json,created_at) VALUES(?,?,?,?,?,?,?)")
       .run(type,path,analyticsVisitorHash(req),sessionId,userId,JSON.stringify(safeMeta),now());
+    pushAnalyticsHub(type,path,safeMeta);
     res.status(204).end();
   }catch(e){res.status(204).end()}
 });
 app.post("/api/admin/login", rateLimit({windowMs:15*60*1000,max:10,standardHeaders:true,legacyHeaders:false}),(req,res)=>{const isForm=req.is("application/x-www-form-urlencoded");const username=String(req.body.username||req.body.email||"").trim();const password=String(req.body.password||"");const adminMatch=Boolean(ADMIN_USERNAME&&ADMIN_PASSWORD_HASH)&&username===ADMIN_USERNAME&&(()=>{try{return bcrypt.compareSync(password,ADMIN_PASSWORD_HASH)}catch{return false}})();const ownerMatch=Boolean(OWNER_EMAIL&&OWNER_PASSWORD)&&username.toLowerCase()===OWNER_EMAIL&&password===OWNER_PASSWORD;if(!adminMatch&&!ownerMatch)return res.status(401).json({error:"اطلاعات مدیر نادرست است"});const token=jwt.sign({admin:true,owner:ownerMatch,username:ownerMatch?OWNER_EMAIL:ADMIN_USERNAME},SECRET,{expiresIn:"8h"});if(isForm)return res.redirect(303,"https://amnayar.ir/admin-panel#admin_token="+encodeURIComponent(token));res.json({token});});
 
 app.get("/api/admin/summary",adminAuth,(req,res)=>{const users=db.prepare("SELECT COUNT(*) c FROM users").get().c;const active=db.prepare("SELECT COUNT(*) c FROM users WHERE active=1").get().c;const checks=db.prepare("SELECT COUNT(*) c FROM verifications").get().c;const sales=db.prepare("SELECT COALESCE(SUM(amount_toman),0) s FROM purchases WHERE status='paid'").get().s;const pending=db.prepare("SELECT COUNT(*) c FROM purchases WHERE status='pending'").get().c;const today=new Date().toISOString().slice(0,10);const todayUsers=db.prepare("SELECT COUNT(*) c FROM users WHERE substr(created_at,1,10)=?").get(today).c;const todayChecks=db.prepare("SELECT COUNT(*) c FROM verifications WHERE substr(created_at,1,10)=?").get(today).c;const todayViews=db.prepare("SELECT COUNT(*) c FROM analytics_events WHERE event_type='page_view' AND substr(created_at,1,10)=?").get(today).c;res.json({users,active,verifications:checks,sales_toman:sales,pending_purchases:pending,today_users:todayUsers,today_checks:todayChecks,today_views:todayViews});});
-app.get("/api/admin/analytics",adminAuth,(req,res)=>{res.json(buildAnalytics(req.query.days||30));});
+app.get("/api/admin/analytics",adminAuth,async(req,res)=>{
+  try{
+    if(ANALYTICS_HUB_KEY){
+      const n=[7,14,30,90].includes(Number(req.query.days))?Number(req.query.days):30;
+      const r=await fetch(ANALYTICS_HUB_URL+"/api/analytics/summary?days="+n,{headers:{"X-Amna-Analytics-Key":ANALYTICS_HUB_KEY},signal:AbortSignal.timeout(7000)});
+      if(r.ok){const j=await r.json();return res.json(j);}
+    }
+  }catch{}
+  res.json(buildAnalytics(req.query.days||30));
+});
 app.get("/api/admin/users",adminAuth,(req,res)=>res.json(db.prepare("SELECT id,public_id,username,credits,active,created_at FROM users ORDER BY id DESC LIMIT 500").all()));
 app.post("/api/admin/users/:id/credits",adminAuth,(req,res)=>{const amount=Number(req.body.amount||0);if(!Number.isInteger(amount)||amount===0||Math.abs(amount)>1000000)return res.status(400).json({error:"invalid_amount"});db.prepare("UPDATE users SET credits=MAX(0,credits+?) WHERE id=?").run(amount,req.params.id);res.json({ok:true});});
 app.post("/api/admin/users/:id/status",adminAuth,(req,res)=>{db.prepare("UPDATE users SET active=? WHERE id=?").run(req.body.active?1:0,req.params.id);res.json({ok:true});});
