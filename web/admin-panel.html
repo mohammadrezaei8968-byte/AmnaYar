@@ -24,7 +24,7 @@
 <div class="sidebox brand"><b>مدیریت امنا یار</b><small class="muted">پنل مستقل مدیریت سامانه</small></div>
 <div class="sidebox menu">
 <button class="active" data-tab="dashboard">📊 نمای کلی</button>
-<button data-tab="analytics">📈 آمار و تحلیل سایت</button>
+<button data-tab="logs">🧾 لاگ‌ها</button><button data-tab="analytics">📈 آمار و تحلیل سایت</button>
 <button data-tab="users">👥 کاربران و دسترسی‌ها</button>
 <button data-tab="reports">📋 گزارشات</button>
 <button data-tab="sales">💰 فروش و تراکنش‌ها</button>
@@ -53,6 +53,7 @@
 </div>
 </section>
 
+<section id="logs" class="tab"><div class="top"><div><h2>لاگ‌ها و رویدادها</h2><div class="muted">ورودها، فعالیت مدیر، بازدیدها، استعلام‌ها و خریدها با جست‌وجو و فیلتر.</div></div><div class="actions"><select id="logType" class="select" style="width:150px"><option value="all">همه لاگ‌ها</option><option value="admin">فعالیت مدیر</option><option value="login">ورود کاربران</option><option value="analytics">بازدید و رویداد</option><option value="verification">استعلام‌ها</option><option value="purchase">خریدها</option></select><input id="logSearch" class="input" style="width:220px" placeholder="جست‌وجو..."><button class="btn primary" onclick="loadLogs()">↻ بروزرسانی</button></div></div><div class="card panel"><div class="table-wrap"><table><thead><tr><th>نوع</th><th>زمان</th><th>کاربر/مدیر</th><th>عملیات</th><th>جزئیات</th><th>IP</th><th>دستگاه</th><th>Request ID</th></tr></thead><tbody id="logRows"></tbody></table></div></div></section>
 <section id="analytics" class="tab">
 <div class="top">
   <div><h2>آمار و تحلیل واقعی سایت</h2><div class="muted">بازدید، کاربران، ورودها، ثبت‌نام، استعلام و فروش؛ بدون آمار ساختگی.</div></div>
@@ -125,7 +126,7 @@
 
 <script>
 const TOKEN_KEY="amnayar_admin_token",API="/api",DIRECT_API="https://api.amnayar.ir",API_FALLBACK="https://amnayar-api.onrender.com",$=id=>document.getElementById(id);
-const titles={dashboard:["داشبورد مدیریت","نمای کلی وضعیت سامانه"],analytics:["آمار و تحلیل سایت","بازدید و رفتار کاربران"],users:["کاربران و دسترسی‌ها","مدیریت حساب‌ها و اعتبار"],reports:["گزارشات","بررسی‌ها و فروش"],sales:["فروش و تراکنش‌ها","سفارش‌ها و پرداخت‌ها"],packages:["بسته‌های اعتبار","مدیریت بسته‌های خرید"],devices:["دستگاه‌ها","مدیریت دسترسی دستگاه‌ها"],channels:["کانال‌های فروش","کنترل فروش و اتصال‌ها"],system:["سلامت سامانه","وضعیت سرویس‌های اصلی"],settings:["تنظیمات","تنظیمات ذخیره‌شده سامانه"]};
+const titles={logs:["لاگ‌ها و رویدادها","مشاهده ورودها، فعالیت مدیر، بازدیدها، استعلام‌ها و خریدها"],dashboard:["داشبورد مدیریت","نمای کلی وضعیت سامانه"],analytics:["آمار و تحلیل سایت","بازدید و رفتار کاربران"],users:["کاربران و دسترسی‌ها","مدیریت حساب‌ها و اعتبار"],reports:["گزارشات","بررسی‌ها و فروش"],sales:["فروش و تراکنش‌ها","سفارش‌ها و پرداخت‌ها"],packages:["بسته‌های اعتبار","مدیریت بسته‌های خرید"],devices:["دستگاه‌ها","مدیریت دسترسی دستگاه‌ها"],channels:["کانال‌های فروش","کنترل فروش و اتصال‌ها"],system:["سلامت سامانه","وضعیت سرویس‌های اصلی"],settings:["تنظیمات","تنظیمات ذخیره‌شده سامانه"]};
 function token(){return localStorage.getItem(TOKEN_KEY)||""}
 function esc(v){return String(v??"").replace(/[&<>'"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;"}[m]||m))}
 function num(v){return Number(v||0).toLocaleString("fa-IR")}
@@ -135,7 +136,7 @@ function showLogin(t=""){ $("app").classList.add("hidden");$("login").classList.
 function showApp(){ $("login").classList.add("hidden");$("app").classList.remove("hidden") }
 async function api(path,opt={}){const h=new Headers(opt.headers||{});if(token())h.set("Authorization","Bearer "+token());if(opt.body&&!h.has("Content-Type"))h.set("Content-Type","application/json");let r,j={};try{r=await fetch(API+path,{...opt,headers:h,cache:"no-store"});try{j=await r.json()}catch{}}catch(e){throw Error("ارتباط با سرور برقرار نشد. لطفاً دوباره تلاش کنید.")}if(r.status===401||r.status===403){localStorage.removeItem(TOKEN_KEY);showLogin("نشست مدیریت منقضی شده است.");throw Error("unauthorized")}if(!r.ok)throw Error(j.error||"خطا در سامانه");return j}
 function consumeToken(){const m=location.hash.match(/(?:^|#|&)admin_token=([^&]+)/);if(!m)return false;try{localStorage.setItem(TOKEN_KEY,decodeURIComponent(m[1]));history.replaceState(null,"",location.pathname+location.search)}catch{}return true}
-function showTab(id){document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.id===id));document.querySelectorAll(".menu button").forEach(x=>x.classList.toggle("active",x.dataset.tab===id));$("pageTitle").textContent=titles[id][0];$("pageSub").textContent=titles[id][1];if(id==="dashboard")loadDashboard();if(id==="analytics")loadAnalytics();if(id==="users")loadUsers();if(id==="reports")loadReports();if(id==="sales")loadSales();if(id==="packages")loadPackages();if(id==="devices")loadDevices();if(id==="channels")loadChannels();if(id==="tools")loadTools();if(id==="system")loadSystem();if(id==="settings")loadSettings()}
+function showTab(id){document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.id===id));document.querySelectorAll(".menu button").forEach(x=>x.classList.toggle("active",x.dataset.tab===id));$("pageTitle").textContent=titles[id][0];$("pageSub").textContent=titles[id][1];if(id==="logs")loadLogs();if(id==="dashboard")loadDashboard();if(id==="analytics")loadAnalytics();if(id==="users")loadUsers();if(id==="reports")loadReports();if(id==="sales")loadSales();if(id==="packages")loadPackages();if(id==="devices")loadDevices();if(id==="channels")loadChannels();if(id==="tools")loadTools();if(id==="system")loadSystem();if(id==="settings")loadSettings()}
 document.querySelectorAll(".menu button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 $("loginForm").addEventListener("submit",async e=>{
   e.preventDefault();
@@ -165,6 +166,7 @@ $("loginForm").addEventListener("submit",async e=>{
     btn.disabled=false;btn.textContent="ورود به مدیریت";
   }
 });
+async function loadLogs(){try{const type=$("logType").value||"all",search=$("logSearch").value.trim();const r=await api("/admin/logs?type="+encodeURIComponent(type)+"&limit=500&search="+encodeURIComponent(search));const labels={admin:"مدیر",login:"ورود",analytics:"آنالیتیکس",verification:"استعلام",purchase:"خرید"};$("logRows").innerHTML=(r.logs||[]).map(x=>"<tr><td><span class='badge "+(x.source==='admin'?"warn":x.source==='login'?"ok":x.source==='purchase'?"ok":"off")+"'>"+esc(labels[x.source]||x.source)+"</span></td><td>"+date(x.created_at)+"</td><td>"+esc(x.actor||"—")+"</td><td>"+esc(x.action||"—")+"</td><td style='max-width:260px;word-break:break-word'>"+esc(x.details||"—")+"</td><td>"+esc(x.ip||"—")+"</td><td style='max-width:260px'>"+esc(x.user_agent||"—")+"</td><td><code>"+esc(x.request_id||"—")+"</code></td></tr>").join("")||"<tr><td colspan='8' class='empty'>لاگی برای این فیلتر پیدا نشد.</td></tr>"}catch(e){if(e.message!=="unauthorized")msg(e.message,true)}}
 async function loadDashboard(){try{const [s,p,d,c]=await Promise.all([api("/admin/summary"),api("/admin/packages"),api("/admin/devices"),api("/admin/channels")]);$("kUsers").textContent=num(s.users);$("kActive").textContent=num(s.active);$("kChecks").textContent=num(s.verifications);$("kSales").textContent=num(s.sales_toman)+" تومان";$("kPending").textContent=num(s.pending_purchases);$("kPackages").textContent=num(p.length);$("kDevices").textContent=num(d.length);$("kChannels").textContent=num(c.filter(x=>x.enabled).length);$("pageSub").textContent="امروز: "+num(s.today_views)+" بازدید صفحه، "+num(s.today_users)+" ثبت‌نام و "+num(s.today_checks)+" استعلام"}catch(e){if(e.message!=="unauthorized")msg(e.message,true)}}
 function chartBar(label,value,max,extra=""){const pct=max?Math.max(3,Math.round(Number(value||0)/max*100)):3;return "<div class='statline'><span><b>"+esc(label)+"</b>"+(extra?"<br><small class='muted'>"+esc(extra)+"</small>":"")+"</span><span style='min-width:190px;text-align:left'><b>"+num(value)+"</b><div class='bar'><i style='width:"+pct+"%'></i></div></span></div>"}
 async function loadAnalytics(){
