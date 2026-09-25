@@ -815,6 +815,32 @@ if(type==="all"||type==="verification")rows.push(...db.prepare("SELECT 'verifica
 if(type==="all"||type==="purchase")rows.push(...db.prepare("SELECT 'purchase' source,id,created_at,CAST(user_id AS TEXT) actor,'خرید · '||status||' · '||CAST(amount_toman AS TEXT)||' تومان' action,NULL ip,NULL user_agent,NULL request_id,order_id details FROM purchases WHERE (?='' OR status LIKE ? OR order_id LIKE ? OR CAST(amount_toman AS TEXT) LIKE ?) ORDER BY id DESC LIMIT ?").all(search,like,like,like,limit));
 rows.sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))||Number(b.id)-Number(a.id));res.json({type,limit,logs:rows.slice(0,limit)});
 });
+const defaultHomepageSections=[
+  {id:"hero",title:"صفحه معرفی",description:"بخش اصلی معرفی امنا یار",enabled:true,sort_order:10},
+  {id:"popular",title:"محبوب‌ترین‌ها",description:"خدمات و استعلام‌های پرکاربرد",enabled:true,sort_order:20},
+  {id:"quick-check",title:"بررسی رایگان",description:"صحت‌سنجی کد ملی، کارت و شبا",enabled:true,sort_order:30},
+  {id:"tools",title:"ابزارهای رایگان",description:"ابزارهای کاربردی روزمره",enabled:true,sort_order:40},
+  {id:"official",title:"سامانه‌های رسمی",description:"دسترسی به مراجع رسمی",enabled:true,sort_order:50},
+  {id:"why",title:"چرا امنا یار؟",description:"اعتماد و شفافیت خدمات",enabled:true,sort_order:60},
+  {id:"topics",title:"مطالب و موضوعات",description:"محتوای آموزشی و کاربردی",enabled:true,sort_order:70},
+  {id:"support",title:"پشتیبانی",description:"راه‌های ارتباط و پشتیبانی",enabled:true,sort_order:80}
+];
+function getHomepageSections(){
+  const saved=ownerJsonSetting("homepage_sections",[]);
+  return defaultHomepageSections.map(d=>{const s=saved.find(x=>x.id===d.id);return s?{...d,...s}:d}).concat(saved.filter(x=>!defaultHomepageSections.some(d=>d.id===x.id))).sort((a,b)=>Number(a.sort_order)-Number(b.sort_order));
+}
+app.get("/api/public/homepage",(req,res)=>res.json({sections:getHomepageSections()}));
+app.get("/api/admin/homepage",adminAuth,(req,res)=>res.json({sections:getHomepageSections()}));
+app.put("/api/admin/homepage",adminAuth,(req,res)=>{
+  const input=Array.isArray(req.body?.sections)?req.body.sections:[];
+  const base=getHomepageSections(), allowed=new Map(base.map(x=>[x.id,x]));
+  const next=input.map((x,i)=>{const old=allowed.get(String(x.id));if(!old)return null;return {...old,title:String(x.title??old.title).slice(0,120),description:String(x.description??old.description).slice(0,300),enabled:x.enabled!==false,sort_order:Number.isFinite(Number(x.sort_order))?Number(x.sort_order):(i+1)*10};}).filter(Boolean);
+  if(next.length!==base.length)return res.status(400).json({error:"invalid_sections"});
+  saveOwnerSetting("homepage_sections",next);
+  audit(null,"homepage_sections_update",req.requestId);
+  res.json({ok:true,sections:getHomepageSections()});
+});
+app.post("/api/admin/homepage/reset",adminAuth,(req,res)=>{saveOwnerSetting("homepage_sections",defaultHomepageSections);audit(null,"homepage_sections_reset",req.requestId);res.json({ok:true,sections:getHomepageSections()})});
 app.get("/api/admin/summary",adminAuth,(req,res)=>{const users=db.prepare("SELECT COUNT(*) c FROM users").get().c;const active=db.prepare("SELECT COUNT(*) c FROM users WHERE active=1").get().c;const checks=db.prepare("SELECT COUNT(*) c FROM verifications").get().c;const sales=db.prepare("SELECT COALESCE(SUM(amount_toman),0) s FROM purchases WHERE status='paid'").get().s;const pending=db.prepare("SELECT COUNT(*) c FROM purchases WHERE status='pending'").get().c;const today=new Date().toISOString().slice(0,10);const todayUsers=db.prepare("SELECT COUNT(*) c FROM users WHERE substr(created_at,1,10)=?").get(today).c;const todayChecks=db.prepare("SELECT COUNT(*) c FROM verifications WHERE substr(created_at,1,10)=?").get(today).c;const todayViews=db.prepare("SELECT COUNT(*) c FROM analytics_events WHERE event_type='page_view' AND substr(created_at,1,10)=?").get(today).c;res.json({users,active,verifications:checks,sales_toman:sales,pending_purchases:pending,today_users:todayUsers,today_checks:todayChecks,today_views:todayViews});});
 app.get("/api/admin/analytics",adminAuth,async(req,res)=>{
   try{
