@@ -110,4 +110,26 @@
     document.head.appendChild(s);
   };
 })();
+</script><script>
+(function(){
+  function applyHomeConfig(data){
+    const list=(data&&data.sections)||[];
+    const byId=new Map(list.map(x=>[x.id,x]));
+    const selectors={hero:".hero",popular:"#popular","quick-check":"#quick-check",tools:"#tools",official:"#official",why:"#why",topics:"#topics",support:".support"};
+    const nodes=[];
+    for(const x of list){
+      const el=document.querySelector(selectors[x.id]||("#"+CSS.escape(x.id)));
+      if(!el)continue;
+      el.dataset.homeSection=x.id;
+      el.style.display=x.enabled===false?"none":"";
+      if(x.enabled!==false)nodes.push({el,order:Number(x.sort_order)||0});
+    }
+    const main=document.querySelector("main");
+    if(main&&nodes.length){
+      const anchor=nodes.slice().sort((a,b)=>a.order-b.order);
+      anchor.forEach(({el})=>main.appendChild(el));
+    }
+  }
+  fetch("/api/public/homepage",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(applyHomeConfig).catch(()=>{});
+})();
 </script></body></html>
