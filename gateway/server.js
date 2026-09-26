@@ -15,6 +15,10 @@ app.use("/api",createProxyMiddleware({
 
 app.use(express.static(WEB_DIR));
 
+app.get("/admin",(req,res,next)=>{
+  res.sendFile(path.join(WEB_DIR,"admin-panel.html"),err=>{ if(err) next(); });
+});
+
 app.get("/owner",(req,res,next)=>{
   res.sendFile(path.join(WEB_DIR,"owner.html"),err=>{ if(err) next(); });
 });
