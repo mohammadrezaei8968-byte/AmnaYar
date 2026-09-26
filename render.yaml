@@ -1,42 +1,18 @@
 services:
   - type: web
-    runtime: static
-    name: amnayar-web
-    rootDir: web
-    buildCommand: "echo AmnaYar static site"
-    staticPublishPath: .
+    runtime: node
+    name: amnayar-gateway
+    rootDir: gateway
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free
+    healthCheckPath: /
     domains:
       - amnayar.ir
       - www.amnayar.ir
-    routes:
-      - type: rewrite
-        source: /admin
-        destination: https://amnayar-admin.onrender.com/
-      - type: rewrite
-        source: /admin/*
-        destination: https://amnayar-admin.onrender.com/*
-      - type: rewrite
-        source: /control-panel
-        destination: https://amnayar-admin.onrender.com/
-      - type: rewrite
-        source: /control-panel/*
-        destination: https://amnayar-admin.onrender.com/*
-      - type: rewrite
-        source: /api/owner/login
-        destination: https://api.amnayar.ir/api/owner/login
-      - type: rewrite
-        source: /api/*
-        destination: https://api.amnayar.ir/api/*
-    headers:
-      - path: /*
-        name: X-Content-Type-Options
-        value: nosniff
-      - path: /*
-        name: Referrer-Policy
-        value: strict-origin-when-cross-origin
-      - path: /*
-        name: X-Frame-Options
-        value: SAMEORIGIN
+    envVars:
+      - key: API_TARGET
+        value: https://api.amnayar.ir
 
   - type: web
     runtime: node
@@ -62,7 +38,7 @@ services:
       - key: OWNER_PASSWORD
         sync: false
       - key: CORS_ORIGINS
-        value: https://amnayar.ir,https://www.amnayar.ir,https://amnayar-admin.onrender.com
+        value: https://amnayar.ir,https://www.amnayar.ir
       - key: PUBLIC_API_URL
         value: https://api.amnayar.ir
       - key: APP_DOWNLOAD_URL
@@ -87,14 +63,3 @@ services:
         sync: false
       - key: BANK_PROVIDER_TIMEOUT_MS
         value: "12000"
-
-  - type: web
-    runtime: node
-    name: amnayar-admin
-    rootDir: admin
-    buildCommand: npm install
-    startCommand: npm start
-    plan: free
-    envVars:
-      - key: API_BASE
-        value: https://api.amnayar.ir/api
