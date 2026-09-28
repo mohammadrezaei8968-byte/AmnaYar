@@ -756,7 +756,9 @@ function buildAnalytics(days){
     registrations:registrations.length,
     checks:checks.length,
     orders:paid.length,
-    revenue_toman:paid.reduce((s,x)=>s+Number(x.amount_toman||0),0)
+    revenue_toman:paid.reduce((s,x)=>s+Number(x.amount_toman||0),0),
+    shares:eventBase.filter(e=>e.event_type==="share").length,
+    share_visitors:new Set(eventBase.filter(e=>e.event_type==="share").map(e=>e.visitor_hash)).size
   };
   return {days:dayRows,paths,tools,recent_logins,totals,period_days:n,generated_at:now()};
 }
@@ -791,7 +793,7 @@ app.get("/api/owner/audit",ownerAuth,(req,res)=>{
 app.post("/api/analytics/event",rateLimit({windowMs:60*1000,max:90,standardHeaders:true,legacyHeaders:false}),(req,res)=>{
   try{
     const type=String(req.body?.event_type||"").trim();
-    if(!["page_view","tool_use","click","session_start"].includes(type)) return res.status(400).json({error:"invalid_event"});
+    if(!["page_view","tool_use","click","session_start","share"].includes(type)) return res.status(400).json({error:"invalid_event"});
     const path=String(req.body?.path||"/").slice(0,300);
     const sessionId=String(req.body?.session_id||"").slice(0,120)||null;
     const userId=Number.isInteger(Number(req.body?.user_id))?Number(req.body.user_id):null;
