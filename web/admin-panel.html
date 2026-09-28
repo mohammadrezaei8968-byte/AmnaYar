@@ -132,7 +132,7 @@
 </div>
 
 <script>
-const TOKEN_KEY="amnayar_admin_token",API="/api",DIRECT_API="https://api.amnayar.ir",API_FALLBACK="https://amnayar-api.onrender.com",$=id=>document.getElementById(id);
+const TOKEN_KEY="amnayar_admin_token",DIRECT_API="https://api.amnayar.ir",API_FALLBACK="https://amnayar-api.onrender.com",API=(location.hostname==="amnayar.ir"||location.hostname==="www.amnayar.ir")?"/api":DIRECT_API+"/api",$=id=>document.getElementById(id);
 const titles={logs:["لاگ‌ها و رویدادها","مشاهده ورودها، فعالیت مدیر، بازدیدها، استعلام‌ها و خریدها"],dashboard:["داشبورد مدیریت","نمای کلی وضعیت سامانه"],analytics:["آمار و تحلیل سایت","بازدید و رفتار کاربران"],users:["کاربران و دسترسی‌ها","مدیریت حساب‌ها و اعتبار"],reports:["گزارشات","بررسی‌ها و فروش"],sales:["فروش و تراکنش‌ها","سفارش‌ها و پرداخت‌ها"],packages:["بسته‌های اعتبار","مدیریت بسته‌های خرید"],devices:["دستگاه‌ها","مدیریت دسترسی دستگاه‌ها"],channels:["کانال‌های فروش","کنترل فروش و اتصال‌ها"],system:["سلامت سامانه","وضعیت سرویس‌های اصلی"],settings:["تنظیمات","تنظیمات ذخیره‌شده سامانه"],homepage:["سازنده صفحه اصلی","مدیریت ترتیب و وضعیت بخش‌های سایت"]};
 function token(){return localStorage.getItem(TOKEN_KEY)||""}
 function esc(v){return String(v??"").replace(/[&<>'"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;"}[m]||m))}
@@ -153,12 +153,17 @@ $("loginForm").addEventListener("submit",async e=>{
   $("loginErr").textContent="";
   btn.disabled=true;btn.textContent="در حال ورود...";
   try{
-    const r=await fetch(API+"/admin/login",{
+    let r;
+    try{
+      r=await fetch(API+"/admin/login",{
       method:"POST",
       headers:{"Content-Type":"application/json","Accept":"application/json"},
       body:JSON.stringify({username,password}),
       cache:"no-store"
     });
+    }catch(firstErr){
+      r=await fetch(DIRECT_API+"/api/admin/login",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({username,password}),cache:"no-store"});
+    }
     let j={};try{j=await r.json()}catch{}
     if(!r.ok)throw new Error(j.error||"ورود به پنل مدیریت انجام نشد.");
     if(!j.token)throw new Error("توکن مدیریت از سرور دریافت نشد.");
