@@ -978,32 +978,37 @@ function parseNewsRss(xml,source){
 app.get("/api/news",async(req,res)=>{
   try{
     const limit=Math.min(20,Math.max(4,Number(req.query.limit||12)));
-    if(Date.now()-dailyNewsCache.at<5*60*1000&&dailyNewsCache.items.length){
-      return res.json({items:dailyNewsCache.items.slice(0,limit)});
-    }
+    if(Date.now()-dailyNewsCache.at<5*60*1000&&dailyNewsCache.items.length)return res.json({items:dailyNewsCache.items.slice(0,limit)});
     const feeds=[
-      ["ایرنا","https://irna.com/rss"],
-      ["ایسنا","https://www.isna.ir/rss"],
-      ["مهر","https://www.mehrnews.com/rss"],
-      ["خبرآنلاین","https://www.khabaronline.ir/rss"],
-      ["تابناک","https://www.tabnak.ir/fa/rss/allnews"],
-      ["عصر ایران","https://www.asriran.com/fa/rss/allnews"],
-      ["تسنیم","https://www.tasnimnews.com/fa/rss/feed/0/8/0/%D9%85%D9%87%D9%85%D8%AA%D8%B1%DB%8C%D9%86-%D8%AE%D8%A8%D8%B1%D9%87%D8%A7"]
+      ["تسنیم","https://www.tasnimnews.com/fa/rss/feed/0/8/0/%D9%85%D9%87%D9%85%D8%AA%D8%B1%DB%8C%D9%86-%D8%AE%D8%A8%D8%B1%D9%87%D8%A7",5],
+      ["فارس","https://www.farsnews.ir/rss",5],
+      ["خبرگزاری صداوسیما","https://www.iribnews.ir/fa/rss",4],
+      ["ایرنا","https://irna.com/rss",4],
+      ["باشگاه خبرنگاران جوان","https://www.yjc.ir/fa/rss/allnews",3],
+      ["مهر","https://www.mehrnews.com/rss",2],
+      ["کیهان","https://kayhan.ir/fa/rss",2],
+      ["ایسنا","https://www.isna.ir/rss",1]
     ];
-    const results=await Promise.all(feeds.map(async([source,url])=>{
+    const results=await Promise.all(feeds.map(async([source,url,weight])=>{
       try{
-        const r=await fetch(url,{headers:{"User-Agent":"AmnaYar-News/1.0"},signal:AbortSignal.timeout(6500)});
+        const r=await fetch(url,{headers:{"User-Agent":"AmnaYar-News/1.1","Accept":"application/rss+xml,application/xml,text/xml,*/*"},signal:AbortSignal.timeout(7000)});
         if(!r.ok)return [];
-        return parseNewsRss(await r.text(),source);
+        return parseNewsRss(await r.text(),source).map(x=>({...x,sourceWeight:weight}));
       }catch{return [];}
     }));
-    const persianTitle=t=>/[؀-ۿ]/.test(String(t||""));
-    const seen=new Set(),items=results.flat().filter(x=>persianTitle(x.title)).filter(x=>{const k=x.title.toLowerCase();if(seen.has(k))return false;seen.add(k);return true;})
-      .sort((a,b)=>new Date(b.publishedAt)-new Date(a.publishedAt))
-      .slice(0,30).map(x=>({...x,time:new Intl.DateTimeFormat("fa-IR",{hour:"2-digit",minute:"2-digit",day:"2-digit",month:"2-digit"}).format(new Date(x.publishedAt))}));
-    dailyNewsCache={at:Date.now(),items};
-    res.json({items:items.slice(0,limit)});
-  }catch(e){res.status(500).json({items:[],error:"news_unavailable"});}
+    const persianTitle=t=>/[\u0600-\u06FF]/.test(String(t||""));
+    const seen=new Set();
+    const all=results.flat().filter(x=>persianTitle(x.title)).filter(x=>{
+      const k=x.title.replace(/\s+/g," ").trim().toLowerCase();
+      if(seen.has(k))return false; seen.add(k); return true;
+    });
+    const hot=all.sort((a,b)=>Number(b.sourceWeight)-Number(a.sourceWeight)||new Date(b.publishedAt)-new Date(a.publishedAt));
+    const recent=[...all].sort((a,b)=>new Date(b.publishedAt)-new Date(a.publishedAt));
+    const merged=[]; const used=new Set();
+    for(const x of [...hot,...recent]){const k=x.title.toLowerCase();if(used.has(k))continue;used.add(k);merged.push({...x,time:new Intl.DateTimeFormat("fa-IR",{hour:"2-digit",minute:"2-digit",day:"2-digit",month:"2-digit"}).format(new Date(x.publishedAt))});if(merged.length>=30)break;}
+    dailyNewsCache={at:Date.now(),items:merged};
+    res.json({items:merged.slice(0,limit)});
+  }catch(e){console.error("news_unavailable",e);res.status(500).json({items:[],error:"news_unavailable"});}
 });
 
 app.listen(PORT,()=>console.log(`AmnaYar API running on :${PORT}`));
