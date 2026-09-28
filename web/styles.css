@@ -838,3 +838,68 @@ body{background:linear-gradient(180deg,#f8fafd 0,#f3f7fb 48%,#fff 100%);color:va
 .alt{background:linear-gradient(180deg,#f7faff,#f2f6fa)!important;border-radius:28px!important}
 @media(max-width:900px){.nav{position:relative}.hero-v2{margin:14px auto!important;border-radius:22px!important}.section{padding-left:14px!important;padding-right:14px!important}.main-nav{overflow-x:auto;white-space:nowrap;scrollbar-width:none}.main-nav::-webkit-scrollbar{display:none}}
 @media(max-width:650px){.hero-v2{min-height:300px}.hero-copy h1{font-size:30px!important}.hero-copy>p{font-size:14px!important}.popular-card{padding:17px!important}.tool-tile{padding:16px!important}}
+
+
+/* AmnaYar — animated administrative services hero */
+.hero-v2{
+  background:
+    radial-gradient(circle at 15% 20%,rgba(55,191,230,.34),transparent 30%),
+    radial-gradient(circle at 88% 78%,rgba(37,99,235,.28),transparent 34%),
+    linear-gradient(125deg,#071b35 0%,#0b3762 48%,#087f8f 100%) !important;
+  color:#fff !important;
+  border:1px solid rgba(255,255,255,.12) !important;
+  box-shadow:0 28px 70px rgba(5,35,70,.25) !important;
+  isolation:isolate;
+  animation:ayAdminBg 9s ease-in-out infinite alternate;
+}
+.hero-v2:before{
+  content:"";
+  position:absolute;
+  width:360px;height:360px;border-radius:50%;
+  right:-110px;top:-170px;
+  background:rgba(126,230,255,.13);
+  filter:blur(2px);
+  animation:ayAdminOrb 6s ease-in-out infinite;
+  pointer-events:none;
+}
+.hero-v2:after{
+  content:"";
+  position:absolute;inset:0;
+  background:linear-gradient(115deg,transparent 25%,rgba(255,255,255,.10) 48%,transparent 65%);
+  transform:translateX(-120%);
+  animation:ayAdminShine 5s ease-in-out infinite;
+  pointer-events:none;
+}
+.hero-v2 .hero-copy h1{
+  color:#fff !important;
+  text-shadow:0 5px 25px rgba(0,0,0,.22);
+  overflow:hidden;
+  animation:ayAdminTitle 1.15s cubic-bezier(.2,.8,.2,1) both;
+}
+.hero-v2 .hero-copy>p{
+  color:#e5f5ff !important;
+  text-shadow:0 2px 12px rgba(0,0,0,.16);
+  animation:ayAdminSub 1s .35s cubic-bezier(.2,.8,.2,1) both;
+}
+.hero-v2 .actions{
+  animation:ayAdminSub 1s .55s cubic-bezier(.2,.8,.2,1) both;
+}
+.hero-v2 .trust{
+  animation:ayAdminSub 1s .75s cubic-bezier(.2,.8,.2,1) both;
+}
+.hero-v2 .trust span{
+  background:rgba(255,255,255,.10) !important;
+  color:#fff !important;
+  border-color:rgba(255,255,255,.20) !important;
+  backdrop-filter:blur(8px);
+  animation:ayAdminChip 3s ease-in-out infinite;
+}
+.hero-v2 .trust span:nth-child(2){animation-delay:.25s}.hero-v2 .trust span:nth-child(3){animation-delay:.5s}
+@keyframes ayAdminTitle{from{opacity:0;transform:translateY(-90px) scale(.96);filter:blur(8px)}65%{opacity:1;transform:translateY(8px) scale(1.01);filter:blur(0)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes ayAdminSub{from{opacity:0;transform:translateY(-45px)}to{opacity:1;transform:translateY(0)}}
+@keyframes ayAdminBg{0%{background-position:0% 50%;filter:saturate(1)}100%{background-position:100% 50%;filter:saturate(1.12)}}
+@keyframes ayAdminOrb{0%,100%{transform:translate(0,0) scale(.92)}50%{transform:translate(-25px,28px) scale(1.12)}}
+@keyframes ayAdminShine{0%,58%,100%{transform:translateX(-120%)}78%{transform:translateX(120%)}}
+@keyframes ayAdminChip{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@media(max-width:650px){.hero-v2{margin:12px 10px!important}.hero-v2 .hero-copy h1{font-size:30px!important}.hero-v2:before{width:240px;height:240px;right:-100px;top:-120px}}
+@media(prefers-reduced-motion:reduce){.hero-v2,.hero-v2:before,.hero-v2:after,.hero-v2 .hero-copy h1,.hero-v2 .hero-copy>p,.hero-v2 .actions,.hero-v2 .trust,.hero-v2 .trust span{animation:none!important}.hero-v2 .hero-copy h1,.hero-v2 .hero-copy>p,.hero-v2 .actions,.hero-v2 .trust{opacity:1!important;transform:none!important;filter:none!important}}
