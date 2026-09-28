@@ -730,6 +730,8 @@ function buildAnalytics(days){
   const registrations=db.prepare("SELECT id,created_at FROM users WHERE created_at>=?").all(start);
   const checks=db.prepare("SELECT id,user_id,type,created_at FROM verifications WHERE created_at>=?").all(start);
   const paid=db.prepare("SELECT id,user_id,amount_toman,store,created_at FROM purchases WHERE status='paid' AND created_at>=?").all(start);
+  const allTimeUsers=db.prepare("SELECT COUNT(*) c FROM users").get().c;
+  const allTimeEvents=db.prepare("SELECT event_type,visitor_hash FROM analytics_events").all();
   const dayKey=d=>d.toISOString().slice(0,10);
   const daysMap=new Map();
   for(let i=n-1;i>=0;i--){const d=new Date(Date.now()-i*86400000);daysMap.set(dayKey(d),{day:dayKey(d),views:0,visitors:0,logins:0,registrations:0,checks:0,orders:0,revenue:0,_visitors:new Set()});}
@@ -758,7 +760,7 @@ function buildAnalytics(days){
     orders:paid.length,
     revenue_toman:paid.reduce((s,x)=>s+Number(x.amount_toman||0),0),
     shares:eventBase.filter(e=>e.event_type==="share").length,
-    share_visitors:new Set(eventBase.filter(e=>e.event_type==="share").map(e=>e.visitor_hash)).size
+    share_visitors:new Set(eventBase.filter(e=>e.event_type==="share").map(e=>e.visitor_hash)).size,\n    total_registered:allTimeUsers,\n    all_time_views:allTimeEvents.filter(e=>e.event_type==="page_view").length,\n    all_time_visitors:new Set(allTimeEvents.filter(e=>e.event_type==="page_view").map(e=>e.visitor_hash)).size,\n    all_time_shares:allTimeEvents.filter(e=>e.event_type==="share").length,\n    all_time_share_visitors:new Set(allTimeEvents.filter(e=>e.event_type==="share").map(e=>e.visitor_hash)).size
   };
   return {days:dayRows,paths,tools,recent_logins,totals,period_days:n,generated_at:now()};
 }
