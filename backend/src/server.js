@@ -1000,4 +1000,5 @@ app.get("/api/news",async(req,res)=>{
     res.json({items:items.slice(0,limit)});
   }catch(e){res.status(500).json({items:[],error:"news_unavailable"});}
 });
-\napp.listen(PORT,()=>console.log(`AmnaYar API running on :${PORT}`));
+
+app.listen(PORT,()=>console.log(`AmnaYar API running on :${PORT}`));
