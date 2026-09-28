@@ -983,8 +983,12 @@ app.get("/api/news",async(req,res)=>{
     }
     const feeds=[
       ["ایرنا","https://irna.com/rss"],
-      ["الجزیره","https://www.aljazeera.com/xml/rss/all.xml"],
-      ["Google News","https://news.google.com/rss?hl=fa&gl=IR&ceid=IR:fa"]
+      ["ایسنا","https://www.isna.ir/rss"],
+      ["مهر","https://www.mehrnews.com/rss"],
+      ["خبرآنلاین","https://www.khabaronline.ir/rss"],
+      ["تابناک","https://www.tabnak.ir/fa/rss/allnews"],
+      ["عصر ایران","https://www.asriran.com/fa/rss/allnews"],
+      ["تسنیم","https://www.tasnimnews.com/fa/rss/feed/0/8/0/%D9%85%D9%87%D9%85%D8%AA%D8%B1%DB%8C%D9%86-%D8%AE%D8%A8%D8%B1%D9%87%D8%A7"]
     ];
     const results=await Promise.all(feeds.map(async([source,url])=>{
       try{
@@ -993,7 +997,8 @@ app.get("/api/news",async(req,res)=>{
         return parseNewsRss(await r.text(),source);
       }catch{return [];}
     }));
-    const seen=new Set(),items=results.flat().filter(x=>{const k=x.title.toLowerCase();if(seen.has(k))return false;seen.add(k);return true;})
+    const persianTitle=t=>/[؀-ۿ]/.test(String(t||""));
+    const seen=new Set(),items=results.flat().filter(x=>persianTitle(x.title)).filter(x=>{const k=x.title.toLowerCase();if(seen.has(k))return false;seen.add(k);return true;})
       .sort((a,b)=>new Date(b.publishedAt)-new Date(a.publishedAt))
       .slice(0,30).map(x=>({...x,time:new Intl.DateTimeFormat("fa-IR",{hour:"2-digit",minute:"2-digit",day:"2-digit",month:"2-digit"}).format(new Date(x.publishedAt))}));
     dailyNewsCache={at:Date.now(),items};
