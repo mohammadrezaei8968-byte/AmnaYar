@@ -131,3 +131,20 @@ document.addEventListener('click',e=>{const a=e.target.closest('a[href*="/tools.
 
 openHomeCheckFromQuery();
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',openHomeCheckFromQuery)}
+
+
+// AmnaYar real analytics
+(function(){
+  const endpoint='/api/analytics/event';
+  const sid=sessionStorage.getItem('amna_analytics_session')||((crypto&&crypto.randomUUID)?crypto.randomUUID():String(Date.now())+'-'+Math.random());
+  sessionStorage.setItem('amna_analytics_session',sid);
+  function send(type,meta){try{fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},keepalive:true,body:JSON.stringify({event_type:type,path:location.pathname+location.search,session_id:sid,meta:meta||{}})}).catch(()=>{});}catch(e){}}
+  send('page_view',{referrer:document.referrer||''});
+  send('session_start',{referrer:document.referrer||''});
+  function addShare(){
+    const host=document.getElementById('navActions'); if(!host||host.querySelector('.amna-share-btn'))return;
+    const b=document.createElement('button'); b.type='button'; b.className='btn soft amna-share-btn'; b.textContent='↗ اشتراک‌گذاری';
+    b.addEventListener('click',async()=>{try{const data={title:'امنا یار',text:'امنا یار؛ ابزارها و سامانه‌های کاربردی',url:location.href};if(navigator.share){await navigator.share(data);}else{await navigator.clipboard.writeText(location.href);alert('لینک امنا یار کپی شد.');}send('share',{label:'share_site'});}catch(e){}});host.appendChild(b);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addShare);else addShare();
+})();
