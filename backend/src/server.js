@@ -760,7 +760,12 @@ function buildAnalytics(days){
     orders:paid.length,
     revenue_toman:paid.reduce((s,x)=>s+Number(x.amount_toman||0),0),
     shares:eventBase.filter(e=>e.event_type==="share").length,
-    share_visitors:new Set(eventBase.filter(e=>e.event_type==="share").map(e=>e.visitor_hash)).size,\n    total_registered:allTimeUsers,\n    all_time_views:allTimeEvents.filter(e=>e.event_type==="page_view").length,\n    all_time_visitors:new Set(allTimeEvents.filter(e=>e.event_type==="page_view").map(e=>e.visitor_hash)).size,\n    all_time_shares:allTimeEvents.filter(e=>e.event_type==="share").length,\n    all_time_share_visitors:new Set(allTimeEvents.filter(e=>e.event_type==="share").map(e=>e.visitor_hash)).size
+    share_visitors:new Set(eventBase.filter(e=>e.event_type==="share").map(e=>e.visitor_hash)).size,
+    total_registered:allTimeUsers,
+    all_time_views:allTimeEvents.filter(e=>e.event_type==="page_view").length,
+    all_time_visitors:new Set(allTimeEvents.filter(e=>e.event_type==="page_view").map(e=>e.visitor_hash)).size,
+    all_time_shares:allTimeEvents.filter(e=>e.event_type==="share").length,
+    all_time_share_visitors:new Set(allTimeEvents.filter(e=>e.event_type==="share").map(e=>e.visitor_hash)).size
   };
   return {days:dayRows,paths,tools,recent_logins,totals,period_days:n,generated_at:now()};
 }
