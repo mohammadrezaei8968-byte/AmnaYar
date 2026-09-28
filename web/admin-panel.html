@@ -143,7 +143,7 @@ function date(v){try{return new Date(v).toLocaleString("fa-IR",{year:"numeric",m
 function msg(t,error=false){$("msg").textContent=t;$("msg").className="notice show "+(error?"error":"success");setTimeout(()=>$("msg").className="notice",3500)}
 function showLogin(t=""){ $("app").classList.add("hidden");$("login").classList.remove("hidden");$("loginErr").textContent=t;$("loginErr").className="notice error"+(t?" show":"") }
 function showApp(){ $("login").classList.add("hidden");$("app").classList.remove("hidden") }
-async function api(path,opt={}){const h=new Headers(opt.headers||{});if(token())h.set("Authorization","Bearer "+token());if(opt.body&&!h.has("Content-Type"))h.set("Content-Type","application/json");let r,j={};try{r=await fetch(API+path,{...opt,headers:h,cache:"no-store"});try{j=await r.json()}catch{}}catch(e){throw Error("ارتباط با سرور برقرار نشد. لطفاً دوباره تلاش کنید.")}if(r.status===401||r.status===403){localStorage.removeItem(TOKEN_KEY);showLogin("نشست مدیریت منقضی شده است.");throw Error("unauthorized")}if(!r.ok)throw Error(j.error||"خطا در سامانه");return j}
+async function api(path,opt={}){const h=new Headers(opt.headers||{});if(token())h.set("Authorization","Bearer "+token());if(opt.body&&!h.has("Content-Type"))h.set("Content-Type","application/json");const targets=[API,DIRECT_API+"/api"].filter((v,i,a)=>v&&!a.slice(0,i).includes(v));let lastErr=null;for(const base of targets){try{const r=await fetch(base+path,{...opt,headers:h,cache:"no-store"});let j={};try{j=await r.json()}catch{}if(r.ok)return j;if((r.status===502||r.status===503||r.status===504)&&base!==targets[targets.length-1])continue;if(r.status===401||r.status===403){localStorage.removeItem(TOKEN_KEY);showLogin("نشست مدیریت منقضی شده یا دسترسی رد شد.");throw Error("unauthorized")}lastErr=Error(j.error||"خطا در سامانه ("+r.status+")");}catch(e){if(e.message==="unauthorized")throw e;lastErr=e;}}throw Error(lastErr?.message||"ارتباط با سرور برقرار نشد. لطفاً دوباره تلاش کنید.")}
 function consumeToken(){const m=location.hash.match(/(?:^|#|&)admin_token=([^&]+)/);if(!m)return false;try{localStorage.setItem(TOKEN_KEY,decodeURIComponent(m[1]));history.replaceState(null,"",location.pathname+location.search)}catch{}return true}
 function showTab(id){document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.id===id));document.querySelectorAll(".menu button").forEach(x=>x.classList.toggle("active",x.dataset.tab===id));$("pageTitle").textContent=titles[id][0];$("pageSub").textContent=titles[id][1];if(id==="logs")loadLogs();if(id==="dashboard")loadDashboard();if(id==="analytics")loadAnalytics();if(id==="users")loadUsers();if(id==="reports")loadReports();if(id==="sales")loadSales();if(id==="packages")loadPackages();if(id==="devices")loadDevices();if(id==="channels")loadChannels();if(id==="tools")loadTools();if(id==="homepage")loadHomepage();if(id==="system")loadSystem();if(id==="settings")loadSettings()}
 document.querySelectorAll(".menu button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
@@ -155,19 +155,19 @@ $("loginForm").addEventListener("submit",async e=>{
   $("loginErr").textContent="";
   btn.disabled=true;btn.textContent="در حال ورود...";
   try{
-    let r;
-    try{
-      r=await fetch(API+"/admin/login",{
-      method:"POST",
-      headers:{"Content-Type":"application/json","Accept":"application/json"},
-      body:JSON.stringify({username,password}),
-      cache:"no-store"
-    });
-    }catch(firstErr){
-      r=await fetch(DIRECT_API+"/api/admin/login",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({username,password}),cache:"no-store"});
+    let r=null,j={};
+    const loginTargets=[API,DIRECT_API+"/api"].filter((v,i,a)=>v&&!a.slice(0,i).includes(v));
+    let lastStatus=0;
+    for(const base of loginTargets){
+      try{
+        r=await fetch(base+"/admin/login",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({username,password}),cache:"no-store"});
+        j={};try{j=await r.json()}catch{}
+        lastStatus=r.status;
+        if(r.ok||r.status===401)break;
+      }catch(firstErr){continue}
     }
-    let j={};try{j=await r.json()}catch{}
-    if(!r.ok)throw new Error(j.error||"ورود به پنل مدیریت انجام نشد.");
+    if(!r)throw new Error("ارتباط با سرور برقرار نشد. لطفاً دوباره تلاش کنید.");
+    if(!r.ok)throw new Error(j.error||("ورود به پنل مدیریت انجام نشد ("+lastStatus+")."));
     if(!j.token)throw new Error("توکن مدیریت از سرور دریافت نشد.");
     localStorage.setItem(TOKEN_KEY,j.token);
     form.reset();
