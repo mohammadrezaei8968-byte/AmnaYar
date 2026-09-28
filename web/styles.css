@@ -843,9 +843,9 @@ body{background:linear-gradient(180deg,#f8fafd 0,#f3f7fb 48%,#fff 100%);color:va
 /* AmnaYar — animated administrative services hero */
 .hero-v2{
   background:
-    radial-gradient(circle at 15% 20%,rgba(55,191,230,.34),transparent 30%),
-    radial-gradient(circle at 88% 78%,rgba(37,99,235,.28),transparent 34%),
-    linear-gradient(125deg,#071b35 0%,#0b3762 48%,#087f8f 100%) !important;
+    radial-gradient(circle at 12% 18%,rgba(255,255,255,.92),transparent 28%),
+    radial-gradient(circle at 88% 78%,rgba(126,221,214,.32),transparent 34%),
+    linear-gradient(135deg,#eaf7f8 0%,#dceff7 48%,#cce7f0 100%) !important;
   color:#fff !important;
   border:1px solid rgba(255,255,255,.12) !important;
   box-shadow:0 28px 70px rgba(5,35,70,.25) !important;
@@ -865,20 +865,25 @@ body{background:linear-gradient(180deg,#f8fafd 0,#f3f7fb 48%,#fff 100%);color:va
 .hero-v2:after{
   content:"";
   position:absolute;inset:0;
-  background:linear-gradient(115deg,transparent 25%,rgba(255,255,255,.10) 48%,transparent 65%);
+  background:linear-gradient(115deg,transparent 25%,rgba(255,255,255,.55) 48%,transparent 65%);
   transform:translateX(-120%);
   animation:ayAdminShine 5s ease-in-out infinite;
   pointer-events:none;
 }
 .hero-v2 .hero-copy h1{
-  color:#fff !important;
-  text-shadow:0 5px 25px rgba(0,0,0,.22);
+  color:#102a43 !important;
+  text-shadow:0 3px 12px rgba(255,255,255,.72);
   overflow:hidden;
   animation:ayAdminTitle 1.15s cubic-bezier(.2,.8,.2,1) both;
 }
+.hero-v2 .hero-copy h1 strong{
+  color:#0b6fa4 !important;
+  -webkit-text-fill-color:#0b6fa4 !important;
+  background:none !important;
+}
 .hero-v2 .hero-copy>p{
-  color:#e5f5ff !important;
-  text-shadow:0 2px 12px rgba(0,0,0,.16);
+  color:#35556f !important;
+  text-shadow:0 1px 8px rgba(255,255,255,.65);
   animation:ayAdminSub 1s .35s cubic-bezier(.2,.8,.2,1) both;
 }
 .hero-v2 .actions{
