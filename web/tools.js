@@ -384,3 +384,24 @@ if(n==='قفل‌گذاری PDF'||n==='حذف رمز PDF'||n==='امضای دی�
 document.addEventListener('DOMContentLoaded',()=>{const raw=location.hash.startsWith('#utility=')?decodeURIComponent(location.hash.slice(9)):'';if(raw){setTimeout(()=>{if(typeof openUtility==='function')openUtility(raw)},150)}});
 document.addEventListener('click',e=>{const b=e.target.closest('.tool-list button');if(!b)return;const n=b.textContent.trim();if(b.hasAttribute('onclick'))return;openUtility(n)});
 })();
+
+
+// AmnaYar tool usage analytics
+(function(){
+  const endpoint='/api/analytics/event';
+  const sid=sessionStorage.getItem('amna_analytics_session')||((crypto&&crypto.randomUUID)?crypto.randomUUID():String(Date.now())+'-'+Math.random());
+  sessionStorage.setItem('amna_analytics_session',sid);
+  const sent=new Set();
+  function send(type,meta){try{fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},keepalive:true,body:JSON.stringify({event_type:type,path:location.pathname+location.search,session_id:sid,meta:meta||{}})}).catch(()=>{});}catch(e){}}
+  send('page_view',{referrer:document.referrer||''});
+  document.addEventListener('click',function(e){
+    const panel=e.target.closest&&e.target.closest('.tool-panel[id]'); if(!panel||sent.has(panel.id))return;
+    sent.add(panel.id); const title=(panel.querySelector('h2')||{}).textContent||panel.id;
+    send('tool_use',{tool:panel.id,name:title.trim(),category:'tools'});
+  },true);
+  document.addEventListener('input',function(e){
+    const panel=e.target.closest&&e.target.closest('.tool-panel[id]'); if(!panel||sent.has(panel.id))return;
+    sent.add(panel.id); const title=(panel.querySelector('h2')||{}).textContent||panel.id;
+    send('tool_use',{tool:panel.id,name:title.trim(),category:'tools'});
+  },true);
+})();
