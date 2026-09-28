@@ -154,7 +154,7 @@ async function loadDailyNews(){
  hot.innerHTML='<div class="daily-news-item"><b>در حال دریافت اخبار داغ...</b></div>';
  latest.innerHTML='<div class="daily-news-item"><b>در حال دریافت آخرین خبرها...</b></div>';
  try{
-  const r=await fetch("https://api.amnayar.ir/api/news?limit=12",{cache:"no-store"}); const data=await r.json();
+  const r=await fetch("/api/news?limit=12",{cache:"no-store"}); const data=await r.json();
   const items=Array.isArray(data.items)?data.items:[];
   const render=(arr)=>arr.map(n=>'<a class="daily-news-item" href="'+String(n.link||"#").replace(/"/g,"&quot;")+'" target="_blank" rel="noopener noreferrer"><b>'+escapeNewsHtml(n.title)+'</b><span class="daily-news-meta"><span>'+escapeNewsHtml(n.source||"منبع خبری")+'</span><span>'+escapeNewsHtml(n.time||"")+'</span></span></a>').join("")||'<div class="daily-news-item"><b>خبری برای نمایش پیدا نشد.</b></div>';
   hot.innerHTML=render(items.slice(0,5)); latest.innerHTML=render(items.slice(5,12));
