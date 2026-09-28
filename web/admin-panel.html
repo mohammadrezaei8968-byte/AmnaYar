@@ -58,16 +58,18 @@
 <section id="logs" class="tab"><div class="top"><div><h2>لاگ‌ها و رویدادها</h2><div class="muted">ورودها، فعالیت مدیر، بازدیدها، استعلام‌ها و خریدها با جست‌وجو و فیلتر.</div></div><div class="actions"><select id="logType" class="select" style="width:150px"><option value="all">همه لاگ‌ها</option><option value="admin">فعالیت مدیر</option><option value="login">ورود کاربران</option><option value="analytics">بازدید و رویداد</option><option value="verification">استعلام‌ها</option><option value="purchase">خریدها</option></select><input id="logSearch" class="input" style="width:220px" placeholder="جست‌وجو..."><button class="btn primary" onclick="loadLogs()">↻ بروزرسانی</button></div></div><div class="card panel"><div class="table-wrap"><table><thead><tr><th>نوع</th><th>زمان</th><th>کاربر/مدیر</th><th>عملیات</th><th>جزئیات</th><th>IP</th><th>دستگاه</th><th>Request ID</th></tr></thead><tbody id="logRows"></tbody></table></div></div></section>
 <section id="analytics" class="tab">
 <div class="top">
-  <div><h2>آمار و تحلیل واقعی سایت</h2><div class="muted">بازدید، کاربران، ورودها، ثبت‌نام، استعلام و فروش؛ بدون آمار ساختگی.</div></div>
+  <div><h2>آمار و تحلیل واقعی سایت</h2><div class="muted">بازدید، کاربران، ثبت‌نام، استفاده از ابزارها و اشتراک‌گذاری؛ اعداد مستقیماً از داده‌های ثبت‌شده سامانه محاسبه می‌شوند.</div></div>
   <div class="actions"><select id="analyticsDays" class="select" style="width:150px"><option value="7">۷ روز اخیر</option><option value="14">۱۴ روز اخیر</option><option value="30" selected>۳۰ روز اخیر</option><option value="90">۹۰ روز اخیر</option></select><button class="btn primary" onclick="loadAnalytics()">↻ بروزرسانی</button></div>
 </div>
 <div class="grid">
   <div class="card kpi"><small>بازدید صفحات</small><b id="aViews">—</b><span class="muted" id="aViewsHint">—</span></div>
   <div class="card kpi"><small>بازدیدکننده یکتا</small><b id="aVisitors">—</b><span class="muted">بر پایه اثر انگشت فنی ناشناس</span></div>
-  <div class="card kpi"><small>کاربران جدید</small><b id="aRegistrations">—</b><span class="muted">ثبت‌نام در بازه انتخابی</span></div>
+  <div class="card kpi"><small>ثبت‌نام در بازه</small><b id="aRegistrations">—</b><span class="muted">ثبت‌نام جدید</span></div>
+  <div class="card kpi"><small>کل ثبت‌نامی‌ها</small><b id="aTotalRegistrations">—</b><span class="muted">از ابتدای فعالیت</span></div>
   <div class="card kpi"><small>استعلام‌ها</small><b id="aChecks">—</b><span class="muted">فعالیت ثبت‌شده کاربران</span></div>
   <div class="card kpi"><small>ورود موفق</small><b id="aLogins">—</b><span class="muted">ورود به حساب</span></div>
   <div class="card kpi"><small>فروش موفق</small><b id="aRevenue">—</b><span class="muted" id="aOrders">—</span></div>
+  <div class="card kpi"><small>اشتراک‌گذاری</small><b id="aShareVisitors">—</b><span class="muted" id="aShareHint">افراد یکتا</span></div>
 </div>
 <div class="card panel"><h2>کاربران ثبت‌نام‌شده</h2><div class="tablewrap"><table class="table"><thead><tr><th>نام کاربری</th><th>ایمیل</th><th>زمان ثبت‌نام</th><th>تأیید ایمیل</th></tr></thead><tbody id="analyticsRegistrations"></tbody></table></div></div><div class="cards2">
   <div class="card panel"><h2>روند روزانه</h2><div id="analyticsDaysChart"></div></div>
@@ -186,7 +188,7 @@ async function loadAnalytics(){
     const days=Number($("analyticsDays").value||30);
     const r=await api("/admin/analytics?days="+days);
     const t=r.totals||{}, rows=r.days||[], paths=r.paths||[], tools=r.tools||[];
-    $("aViews").textContent=num(t.views);$("aVisitors").textContent=num(t.visitors);$("aRegistrations").textContent=num(t.registrations);$("aChecks").textContent=num(t.checks);$("aLogins").textContent=num(t.logins);$("aRevenue").textContent=num(t.revenue_toman)+" تومان";$("aOrders").textContent=num(t.orders)+" سفارش موفق";
+    $("aViews").textContent=num(t.views);$("aVisitors").textContent=num(t.visitors);$("aRegistrations").textContent=num(t.registrations);$("aTotalRegistrations").textContent=num(t.total_registered);$("aChecks").textContent=num(t.checks);$("aLogins").textContent=num(t.logins);$("aRevenue").textContent=num(t.revenue_toman)+" تومان";$("aOrders").textContent=num(t.orders)+" سفارش موفق";$("aShareVisitors").textContent=num(t.all_time_share_visitors);$("aShareHint").textContent=num(t.all_time_shares)+" بار اشتراک‌گذاری";
     $("aViewsHint").textContent="در "+num(r.period_days)+" روز";
     const maxActivity=Math.max(1,...rows.map(x=>Number(x.views)+Number(x.checks||0)));
     $("analyticsDaysChart").innerHTML=rows.map(x=>chartBar(x.day,Number(x.views)+Number(x.checks||0),maxActivity,"بازدید "+num(x.views)+" | استعلام "+num(x.checks)+" | ثبت‌نام "+num(x.registrations))).join("")||"<div class='empty'>داده‌ای ثبت نشده است.</div>";
