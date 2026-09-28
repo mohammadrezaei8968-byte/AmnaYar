@@ -957,4 +957,47 @@ app.put("/api/payroll/sync",auth,(req,res)=>{
   catch(e){console.error("payroll_sync",e);res.status(500).json({error:"payroll_sync_failed"});}
 });
 
-app.listen(PORT,()=>console.log(`AmnaYar API running on :${PORT}`));
+
+// Daily news feed: server-side RSS aggregation with short in-memory cache.
+let dailyNewsCache={at:0,items:[]};
+function decodeNewsHtml(v){
+  return String(v||"").replace(/<!\[CDATA\[|\]\]>/g,"").replace(/<[^>]*>/g," ")
+    .replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&lt;/g,"<").replace(/&gt;/g,">")
+    .replace(/\s+/g," ").trim();
+}
+function parseNewsRss(xml,source){
+  const out=[]; const blocks=String(xml||"").match(/<item[\s\S]*?<\/item>/gi)||[];
+  for(const block of blocks){
+    const title=(block.match(/<title[\s\S]*?>([\s\S]*?)<\/title>/i)||[])[1];
+    const link=(block.match(/<link[\s\S]*?>([\s\S]*?)<\/link>/i)||[])[1];
+    const pub=(block.match(/<pubDate[\s\S]*?>([\s\S]*?)<\/pubDate>/i)||[])[1];
+    if(title&&link)out.push({title:decodeNewsHtml(title),link:decodeNewsHtml(link),source,publishedAt:pub?new Date(pub).toISOString():new Date().toISOString()});
+  }
+  return out;
+}
+app.get("/api/news",async(req,res)=>{
+  try{
+    const limit=Math.min(20,Math.max(4,Number(req.query.limit||12)));
+    if(Date.now()-dailyNewsCache.at<5*60*1000&&dailyNewsCache.items.length){
+      return res.json({items:dailyNewsCache.items.slice(0,limit)});
+    }
+    const feeds=[
+      ["ایرنا","https://irna.com/rss"],
+      ["الجزیره","https://www.aljazeera.com/xml/rss/all.xml"],
+      ["Google News","https://news.google.com/rss?hl=fa&gl=IR&ceid=IR:fa"]
+    ];
+    const results=await Promise.all(feeds.map(async([source,url])=>{
+      try{
+        const r=await fetch(url,{headers:{"User-Agent":"AmnaYar-News/1.0"},signal:AbortSignal.timeout(6500)});
+        if(!r.ok)return [];
+        return parseNewsRss(await r.text(),source);
+      }catch{return [];}
+    }));
+    const seen=new Set(),items=results.flat().filter(x=>{const k=x.title.toLowerCase();if(seen.has(k))return false;seen.add(k);return true;})
+      .sort((a,b)=>new Date(b.publishedAt)-new Date(a.publishedAt))
+      .slice(0,30).map(x=>({...x,time:new Intl.DateTimeFormat("fa-IR",{hour:"2-digit",minute:"2-digit",day:"2-digit",month:"2-digit"}).format(new Date(x.publishedAt))}));
+    dailyNewsCache={at:Date.now(),items};
+    res.json({items:items.slice(0,limit)});
+  }catch(e){res.status(500).json({items:[],error:"news_unavailable"});}
+});
+\napp.listen(PORT,()=>console.log(`AmnaYar API running on :${PORT}`));
