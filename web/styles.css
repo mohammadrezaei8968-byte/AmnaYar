@@ -840,40 +840,13 @@ body{background:linear-gradient(180deg,#f8fafd 0,#f3f7fb 48%,#fff 100%);color:va
 @media(max-width:650px){.hero-v2{min-height:300px}.hero-copy h1{font-size:30px!important}.hero-copy>p{font-size:14px!important}.popular-card{padding:17px!important}.tool-tile{padding:16px!important}}
 
 
-/* AmnaYar — lilac administrative services hero */
-.hero-v2{
-  background:
-    radial-gradient(circle at 12% 18%,rgba(255,255,255,.9),transparent 28%),
-    radial-gradient(circle at 88% 78%,rgba(221,190,255,.55),transparent 34%),
-    linear-gradient(135deg,#f7efff 0%,#eadcff 48%,#d9c7f4 100%) !important;
-  color:#fff !important;
-  border:1px solid rgba(255,255,255,.7) !important;
-  box-shadow:0 28px 70px rgba(92,61,130,.18) !important;
-  isolation:isolate;
-  animation:ayAdminBg 9s ease-in-out infinite alternate;
-}
-.hero-v2:before{
-  content:"";position:absolute;width:360px;height:360px;border-radius:50%;
-  right:-110px;top:-170px;background:rgba(183,137,239,.18);filter:blur(2px);
-  animation:ayAdminOrb 6s ease-in-out infinite;pointer-events:none;
-}
-.hero-v2:after{
-  content:"";position:absolute;inset:0;
-  background:linear-gradient(115deg,transparent 25%,rgba(255,255,255,.48) 48%,transparent 65%);
-  transform:translateX(-120%);animation:ayAdminShine 5s ease-in-out infinite;pointer-events:none;
-}
-.hero-v2 .hero-copy h1{color:#392454 !important;text-shadow:0 3px 12px rgba(255,255,255,.8);overflow:hidden;animation:ayAdminTitle 1.15s cubic-bezier(.2,.8,.2,1) both}
-.hero-v2 .hero-copy h1 strong{color:#7b3fb2 !important;-webkit-text-fill-color:#7b3fb2 !important;background:none !important}
-.hero-v2 .hero-copy>p{color:#5b4b70 !important;text-shadow:0 1px 8px rgba(255,255,255,.7);animation:ayAdminSub 1s .35s cubic-bezier(.2,.8,.2,1) both}
-.hero-v2 .actions{animation:ayAdminSub 1s .55s cubic-bezier(.2,.8,.2,1) both}
-.hero-v2 .trust{animation:ayAdminSub 1s .75s cubic-bezier(.2,.8,.2,1) both}
-.hero-v2 .trust span{background:rgba(255,255,255,.5) !important;color:#60427b !important;border-color:rgba(123,63,178,.16) !important;backdrop-filter:blur(8px);animation:ayAdminChip 3s ease-in-out infinite}
-.hero-v2 .trust span:nth-child(2){animation-delay:.25s}.hero-v2 .trust span:nth-child(3){animation-delay:.5s}
-@keyframes ayAdminTitle{from{opacity:0;transform:translateY(-90px) scale(.96);filter:blur(8px)}65%{opacity:1;transform:translateY(8px) scale(1.01);filter:blur(0)}to{opacity:1;transform:translateY(0) scale(1)}}
-@keyframes ayAdminSub{from{opacity:0;transform:translateY(-45px)}to{opacity:1;transform:translateY(0)}}
-@keyframes ayAdminBg{0%{background-position:0% 50%;filter:saturate(1)}100%{background-position:100% 50%;filter:saturate(1.12)}}
-@keyframes ayAdminOrb{0%,100%{transform:translate(0,0) scale(.92)}50%{transform:translate(-25px,28px) scale(1.12)}}
-@keyframes ayAdminShine{0%,58%,100%{transform:translateX(-120%)}78%{transform:translateX(120%)}}
-@keyframes ayAdminChip{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
-@media(max-width:650px){.hero-v2{margin:12px 10px!important}.hero-v2 .hero-copy h1{font-size:30px!important}.hero-v2:before{width:240px;height:240px;right:-100px;top:-120px}}
-@media(prefers-reduced-motion:reduce){.hero-v2,.hero-v2:before,.hero-v2:after,.hero-v2 .hero-copy h1,.hero-v2 .hero-copy>p,.hero-v2 .actions,.hero-v2 .trust,.hero-v2 .trust span{animation:none!important}.hero-v2 .hero-copy h1,.hero-v2 .hero-copy>p,.hero-v2 .actions,.hero-v2 .trust{opacity:1!important;transform:none!important;filter:none!important}}
+/* AmnaYar — elegant green administrative services hero */
+.hero-v2{background:radial-gradient(circle at 12% 18%,rgba(255,255,255,.9),transparent 28%),radial-gradient(circle at 88% 78%,rgba(134,239,172,.42),transparent 34%),linear-gradient(135deg,#effcf5 0%,#d9f4e5 48%,#bfe8d0 100%) !important;color:#fff !important;border:1px solid rgba(255,255,255,.75) !important;box-shadow:0 28px 70px rgba(27,100,64,.18) !important;isolation:isolate;animation:ayAdminBg 9s ease-in-out infinite alternate}
+.hero-v2:before{content:"";position:absolute;width:360px;height:360px;border-radius:50%;right:-110px;top:-170px;background:rgba(48,180,105,.16);filter:blur(2px);animation:ayAdminOrb 6s ease-in-out infinite;pointer-events:none}
+.hero-v2:after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 25%,rgba(255,255,255,.5) 48%,transparent 65%);transform:translateX(-120%);animation:ayAdminShine 5s ease-in-out infinite;pointer-events:none}
+.hero-v2 .hero-copy h1{color:#173b2a !important;text-shadow:0 3px 12px rgba(255,255,255,.8);overflow:hidden;animation:ayAdminTitle 1.15s cubic-bezier(.2,.8,.2,1) both}
+.hero-v2 .hero-copy h1 strong{color:#16834f !important;-webkit-text-fill-color:#16834f !important;background:none !important}
+.hero-v2 .hero-copy>p{color:#426454 !important;text-shadow:0 1px 8px rgba(255,255,255,.7);animation:ayAdminSub 1s .35s cubic-bezier(.2,.8,.2,1) both}
+.hero-v2 .actions{animation:ayAdminSub 1s .55s cubic-bezier(.2,.8,.2,1) both}.hero-v2 .trust{animation:ayAdminSub 1s .75s cubic-bezier(.2,.8,.2,1) both}.hero-v2 .trust span{background:rgba(255,255,255,.52) !important;color:#26734b !important;border-color:rgba(22,131,79,.16) !important;backdrop-filter:blur(8px);animation:ayAdminChip 3s ease-in-out infinite}.hero-v2 .trust span:nth-child(2){animation-delay:.25s}.hero-v2 .trust span:nth-child(3){animation-delay:.5s}
+@keyframes ayAdminTitle{from{opacity:0;transform:translateY(-90px) scale(.96);filter:blur(8px)}65%{opacity:1;transform:translateY(8px) scale(1.01);filter:blur(0)}to{opacity:1;transform:translateY(0) scale(1)}}@keyframes ayAdminSub{from{opacity:0;transform:translateY(-45px)}to{opacity:1;transform:translateY(0)}}@keyframes ayAdminBg{0%{background-position:0% 50%;filter:saturate(1)}100%{background-position:100% 50%;filter:saturate(1.12)}}@keyframes ayAdminOrb{0%,100%{transform:translate(0,0) scale(.92)}50%{transform:translate(-25px,28px) scale(1.12)}}@keyframes ayAdminShine{0%,58%,100%{transform:translateX(-120%)}78%{transform:translateX(120%)}}@keyframes ayAdminChip{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@media(max-width:650px){.hero-v2{margin:12px 10px!important}.hero-v2 .hero-copy h1{font-size:30px!important}.hero-v2:before{width:240px;height:240px;right:-100px;top:-120px}}@media(prefers-reduced-motion:reduce){.hero-v2,.hero-v2:before,.hero-v2:after,.hero-v2 .hero-copy h1,.hero-v2 .hero-copy>p,.hero-v2 .actions,.hero-v2 .trust,.hero-v2 .trust span{animation:none!important}.hero-v2 .hero-copy h1,.hero-v2 .hero-copy>p,.hero-v2 .actions,.hero-v2 .trust{opacity:1!important;transform:none!important;filter:none!important}}
