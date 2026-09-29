@@ -31,8 +31,8 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
   const settings=quality<=40?"/screen":quality<=60?"/ebook":quality<=75?"/printer":"/prepress";
 
   try{
-    const imageDpi=quality<=40?72:quality<=60?100:quality<=75?150:200;
-    const jpegQ=quality<=40?45:quality<=60?60:quality<=75?75:88;
+    const imageDpi=quality<=40?60:quality<=60?85:quality<=75?120:170;
+    const jpegQ=quality<=40?40:quality<=60?55:quality<=75?70:84;
     await execFileAsync("gs",[
       "-sDEVICE=pdfwrite",
       "-dCompatibilityLevel=1.4",
@@ -44,8 +44,8 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
       "-dCompressFonts=true",
       "-dSubsetFonts=true",
       "-dAutoRotatePages=/None",
-      "-dColorImageDownsampleType=/Bicubic",
-      "-dGrayImageDownsampleType=/Bicubic",
+      "-dColorImageDownsampleType=/Average",
+      "-dGrayImageDownsampleType=/Average",
       "-dMonoImageDownsampleType=/Subsample",
       "-dColorImageResolution="+imageDpi,
       "-dGrayImageResolution="+imageDpi,
@@ -55,7 +55,7 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
       "-sOutputFile="+output,
       input
     ],{
-      timeout:80*60*1000,
+      timeout:35*60*1000,
       maxBuffer:4*1024*1024
     });
 
@@ -113,6 +113,6 @@ app.use((req,res,next)=>{
 app.use((req,res)=>res.status(404).send("Not Found"));
 
 const server=app.listen(PORT,"0.0.0.0",()=>console.log("AmnaYar gateway listening on "+PORT));
-server.requestTimeout=80*60*1000;
+server.requestTimeout=35*60*1000;
 server.headersTimeout=120*1000;
 server.keepAliveTimeout=120*1000;
