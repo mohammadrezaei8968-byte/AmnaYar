@@ -8,6 +8,13 @@ const crypto = require("crypto");
 const {initPayment: samanInit, verifyPayment: samanVerify} = require("./providers/saman");
 const rateLimit = require("express-rate-limit");
 const https = require("https");
+const multer = require("multer");
+const {execFile} = require("child_process");
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
+const util = require("util");
+const execFileAsync = util.promisify(execFile);
 
 const app = express();
 app.set("trust proxy", 1);
@@ -978,5 +985,19 @@ function diversifyNews(items,limit){const groups=new Map();for(const x of items)
 app.get("/api/news",async(req,res)=>{try{const limit=Math.min(20,Math.max(4,Number(req.query.limit||12)));if(Date.now()-dailyNewsCache.at<5*60*1000&&dailyNewsCache.items.length)return res.json({items:dailyNewsCache.items.slice(0,limit)});const feeds=[
 ["تسنیم","https://www.tasnimnews.com/fa/rss/feed/0/8/0/%D9%85%D9%87%D9%85%D8%AA%D8%B1%DB%8C%D9%86-%D8%AE%D8%A8%D8%B1%D9%87%D8%A7",5],["فارس","https://www.farsnews.ir/rss",5],["خبرگزاری صداوسیما","https://www.iribnews.ir/fa/rss",4],["ایرنا","https://irna.com/rss",4],["باشگاه خبرنگاران جوان","https://www.yjc.ir/fa/rss/allnews",3],["مهر","https://www.mehrnews.com/rss",2],["کیهان","https://kayhan.ir/fa/rss",2],["ایسنا","https://www.isna.ir/rss",1],["خبرآنلاین","https://www.khabaronline.ir/rss",1],["تابناک","https://www.tabnak.ir/fa/rss/allnews",1],["عصر ایران","https://www.asriran.com/fa/rss/allnews",1]
 ];const results=await Promise.all(feeds.map(async([source,url,weight])=>{try{const r=await fetch(url,{headers:{"User-Agent":"AmnaYar-News/2.1","Accept":"application/rss+xml,application/atom+xml,application/xml,text/xml,*/*"},signal:AbortSignal.timeout(8000)});if(!r.ok){console.warn("news_feed_failed",source,"HTTP "+r.status);return [];}const parsed=parseNewsFeed(await r.text(),source,weight);if(!parsed.length)console.warn("news_feed_empty",source);return parsed;}catch(e){console.warn("news_feed_failed",source,e.message);return [];} }));const persianTitle=t=>/[\u0600-\u06FF]/.test(String(t||""));const seen=new Set();const all=results.flat().filter(x=>persianTitle(x.title)).filter(x=>{const k=x.title.replace(/\s+/g," ").trim().toLowerCase();if(seen.has(k))return false;seen.add(k);return true;});const hot=diversifyNews(all,limit);const hotTitles=new Set(hot.map(x=>x.title.toLowerCase()));const recent=[...all].sort((a,b)=>new Date(b.publishedAt)-new Date(a.publishedAt)).filter(x=>!hotTitles.has(x.title.toLowerCase()));const merged=[...hot,...recent].slice(0,30);dailyNewsCache={at:Date.now(),items:merged};res.json({items:merged.slice(0,limit)});}catch(e){console.error("news_unavailable",e);res.status(500).json({items:[],error:"news_unavailable"});}});
+
+// Large PDF compression using Ghostscript on the API server.
+const pdfUpload = multer({dest:os.tmpdir(),limits:{fileSize:300*1024*1024},fileFilter:(req,file,cb)=>cb(null,file.mimetype==='application/pdf'||/\.pdf$/i.test(file.originalname))});
+app.post('/api/tools/compress-pdf',pdfUpload.single('file'),async(req,res)=>{
+ const input=req.file?.path;if(!input)return res.status(400).json({error:'pdf_required'});
+ const quality=Math.max(35,Math.min(85,Number(req.body?.quality||70)));
+ const output=path.join(os.tmpdir(),'amnayar-compressed-'+crypto.randomUUID()+'.pdf');
+ const settings=quality<=40?'/screen':quality<=60?'/ebook':quality<=75?'/printer':'/prepress';
+ try{
+  await execFileAsync('gs',['-sDEVICE=pdfwrite','-dCompatibilityLevel=1.4','-dNOPAUSE','-dQUIET','-dBATCH','-dDetectDuplicateImages=true','-dCompressFonts=true','-dSubsetFonts=true','-dPDFSETTINGS='+settings,'-sOutputFile='+output,input],{timeout:8*60*1000,maxBuffer:2*1024*1024});
+  const stat=await fs.promises.stat(output);res.setHeader('Content-Type','application/pdf');res.setHeader('Content-Disposition','attachment; filename="amnayar-compressed.pdf"');res.setHeader('X-Original-Size',String(req.file.size));res.setHeader('X-Compressed-Size',String(stat.size));
+  res.sendFile(output,err=>{Promise.allSettled([fs.promises.unlink(input),fs.promises.unlink(output)]).catch(()=>{});if(err&&!res.headersSent)res.status(500).json({error:'pdf_send_failed'});});
+ }catch(e){Promise.allSettled([fs.promises.unlink(input),fs.promises.unlink(output)]).catch(()=>{});const msg=String(e?.stderr||e?.message||'');console.error('pdf_compress_failed',msg.slice(0,1200));if(/ENOENT/i.test(msg))return res.status(503).json({error:'ghostscript_unavailable'});if(/file size|too large|LIMIT_FILE_SIZE/i.test(msg))return res.status(413).json({error:'pdf_too_large'});return res.status(422).json({error:'pdf_compress_failed'});}
+});
 
 app.listen(PORT,()=>console.log(`AmnaYar API running on :${PORT}`));
