@@ -139,7 +139,7 @@ async function compressPDF(){
   s.textContent='در حال ارسال PDF برای فشرده‌سازی امن و حرفه‌ای...';
   try{
     const fd=new FormData();fd.append('file',f,f.name);fd.append('quality',String(level));
-    const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),80*60*1000);
+    const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),35*60*1000);
     try{
       const r=await fetch('/api/tools/compress-pdf',{method:'POST',body:fd,signal:controller.signal});
       if(!r.ok){
