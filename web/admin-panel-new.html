@@ -232,4 +232,34 @@ async function saveSettings(){const body={};document.querySelectorAll(".setting"
 function logout(){localStorage.removeItem(TOKEN_KEY);location.reload()}
 consumeToken();if(token()){showApp();loadDashboard()}else showLogin();
 </script>
+<script>
+(function(){
+  const form=document.getElementById("loginForm");
+  if(!form)return;
+  form.removeAttribute("action");
+  form.addEventListener("submit",async function(e){
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    const err=document.getElementById("loginErr");
+    const btn=form.querySelector("button[type=submit]");
+    const username=String(document.getElementById("username")?.value||"").trim();
+    const password=String(document.getElementById("password")?.value||"");
+    if(!username||!password)return;
+    if(btn){btn.disabled=true;btn.textContent="در حال ورود...";}
+    if(err){err.className="notice";err.textContent="";err.style.display="none";}
+    try{
+      localStorage.removeItem("amnayar_admin_token");
+      const r=await fetch("/api/admin/login",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({username,password}),cache:"no-store",credentials:"same-origin"});
+      let j={}; try{j=await r.json()}catch(_){}
+      if(!r.ok||!j.token)throw new Error(j.error||("خطای ورود: "+r.status));
+      localStorage.setItem("amnayar_admin_token",j.token);
+      document.getElementById("login").classList.add("hidden");
+      document.getElementById("app").classList.remove("hidden");
+      if(typeof loadDashboard==="function")loadDashboard();
+    }catch(ex){
+      if(err){err.className="notice error show";err.textContent=String(ex.message||"ورود ناموفق بود");err.style.display="block";}
+    }finally{if(btn){btn.disabled=false;btn.textContent="ورود به مدیریت";}}
+  },true);
+})();
+</script>
 </body></html>
