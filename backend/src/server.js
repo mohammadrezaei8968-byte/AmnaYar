@@ -48,7 +48,8 @@ const SECRET = process.env.JWT_SECRET || "";
 const APP_VERSION = "5.16.0";
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "";
 const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || "";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";\nconst ADMIN_PASSWORD_SHA256 = process.env.ADMIN_PASSWORD_SHA256 || "";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
+const ADMIN_PASSWORD_SHA256 = process.env.ADMIN_PASSWORD_SHA256 || "";
 if (!SECRET || SECRET.length < 32) { if (NODE_ENV === "production") throw new Error("JWT_SECRET must be at least 32 characters in production"); console.warn("WARNING: set JWT_SECRET to a random secret of at least 32 characters."); }
 if (!ADMIN_PASSWORD_HASH) { if (NODE_ENV === "production") throw new Error("ADMIN_PASSWORD_HASH is required in production"); console.warn("WARNING: set ADMIN_PASSWORD_HASH (bcrypt) for production admin login."); }
 const db = new Database(process.env.DB_FILE || "amnayar.db");
