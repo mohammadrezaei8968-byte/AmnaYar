@@ -133,21 +133,66 @@ async function compressImage(){
 async function compressPDF(){
   const f=$('#compressPdfFile').files[0],s=$('#compressPdfStatus');
   if(!f)return s.textContent='فایل PDF را انتخاب کنید.';
-  if(f.size>300*1024*1024)return s.textContent='حداکثر حجم PDF ۳۰۰ مگابایت است.';
-  const level=Number($('#pdfQuality').value||70); s.textContent='در حال آماده‌سازی فایل برای فشرده‌سازی...';
+  const MAX=500*1024*1024;
+  if(f.size>MAX)return s.textContent='حداکثر حجم PDF ۵۰۰ مگابایت است.';
+  const level=Number($('#pdfQuality').value||70);
+  s.textContent='در حال ارسال PDF برای فشرده‌سازی امن و حرفه‌ای...';
   try{
+    const fd=new FormData();fd.append('file',f,f.name);fd.append('quality',String(level));
+    const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),80*60*1000);
+    try{
+      const r=await fetch('/api/tools/compress-pdf',{method:'POST',body:fd,signal:controller.signal});
+      if(!r.ok){
+        let d={};try{d=await r.json()}catch{}
+        throw new Error(d.error||('server_compress_'+r.status));
+      }
+      const blob=await r.blob();
+      const original=Number(r.headers.get('X-Original-Size')||f.size);
+      const compressed=Number(r.headers.get('X-Compressed-Size')||blob.size);
+      downloadBlob(blob,'amnayar-compressed.pdf');
+      s.textContent=savingsText(original,compressed)+' — فشرده‌سازی حرفه‌ای انجام شد.';
+      return;
+    }finally{clearTimeout(timer)}
+  }catch(serverErr){
+    console.error('server PDF compression failed',serverErr);
     if(f.size>25*1024*1024){
-      const fd=new FormData();fd.append('file',f,f.name);fd.append('quality',String(level));
-      const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),10*60*1000);
-      try{const r=await fetch('/api/tools/compress-pdf',{method:'POST',body:fd,signal:controller.signal});if(!r.ok){let d={};try{d=await r.json()}catch{}throw new Error(d.error||'server_compress_failed')}const blob=await r.blob();downloadBlob(blob,'amnayar-compressed.pdf');const original=Number(r.headers.get('X-Original-Size')||f.size),compressed=Number(r.headers.get('X-Compressed-Size')||blob.size);s.textContent=savingsText(original,compressed)+' — فشرده‌سازی فایل حجیم با سرور انجام شد.';return}finally{clearTimeout(timer)}
+      const msg=serverErr?.name==='AbortError'
+        ? 'زمان پردازش PDF حجیم تمام شد. فایل کوچک‌تر یا سطح فشرده‌سازی بالاتر را امتحان کنید.'
+        : 'فشرده‌سازی فایل حجیم روی سرور انجام نشد. لطفاً دوباره تلاش کنید؛ فایل اصلی شما تغییری نمی‌کند.';
+      s.textContent=msg;
+      return;
     }
-    if(!window.pdfjsLib)return s.textContent='کتابخانه PDF هنوز آماده نشده است؛ چند ثانیه بعد دوباره تلاش کنید.';
-    s.textContent='در حال فشرده‌سازی PDF در مرورگر...';
-    const pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise;const out=await PDFLib.PDFDocument.create();
-    const scale=level<=40?0.9:level<=60?1.1:level<=75?1.35:1.7;const quality=level<=40?0.45:level<=60?0.58:level<=75?0.72:0.86;
-    for(let n=1;n<=pdf.numPages;n++){const page=await pdf.getPage(n);const vp=page.getViewport({scale});const c=document.createElement('canvas');c.width=Math.max(1,Math.round(vp.width));c.height=Math.max(1,Math.round(vp.height));const ctx=c.getContext('2d',{alpha:false});ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);await page.render({canvasContext:ctx,viewport:vp}).promise;const data=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error('image failed')),'image/jpeg',quality));const img=await out.embedJpg(await data.arrayBuffer());const p=out.addPage([vp.width,vp.height]);p.drawImage(img,{x:0,y:0,width:vp.width,height:vp.height});c.width=1;c.height=1;s.textContent='در حال فشرده‌سازی صفحه '+fa(n)+' از '+fa(pdf.numPages)+'...';}
-    const bytes=await out.save({useObjectStreams:true,addDefaultPage:false});const blob=new Blob([bytes],{type:'application/pdf'});downloadBlob(blob,'amnayar-compressed.pdf');s.textContent=savingsText(f.size,blob.size)+' — کیفیت خروجی: '+fa(level)+'٪';
-  }catch(e){console.error(e);s.textContent=e?.name==='AbortError'?'زمان پردازش فایل تمام شد؛ فایل کوچک‌تر یا کیفیت پایین‌تر را امتحان کنید.':'فشرده‌سازی PDF انجام نشد؛ فایل رمزدار، آسیب‌دیده یا ناسازگار است.';}
+    if(!window.pdfjsLib){
+      s.textContent='سرویس فشرده‌سازی موقتاً در دسترس نیست؛ چند لحظه بعد دوباره تلاش کنید.';
+      return;
+    }
+    s.textContent='سرور در دسترس نبود؛ در حال استفاده از روش مرورگر برای فایل کوچک...';
+    try{
+      const pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise;
+      const out=await PDFLib.PDFDocument.create();
+      const scale=level<=40?0.9:level<=60?1.1:level<=75?1.35:1.7;
+      const quality=level<=40?0.45:level<=60?0.58:level<=75?0.72:0.86;
+      for(let n=1;n<=pdf.numPages;n++){
+        const page=await pdf.getPage(n),vp=page.getViewport({scale});
+        const c=document.createElement('canvas');
+        c.width=Math.max(1,Math.round(vp.width));c.height=Math.max(1,Math.round(vp.height));
+        const ctx=c.getContext('2d',{alpha:false});ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);
+        await page.render({canvasContext:ctx,viewport:vp}).promise;
+        const data=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error('image_failed')),'image/jpeg',quality));
+        const img=await out.embedJpg(await data.arrayBuffer());
+        const p=out.addPage([vp.width,vp.height]);p.drawImage(img,{x:0,y:0,width:vp.width,height:vp.height});
+        c.width=1;c.height=1;
+        s.textContent='در حال فشرده‌سازی صفحه '+fa(n)+' از '+fa(pdf.numPages)+'...';
+      }
+      const bytes=await out.save({useObjectStreams:true,addDefaultPage:false});
+      const blob=new Blob([bytes],{type:'application/pdf'});
+      downloadBlob(blob,'amnayar-compressed.pdf');
+      s.textContent=savingsText(f.size,blob.size)+' — فشرده‌سازی مرورگری انجام شد.';
+    }catch(e){
+      console.error(e);
+      s.textContent='فشرده‌سازی PDF انجام نشد؛ فایل رمزدار، آسیب‌دیده یا ناسازگار است.';
+    }
+  }
 }
 
 // ویدئو در خود مرورگر با MediaRecorder به WebM فشرده می‌شود؛ فایل به سرور ارسال نمی‌شود.
