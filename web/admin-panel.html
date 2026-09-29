@@ -160,10 +160,11 @@ $("loginForm").addEventListener("submit",async e=>{
     let lastStatus=0;
     for(const base of loginTargets){
       try{
-        r=await fetch(base+"/owner/login",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({username,password}),cache:"no-store"});
+        r=await fetch(base+"/admin/login",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({username,password}),cache:"no-store"});
         j={};try{j=await r.json()}catch{}
         lastStatus=r.status;
-        if(r.ok||r.status===401)break;
+        if(r.ok)break;
+        if(r.status===401)continue;
       }catch(firstErr){continue}
     }
     if(!r)throw new Error("ارتباط با سرور برقرار نشد. لطفاً دوباره تلاش کنید.");
