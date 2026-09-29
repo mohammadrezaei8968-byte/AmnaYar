@@ -18,7 +18,7 @@ services:
     runtime: node
     name: amnayar-api
     rootDir: backend
-    buildCommand: npm install
+    buildCommand: apt-get update && apt-get install -y ghostscript && npm install
     startCommand: npm start
     plan: free
     healthCheckPath: /api/health
