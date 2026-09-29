@@ -3,7 +3,7 @@ services:
     runtime: node
     name: amnayar-gateway
     rootDir: gateway
-    buildCommand: npm install
+    buildCommand: apt-get update && apt-get install -y ghostscript && npm install
     startCommand: npm start
     plan: free
     healthCheckPath: /
