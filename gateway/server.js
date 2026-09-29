@@ -31,21 +31,32 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
   const settings=quality<=40?"/screen":quality<=60?"/ebook":quality<=75?"/printer":"/prepress";
 
   try{
+    const imageDpi=quality<=40?72:quality<=60?100:quality<=75?150:200;
+    const jpegQ=quality<=40?45:quality<=60?60:quality<=75?75:88;
     await execFileAsync("gs",[
       "-sDEVICE=pdfwrite",
       "-dCompatibilityLevel=1.4",
       "-dNOPAUSE",
       "-dQUIET",
       "-dBATCH",
+      "-dSAFER",
       "-dDetectDuplicateImages=true",
       "-dCompressFonts=true",
       "-dSubsetFonts=true",
+      "-dAutoRotatePages=/None",
+      "-dColorImageDownsampleType=/Bicubic",
+      "-dGrayImageDownsampleType=/Bicubic",
+      "-dMonoImageDownsampleType=/Subsample",
+      "-dColorImageResolution="+imageDpi,
+      "-dGrayImageResolution="+imageDpi,
+      "-dMonoImageResolution="+Math.max(150,imageDpi*2),
+      "-dJPEGQ="+jpegQ,
       "-dPDFSETTINGS="+settings,
       "-sOutputFile="+output,
       input
     ],{
-      timeout:20*60*1000,
-      maxBuffer:2*1024*1024
+      timeout:80*60*1000,
+      maxBuffer:4*1024*1024
     });
 
     const stat=await fs.promises.stat(output);
@@ -102,6 +113,6 @@ app.use((req,res,next)=>{
 app.use((req,res)=>res.status(404).send("Not Found"));
 
 const server=app.listen(PORT,"0.0.0.0",()=>console.log("AmnaYar gateway listening on "+PORT));
-server.requestTimeout=20*60*1000;
+server.requestTimeout=80*60*1000;
 server.headersTimeout=120*1000;
 server.keepAliveTimeout=120*1000;
