@@ -180,20 +180,25 @@
 async function loadDailyNews(){
  const hot=document.getElementById("hotNewsList"), latest=document.getElementById("latestNewsList"), updated=document.getElementById("newsUpdatedAt");
  if(!hot||!latest)return;
- hot.innerHTML='<div class="daily-news-item"><b>در حال دریافت اخبار داغ...</b></div>';
- latest.innerHTML='<div class="daily-news-item"><b>در حال دریافت آخرین خبرها...</b></div>';
+ hot.innerHTML='<div class="daily-news-item"><b>در حال دریافت اخبار داغ شهرخبر...</b></div>';
+ latest.innerHTML='<div class="daily-news-item"><b>در حال دریافت آخرین خبرهای شهرخبر...</b></div>';
  try{
-  const r=await fetch("/api/news?limit=12",{cache:"no-store"}); const data=await r.json();
-  const items=Array.isArray(data.items)?data.items:[];
-  const render=(arr)=>arr.map(n=>'<a class="daily-news-item" href="'+String(n.link||"#").replace(/"/g,"&quot;")+'" target="_blank" rel="noopener noreferrer"><b>'+escapeNewsHtml(n.title)+'</b><span class="daily-news-meta"><span>'+escapeNewsHtml(n.source||"منبع خبری")+'</span><span>'+escapeNewsHtml(n.time||"")+'</span></span></a>').join("")||'<div class="daily-news-item"><b>خبری برای نمایش پیدا نشد.</b></div>';
-  hot.innerHTML=render(items.slice(0,5)); latest.innerHTML=render(items.slice(5,12));
-  if(updated)updated.textContent="آخرین به‌روزرسانی: "+new Date().toLocaleTimeString("fa-IR",{hour:"2-digit",minute:"2-digit"});
+  const [hotRes,liveRes]=await Promise.all([
+    fetch("/api/news?mode=hot",{cache:"no-store"}),
+    fetch("/api/news?mode=live",{cache:"no-store"})
+  ]);
+  if(!hotRes.ok||!liveRes.ok)throw new Error("news_fetch_failed");
+  const hotData=await hotRes.json(), liveData=await liveRes.json();
+  const render=(arr)=>arr.map(n=>'<a class="daily-news-item" href="'+String(n.link||"#").replace(/"/g,"&quot;")+'" target="_blank" rel="noopener noreferrer"><b>'+escapeNewsHtml(n.title)+'</b><span class="daily-news-meta"><span>'+escapeNewsHtml(n.source||"شهرخبر")+'</span><span>'+escapeNewsHtml(n.time||"")+'</span></span></a>').join("")||'<div class="daily-news-item"><b>خبری برای نمایش پیدا نشد.</b></div>';
+  hot.innerHTML=render((Array.isArray(hotData.items)?hotData.items:[]).slice(0,5));
+  latest.innerHTML=render((Array.isArray(liveData.items)?liveData.items:[]).slice(0,7));
+  if(updated)updated.textContent="منبع: شهرخبر • آخرین به‌روزرسانی: "+new Date().toLocaleTimeString("fa-IR",{hour:"2-digit",minute:"2-digit"});
  }catch(e){
-  hot.innerHTML='<div class="daily-news-item"><b>دریافت اخبار با خطا روبه‌رو شد.</b></div>';
-  latest.innerHTML='<div class="daily-news-item"><b>لطفاً چند لحظه بعد دوباره تلاش کنید.</b></div>';
-  if(updated)updated.textContent="خطا در دریافت";
+  hot.innerHTML='<div class="daily-news-item"><b>دریافت اخبار داغ شهرخبر با خطا روبه‌رو شد.</b></div>';
+  latest.innerHTML='<div class="daily-news-item"><b>دریافت پخش زنده اخبار شهرخبر با خطا روبه‌رو شد.</b></div>';
+  if(updated)updated.textContent="خطا در دریافت از شهرخبر";
  }
 }
 function escapeNewsHtml(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
-document.addEventListener("DOMContentLoaded",()=>{loadDailyNews();setInterval(loadDailyNews,10*60*1000);});
+document.addEventListener("DOMContentLoaded",()=>{loadDailyNews();setInterval(loadDailyNews,5*60*1000);});
 </script></body></html>
