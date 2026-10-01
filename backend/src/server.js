@@ -975,17 +975,74 @@ app.put("/api/payroll/sync",auth,(req,res)=>{
 });
 
 
-// Daily news feed: resilient RSS/Atom aggregation with source diversity.
+// Daily news feed: CityKhabar live + most-liked sections.
 let dailyNewsCache={at:0,items:[]};
-function decodeNewsHtml(v){return String(v||"").replace(/<!\[CDATA\[|\]\]>/g,"").replace(/<[^>]*>/g," ").replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(Number(n))).replace(/&#x([0-9a-f]+);/gi,(_,n)=>String.fromCodePoint(parseInt(n,16))).replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/\s+/g," ").trim();}
-function xmlField(block,name){const re=new RegExp("<"+name+"(?:\\s[^>]*)?>([\\s\\S]*?)</"+name+">","i");return(block.match(re)||[])[1]||"";}
-function xmlLink(block){const a=(block.match(/<link[^>]*href=["']([^"']+)["']/i)||[])[1];return a?decodeNewsHtml(a):decodeNewsHtml(xmlField(block,"link")||xmlField(block,"guid"));}
-function xmlDate(block){const raw=xmlField(block,"pubDate")||xmlField(block,"dc:date")||xmlField(block,"published")||xmlField(block,"updated");const d=new Date(decodeNewsHtml(raw));return Number.isNaN(d.getTime())?new Date():d;}
-function parseNewsFeed(xml,source,weight){const text=String(xml||""),out=[];const blocks=[...(text.match(/<item(?:\s[^>]*)?>[\s\S]*?<\/item>/gi)||[]),...(text.match(/<entry(?:\s[^>]*)?>[\s\S]*?<\/entry>/gi)||[])];for(const block of blocks){const title=decodeNewsHtml(xmlField(block,"title")),link=xmlLink(block);if(title&&link)out.push({title,link,source,sourceWeight:weight,publishedAt:xmlDate(block).toISOString()});}return out;}
-function diversifyNews(items,limit){const groups=new Map();for(const x of items){if(!groups.has(x.source))groups.set(x.source,[]);groups.get(x.source).push(x);}for(const a of groups.values())a.sort((x,y)=>new Date(y.publishedAt)-new Date(x.publishedAt));const sources=[...groups.keys()].sort((a,b)=>(Math.max(...groups.get(b).map(x=>x.sourceWeight||0))||0)-(Math.max(...groups.get(a).map(x=>x.sourceWeight||0))||0));const out=[],seen=new Set();for(let round=0;out.length<limit;round++){let added=false;for(const source of sources){const item=groups.get(source)[round];if(!item)continue;const k=item.title.replace(/\s+/g," ").trim().toLowerCase();if(seen.has(k))continue;seen.add(k);out.push({...item,time:new Intl.DateTimeFormat("fa-IR",{hour:"2-digit",minute:"2-digit",day:"2-digit",month:"2-digit"}).format(new Date(item.publishedAt))});added=true;if(out.length>=limit)break;}if(!added)break;}return out;}
-app.get("/api/news",async(req,res)=>{try{const limit=Math.min(20,Math.max(4,Number(req.query.limit||12)));if(Date.now()-dailyNewsCache.at<5*60*1000&&dailyNewsCache.items.length)return res.json({items:dailyNewsCache.items.slice(0,limit)});const feeds=[
-["تسنیم","https://www.tasnimnews.com/fa/rss/feed/0/8/0/%D9%85%D9%87%D9%85%D8%AA%D8%B1%DB%8C%D9%86-%D8%AE%D8%A8%D8%B1%D9%87%D8%A7",5],["فارس","https://www.farsnews.ir/rss",5],["خبرگزاری صداوسیما","https://www.iribnews.ir/fa/rss",4],["ایرنا","https://irna.com/rss",4],["باشگاه خبرنگاران جوان","https://www.yjc.ir/fa/rss/allnews",3],["مهر","https://www.mehrnews.com/rss",2],["کیهان","https://kayhan.ir/fa/rss",2],["ایسنا","https://www.isna.ir/rss",1],["خبرآنلاین","https://www.khabaronline.ir/rss",1],["تابناک","https://www.tabnak.ir/fa/rss/allnews",1],["عصر ایران","https://www.asriran.com/fa/rss/allnews",1]
-];const results=await Promise.all(feeds.map(async([source,url,weight])=>{try{const r=await fetch(url,{headers:{"User-Agent":"AmnaYar-News/2.1","Accept":"application/rss+xml,application/atom+xml,application/xml,text/xml,*/*"},signal:AbortSignal.timeout(8000)});if(!r.ok){console.warn("news_feed_failed",source,"HTTP "+r.status);return [];}const parsed=parseNewsFeed(await r.text(),source,weight);if(!parsed.length)console.warn("news_feed_empty",source);return parsed;}catch(e){console.warn("news_feed_failed",source,e.message);return [];} }));const persianTitle=t=>/[\u0600-\u06FF]/.test(String(t||""));const seen=new Set();const all=results.flat().filter(x=>persianTitle(x.title)).filter(x=>{const k=x.title.replace(/\s+/g," ").trim().toLowerCase();if(seen.has(k))return false;seen.add(k);return true;});const hot=diversifyNews(all,limit);const hotTitles=new Set(hot.map(x=>x.title.toLowerCase()));const recent=[...all].sort((a,b)=>new Date(b.publishedAt)-new Date(a.publishedAt)).filter(x=>!hotTitles.has(x.title.toLowerCase()));const merged=[...hot,...recent].slice(0,30);dailyNewsCache={at:Date.now(),items:merged};res.json({items:merged.slice(0,limit)});}catch(e){console.error("news_unavailable",e);res.status(500).json({items:[],error:"news_unavailable"});}});
+const CITY_NEWS={
+  live:"https://www.shahrekhabar.com/%D9%BE%D8%AE%D8%B4-%D8%B2%D9%86%D8%AF%D9%87-%D8%A7%D8%AE%D8%A8%D8%A7%D8%B1",
+  hot:"https://www.shahrekhabar.com/%D8%AF%D8%A7%D8%BA-%D8%AA%D8%B1%DB%8C%D9%86-%D8%A7%D8%AE%D8%A8%D8%A7%D8%B1"
+};
+function decodeCityHtml(v){
+  return String(v||"").replace(/<[^>]*>/g," ").replace(/&nbsp;/g," ").replace(/&amp;/g,"&").replace(/&quot;/g,'\"').replace(/&#39;/g,"'").replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(Number(n))).replace(/&#x([0-9a-f]+);/gi,(_,n)=>String.fromCodePoint(parseInt(n,16))).replace(/\\s+/g," ").trim();
+}
+function cityAbsoluteUrl(href){
+  const h=decodeCityHtml(href||"");
+  if(!h)return "";
+  try{return new URL(h,"https://www.shahrekhabar.com").toString();}catch{return "";}
+}
+function parseCityNewsPage(html,mode){
+  const out=[],seen=new Set(),text=String(html||"");
+  const re=/<a\\b[^>]*href=["']([^"']+)["'][^>]*>([\\s\\S]*?)<\\/a>/gi;
+  let m;
+  while((m=re.exec(text))){
+    const link=cityAbsoluteUrl(m[1]), title=decodeCityHtml(m[2]);
+    if(!link||!title||title.length<8)continue;
+    if(!link.includes("shahrekhabar.com/"))continue;
+    if(!/[\\u0600-\\u06FF]/.test(title))continue;
+    if(/^(پخش زنده|بیشترین لایک|اخبار|لایک کن|آخرین اخبار|منابع خبری|موضوعات خبری|خبرنامه)/.test(title))continue;
+    const key=title.replace(/\\s+/g," ").trim().toLowerCase();
+    if(seen.has(key))continue;
+    seen.add(key);
+    const near=text.slice(Math.max(0,m.index-300),Math.min(text.length,m.index+900));
+    const tm=(near.match(/(?:[۰-۹\\d]+)\\s*(?:دقيقه|دقیقه|ساعت|روز)\\s*پيش/)||[])[0]||"";
+    out.push({title,link,source:"شهرخبر",time:tm||"تازه",mode});
+    if(out.length>=12)break;
+  }
+  return out;
+}
+async function fetchCityNews(mode){
+  const url=CITY_NEWS[mode];
+  const r=await fetch(url,{headers:{"User-Agent":"Mozilla/5.0 (compatible; AmnaYar-News/1.0; +https://amnayar.ir)","Accept":"text/html,application/xhtml+xml"},signal:AbortSignal.timeout(10000)});
+  if(!r.ok)throw new Error("citynews_http_"+r.status);
+  const items=parseCityNewsPage(await r.text(),mode);
+  if(!items.length)throw new Error("citynews_empty_"+mode);
+  return items;
+}
+app.get("/api/news",async(req,res)=>{
+  const mode=String(req.query.mode||"all");
+  try{
+    const ttl=5*60*1000, nowMs=Date.now();
+    const key=mode==="live"?"live":mode==="hot"?"hot":"all";
+    if(dailyNewsCache[key] && nowMs-dailyNewsCache[key].at<ttl)
+      return res.json({items:dailyNewsCache[key].items,source:"شهرخبر",mode:key});
+    if(key==="live"){
+      const items=await fetchCityNews("live");
+      dailyNewsCache.live={at:nowMs,items};
+      return res.json({items,source:"شهرخبر",mode:"live"});
+    }
+    if(key==="hot"){
+      const items=await fetchCityNews("hot");
+      dailyNewsCache.hot={at:nowMs,items};
+      return res.json({items,source:"شهرخبر",mode:"hot"});
+    }
+    const [live,hot]=await Promise.all([fetchCityNews("live"),fetchCityNews("hot")]);
+    const merged=[...hot.slice(0,5),...live.slice(0,7)];
+    dailyNewsCache={at:nowMs,items:merged,live:{at:nowMs,items:live},hot:{at:nowMs,items:hot}};
+    res.json({items:merged,source:"شهرخبر",mode:"all"});
+  }catch(e){
+    console.error("citynews_unavailable",e);
+    res.status(502).json({items:[],source:"شهرخبر",mode,error:"citynews_unavailable"});
+  }
+});
 
 // Large PDF compression using Ghostscript on the API server.
 const pdfUpload = multer({dest:os.tmpdir(),limits:{fileSize:300*1024*1024},fileFilter:(req,file,cb)=>cb(null,file.mimetype==='application/pdf'||/\.pdf$/i.test(file.originalname))});
