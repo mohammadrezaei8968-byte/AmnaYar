@@ -982,7 +982,7 @@ const CITY_NEWS={
   hot:"https://www.shahrekhabar.com/%D8%AF%D8%A7%D8%BA-%D8%AA%D8%B1%DB%8C%D9%86-%D8%A7%D8%AE%D8%A8%D8%A7%D8%B1"
 };
 function decodeCityHtml(v){
-  return String(v||"").replace(/<[^>]*>/g," ").replace(/&nbsp;/g," ").replace(/&amp;/g,"&").replace(/&quot;/g,'\"').replace(/&#39;/g,"'").replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(Number(n))).replace(/&#x([0-9a-f]+);/gi,(_,n)=>String.fromCodePoint(parseInt(n,16))).replace(/\\s+/g," ").trim();
+  return String(v||"").replace(/<[^>]*>/g," ").replace(/&nbsp;/g," ").replace(/&amp;/g,"&").replace(/&quot;/g,'\"').replace(/&#39;/g,"'").replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(Number(n))).replace(/&#x([0-9a-f]+);/gi,(_,n)=>String.fromCodePoint(parseInt(n,16))).replace(/\s+/g," ").trim();
 }
 function cityAbsoluteUrl(href){
   const h=decodeCityHtml(href||"");
@@ -991,19 +991,19 @@ function cityAbsoluteUrl(href){
 }
 function parseCityNewsPage(html,mode){
   const out=[],seen=new Set(),text=String(html||"");
-  const re=/<a\\b[^>]*href=["']([^"']+)["'][^>]*>([\\s\\S]*?)<\\/a>/gi;
+  const re=/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
   let m;
   while((m=re.exec(text))){
     const link=cityAbsoluteUrl(m[1]), title=decodeCityHtml(m[2]);
     if(!link||!title||title.length<8)continue;
     if(!link.includes("shahrekhabar.com/"))continue;
-    if(!/[\\u0600-\\u06FF]/.test(title))continue;
+    if(!/[\u0600-\u06FF]/.test(title))continue;
     if(/^(پخش زنده|بیشترین لایک|اخبار|لایک کن|آخرین اخبار|منابع خبری|موضوعات خبری|خبرنامه)/.test(title))continue;
-    const key=title.replace(/\\s+/g," ").trim().toLowerCase();
+    const key=title.replace(/\s+/g," ").trim().toLowerCase();
     if(seen.has(key))continue;
     seen.add(key);
     const near=text.slice(Math.max(0,m.index-300),Math.min(text.length,m.index+900));
-    const tm=(near.match(/(?:[۰-۹\\d]+)\\s*(?:دقيقه|دقیقه|ساعت|روز)\\s*پيش/)||[])[0]||"";
+    const tm=(near.match(/(?:[۰-۹\d]+)\s*(?:دقيقه|دقیقه|ساعت|روز)\s*پيش/)||[])[0]||"";
     out.push({title,link,source:"شهرخبر",time:tm||"تازه",mode});
     if(out.length>=12)break;
   }
