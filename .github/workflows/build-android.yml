@@ -32,14 +32,21 @@ jobs:
         working-directory: android
         run: gradle --no-daemon :app:assembleRelease
 
-      - name: Verify APK output
+      - name: Locate and collect APK
         run: |
-          echo "APK files:"
-          find "$GITHUB_WORKSPACE/android" -type f -name "*.apk" -print
+          set -euxo pipefail
+          echo "Build output tree:"
+          find "$GITHUB_WORKSPACE/android/app/build/outputs" -maxdepth 5 -type f -print || true
+          echo "All APK files:"
+          find "$GITHUB_WORKSPACE" -type f -name "*.apk" -print
+          APK="$(find "$GITHUB_WORKSPACE/android/app/build" -type f -name "*.apk" | head -n 1)"
+          test -n "$APK"
+          cp "$APK" "$GITHUB_WORKSPACE/AmnaYar.apk"
+          ls -lh "$GITHUB_WORKSPACE/AmnaYar.apk"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: AmnaYar-Android-APK
-          path: "$GITHUB_WORKSPACE/android/app/build/outputs/apk/release/*.apk"
+          path: "$GITHUB_WORKSPACE/AmnaYar.apk"
           if-no-files-found: error
