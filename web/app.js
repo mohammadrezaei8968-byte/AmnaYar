@@ -31,12 +31,9 @@ const siteSearchItems = [
   {title:'رهگیری مرسوله پستی', desc:'پیگیری بسته در سامانه پست', href:'#popular', tags:'پست مرسوله رهگیری کد رهگیری'},
   {title:'پنجره ملی خدمات دولت', desc:'دسترسی به خدمات دولت هوشمند', href:'#popular', tags:'دولت خدمات دولتی'},
   {title:'ابزارهای رایگان', desc:'مجموعه ابزارهای کاربردی', href:'#tools', tags:'ابزار رایگان'},
-  {title:'محاسبه‌گر رهن و اجاره', desc:'تبدیل تقریبی رهن و اجاره', href:'/tools.html?tool=rent', tags:'رهن اجاره ملک خانه تبدیل'},
   {title:'فاکتور‌ساز فارسی', desc:'ساخت و دریافت فاکتور PDF رایگان', href:'/tools.html?tool=invoice', tags:'فاکتور صورت حساب pdf فروشنده خریدار'},
   {title:'ادغام و جداسازی PDF', desc:'ترکیب PDF یا جداسازی صفحات', href:'/tools.html?tool=pdf', tags:'pdf پی دی اف ادغام جداسازی'},
   {title:'تبدیل تاریخ', desc:'تبدیل شمسی و میلادی', href:'/tools.html?tool=date', tags:'تاریخ شمسی میلادی تبدیل'},
-  {title:'محاسبات روزمره', desc:'درصد، تخفیف، قسط، سود و اضافه‌کاری', href:'/tools.html?tool=calculator', tags:'درصد تخفیف قسط سود اضافه کاری'},
-  {title:'ابزار متن', desc:'شمارش، پاکسازی و تبدیل اعداد', href:'/tools.html?tool=text', tags:'متن کلمات اعداد فارسی انگلیسی'},
   {title:'ابزار تصویر', desc:'تغییر اندازه، فشرده‌سازی و تبدیل فرمت', href:'/tools.html?tool=image', tags:'تصویر عکس resize compression'},
   {title:'سامانه‌های رسمی', desc:'دسترسی مستقیم به مراجع رسمی', href:'#official', tags:'سامانه رسمی استعلام'},
   {title:'چرا امنا یار؟', desc:'ویژگی‌ها و رویکرد سایت', href:'#why', tags:'امنا یار رایگان امنیت'}
