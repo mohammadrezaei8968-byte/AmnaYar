@@ -28,25 +28,21 @@ jobs:
         with:
           gradle-version: "8.11"
 
-      - name: Build release APK
+      - name: Build installable debug APK
         working-directory: android
-        run: gradle --no-daemon :app:assembleRelease
+        run: gradle --no-daemon :app:assembleDebug
 
-      - name: Locate and collect APK
+      - name: Verify APK
         run: |
           set -euxo pipefail
-          echo "Build output tree:"
-          find "$GITHUB_WORKSPACE/android/app/build/outputs" -maxdepth 5 -type f -print || true
-          echo "All APK files:"
-          find "$GITHUB_WORKSPACE" -type f -name "*.apk" -print
-          APK="$(find "$GITHUB_WORKSPACE/android/app/build" -type f -name "*.apk" | head -n 1)"
-          test -n "$APK"
-          cp "$APK" "$GITHUB_WORKSPACE/AmnaYar.apk"
-          ls -lh "$GITHUB_WORKSPACE/AmnaYar.apk"
+          APK="$GITHUB_WORKSPACE/android/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          ls -lh "$APK"
 
-      - name: Upload APK
+      - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
           name: AmnaYar-Android-APK
-          path: "$GITHUB_WORKSPACE/AmnaYar.apk"
+          path: "$GITHUB_WORKSPACE/android/app/build/outputs/apk/debug/app-debug.apk"
           if-no-files-found: error
+          overwrite: true
