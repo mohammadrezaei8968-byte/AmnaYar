@@ -88,6 +88,8 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
 });
 
 // Other API traffic continues to the backend.
+app.get("/health",(req,res)=>res.json({ok:true,service:"amnayar-gateway"}));
+
 app.use("/api",createProxyMiddleware({
   target:API_TARGET,
   changeOrigin:true,
