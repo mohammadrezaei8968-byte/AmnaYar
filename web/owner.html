@@ -48,7 +48,7 @@ async function ownerLoginSubmit(e){
   if(!identifier||!password){showOwnerLogin("ایمیل/نام کاربری و رمز عبور را وارد کنید.");return false}
   err.textContent="";err.style.display="none";btn.disabled=true;btn.textContent="در حال ورود...";
   try{
-    const r=await api("/api/owner/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:identifier,username:identifier,password})});
+    let r=await api("/api/owner/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:identifier,username:identifier,password})});
     if(!r?.token && r?.error==="owner_login_invalid"){
       r=await api("/api/owner/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:"amna",password})});
     }
