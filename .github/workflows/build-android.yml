@@ -32,17 +32,22 @@ jobs:
         working-directory: android
         run: gradle --no-daemon :app:assembleDebug
 
-      - name: Verify APK
+      - name: Prepare APK for upload
         run: |
           set -euxo pipefail
-          APK="$GITHUB_WORKSPACE/android/app/build/outputs/apk/debug/app-debug.apk"
-          test -s "$APK"
-          ls -lh "$APK"
+          SRC="$GITHUB_WORKSPACE/android/app/build/outputs/apk/debug/app-debug.apk"
+          DEST="$GITHUB_WORKSPACE/AmnaYar.apk"
+          test -f "$SRC"
+          cp "$SRC" "$DEST"
+          test -s "$DEST"
+          file "$DEST"
+          ls -lh "$DEST"
 
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
           name: AmnaYar-Android-APK
-          path: "$GITHUB_WORKSPACE/android/app/build/outputs/apk/debug/app-debug.apk"
+          path: AmnaYar.apk
           if-no-files-found: error
           overwrite: true
+          compression-level: 0
