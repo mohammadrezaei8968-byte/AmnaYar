@@ -42,17 +42,24 @@ function ownerLoginErrorMessage(r){const code=String(r?.error||"");if(code==="ow
 
 async function ownerLoginSubmit(e){
   if(e)e.preventDefault();
-  const form=e?.currentTarget||document.getElementById("ownerLoginForm");
   const btn=document.getElementById("ownerLoginBtn"),err=document.getElementById("ownerLoginError");
   const identifier=String(document.getElementById("ownerEmail")?.value||"").trim();
   const password=String(document.getElementById("ownerPassword")?.value||"");
   if(!identifier||!password){showOwnerLogin("ایمیل/نام کاربری و رمز عبور را وارد کنید.");return false}
   err.textContent="";err.style.display="none";btn.disabled=true;btn.textContent="در حال ورود...";
-  // ارسال native به API: بدون fetch/CORS و با redirect امن به /owner#owner_token.
-  if(form){
-    form.setAttribute("action","/api/owner/login");
-    form.setAttribute("method","post");
-    form.submit();
+  try{
+    const r=await api("/api/owner/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:identifier,username:identifier,password})});
+    if(!r?.token){
+      showOwnerLogin(ownerLoginErrorMessage(r));
+      return false;
+    }
+    localStorage.setItem(OWNER_TOKEN_KEY,String(r.token));
+    hideOwnerLogin();
+    await refreshOwnerDashboard();
+  }catch(e){
+    showOwnerLogin("ارتباط با سرور مدیریت برقرار نشد. لطفاً دوباره تلاش کنید.");
+  }finally{
+    btn.disabled=false;btn.textContent="ورود به پنل مالک";
   }
   return false;
 }
