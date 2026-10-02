@@ -80,6 +80,22 @@ CREATE INDEX IF NOT EXISTS idx_analytics_events_created ON analytics_events(crea
 CREATE INDEX IF NOT EXISTS idx_analytics_events_type_created ON analytics_events(event_type,created_at);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_path ON analytics_events(path);
 CREATE TABLE IF NOT EXISTS admin_request_logs(id INTEGER PRIMARY KEY AUTOINCREMENT,admin_username TEXT,method TEXT NOT NULL,path TEXT NOT NULL,query TEXT,request_id TEXT,ip TEXT,user_agent TEXT,created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS cooperation_requests(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  brand_name TEXT NOT NULL,
+  contact_name TEXT NOT NULL DEFAULT '',
+  phone TEXT NOT NULL DEFAULT '',
+  email TEXT NOT NULL DEFAULT '',
+  website TEXT NOT NULL DEFAULT '',
+  placement TEXT NOT NULL DEFAULT 'leader',
+  budget_toman INTEGER NOT NULL DEFAULT 0,
+  message TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'new',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_cooperation_requests_created ON cooperation_requests(created_at);
+CREATE INDEX IF NOT EXISTS idx_cooperation_requests_status ON cooperation_requests(status);
 CREATE INDEX IF NOT EXISTS idx_admin_request_logs_created ON admin_request_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_admin_request_logs_path ON admin_request_logs(path);
 `);
@@ -688,6 +704,39 @@ app.get("/api/owner/me",ownerAuth,(req,res)=>res.json({ok:true,user:{username:re
 app.post("/api/owner/logout",ownerAuth,(req,res)=>res.json({ok:true}));
 function ownerJsonSetting(key,fallback){const row=db.prepare("SELECT value FROM settings WHERE key=?").get(key);if(!row)return fallback;try{return JSON.parse(row.value)}catch{return row.value}}
 function saveOwnerSetting(key,value){db.prepare("INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(key,typeof value==="string"?value:JSON.stringify(value))}
+app.post("/api/ads/leads",rateLimit({windowMs:15*60*1000,max:8,standardHeaders:true,legacyHeaders:false}),(req,res)=>{
+  const brand=String(req.body.brand_name||"").trim();
+  if(!brand) return res.status(400).json({error:"brand_name_required"});
+  const contact=String(req.body.contact_name||"").trim().slice(0,120);
+  const phone=String(req.body.phone||"").trim().slice(0,40);
+  const email=String(req.body.email||"").trim().slice(0,160);
+  const website=String(req.body.website||"").trim().slice(0,300);
+  const placement=String(req.body.placement||"leader").trim().slice(0,40);
+  const budget=Math.max(0,Math.min(999999999999,Number(req.body.budget_toman||0)||0));
+  const message=String(req.body.message||"").trim().slice(0,4000);
+  const t=now();
+  const info=db.prepare("INSERT INTO cooperation_requests(brand_name,contact_name,phone,email,website,placement,budget_toman,message,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)").run(brand,contact,phone,email,website,placement,Math.trunc(budget),message,"new",t,t);
+  res.status(201).json({ok:true,id:info.lastInsertRowid});
+});
+app.get("/api/owner/cooperation-requests",ownerAuth,(req,res)=>{
+  const status=String(req.query.status||"").trim();
+  const limit=Math.min(500,Math.max(1,Number(req.query.limit||200)||200));
+  let sql="SELECT id,brand_name,contact_name,phone,email,website,placement,budget_toman,message,status,created_at,updated_at FROM cooperation_requests";
+  const args=[];
+  if(["new","reviewing","answered","rejected"].includes(status)){sql+=" WHERE status=?";args.push(status)}
+  sql+=" ORDER BY id DESC LIMIT ?";
+  args.push(limit);
+  const rows=db.prepare(sql).all(...args);
+  const counts=db.prepare("SELECT status,COUNT(*) c FROM cooperation_requests GROUP BY status").all();
+  res.json({requests:rows,counts:counts.reduce((a,x)=>(a[x.status]=x.c,a),{}),total:db.prepare("SELECT COUNT(*) c FROM cooperation_requests").get().c});
+});
+app.patch("/api/owner/cooperation-requests/:id",ownerAuth,(req,res)=>{
+  const status=String(req.body.status||"").trim();
+  if(!["new","reviewing","answered","rejected"].includes(status)) return res.status(400).json({error:"invalid_status"});
+  const info=db.prepare("UPDATE cooperation_requests SET status=?,updated_at=? WHERE id=?").run(status,now(),req.params.id);
+  if(!info.changes) return res.status(404).json({error:"request_not_found"});
+  res.json({ok:true});
+});
 app.get("/api/owner/system",ownerAuth,(req,res)=>{try{db.prepare("SELECT 1").get();res.json({ok:true,db:true,version:APP_VERSION,node:process.version})}catch(e){res.json({ok:true,db:false,version:APP_VERSION,node:process.version})}});
 app.get("/api/owner/summary",ownerAuth,(req,res)=>{const users=db.prepare("SELECT COUNT(*) c FROM users").get().c,active=db.prepare("SELECT COUNT(*) c FROM users WHERE active=1").get().c,checks=db.prepare("SELECT COUNT(*) c FROM verifications").get().c,orgs=0,hr=0;res.json({users,activeUsers:active,checks,conversations:0,organizations:orgs,hr})});
 app.get("/api/owner/stats",ownerAuth,(req,res)=>{const users=db.prepare("SELECT COUNT(*) c FROM users").get().c,activeUsers=db.prepare("SELECT COUNT(*) c FROM users WHERE active=1").get().c,checks=db.prepare("SELECT COUNT(*) c FROM verifications").get().c;res.json({users,activeUsers,checks,conversations:0,organizations:0})});
