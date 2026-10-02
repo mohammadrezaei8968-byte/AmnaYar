@@ -687,7 +687,7 @@ app.post("/api/owner/login", rateLimit({windowMs:15*60*1000,max:10,standardHeade
   const ownerMatch=Boolean(OWNER_EMAIL && OWNER_PASSWORD) && normalizedIdentifier===OWNER_EMAIL && password===OWNER_PASSWORD;
   let adminMatch=false;
   if(ADMIN_USERNAME && ADMIN_PASSWORD_HASH){
-    try{adminMatch=normalizedIdentifier===String(ADMIN_USERNAME).trim().toLowerCase() && bcrypt.compareSync(password,ADMIN_PASSWORD_HASH);}catch{}
+    try{const legacyOwnerIdentifier=normalizedIdentifier===String(ADMIN_USERNAME).trim().toLowerCase() || normalizedIdentifier==="amnayar.2026@gmail.com";adminMatch=legacyOwnerIdentifier && bcrypt.compareSync(password,ADMIN_PASSWORD_HASH);}catch{}
   }
   const authenticated=ownerMatch||adminMatch;
   const username=ownerMatch?OWNER_EMAIL:String(ADMIN_USERNAME||OWNER_EMAIL||identifier);
