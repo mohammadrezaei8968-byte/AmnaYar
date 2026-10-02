@@ -31,7 +31,29 @@
 </main></div>
 <div id="userModal" class="owner-modal" onclick="if(event.target===this)closeUserModal()"><div class="owner-modal-card"><div class="card-head"><div><h2 id="userModalTitle">جزئیات کاربر</h2><span id="userModalSub">—</span></div><button class="btn soft" onclick="closeUserModal()">بستن</button></div><div id="userModalBody" class="muted">در حال دریافت...</div></div></div><script>
 const $=id=>document.getElementById(id);
-async function api(u,o={}){const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),20000);try{const opts={...o,signal:controller.signal,cache:"no-store"};const r=await fetch(u,opts);let j={};try{j=await r.json()}catch{}if(!r.ok&&!j.error)j.error='خطای سرور';return j}catch(e){return {error:e?.name==='AbortError'?'ارتباط با سرور مدیریت بیش از حد طول کشید.':'ارتباط با سرور مدیریت برقرار نشد.'}}finally{clearTimeout(timer)}}
+const OWNER_TOKEN_KEY="amnayar_owner_token_v2";
+function ownerToken(){try{return localStorage.getItem(OWNER_TOKEN_KEY)||""}catch{return""}}
+function ownerAuthHeaders(headers={}){
+  const h=new Headers(headers);
+  const t=ownerToken();
+  if(t) h.set("Authorization","Bearer "+t);
+  h.set("Accept","application/json");
+  return h;
+}
+async function api(u,o={}){
+  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),20000);
+  try{
+    const opts={...o,headers:ownerAuthHeaders(o.headers||{}),signal:controller.signal,cache:"no-store",credentials:"include"};
+    const r=await fetch(u,opts);let j={};try{j=await r.json()}catch{}
+    if(r.status===401){localStorage.removeItem(OWNER_TOKEN_KEY);showOwnerLogin("نشست مدیریت معتبر نیست؛ لطفاً دوباره وارد شوید.");return {error:"owner_auth_required"}}
+    if(!r.ok&&!j.error)j.error="خطای سرور";
+    return j;
+  }catch(e){return {error:e?.name==="AbortError"?"ارتباط با سرور مدیریت بیش از حد طول کشید.":"ارتباط با سرور مدیریت برقرار نشد."}}
+  finally{clearTimeout(timer)}
+}
+function hideOwnerLogin(){const x=$("ownerLogin");if(x)x.style.display="none"}
+function showOwnerLogin(message=""){const x=$("ownerLogin"),e=$("ownerLoginError");if(x)x.style.display="flex";if(e){e.textContent=message||"";e.style.display=message?"block":"none"}}
+function ownerLoginErrorMessage(r){return r?.message||r?.error||"اطلاعات ورود مدیریت نادرست است."}
 function showTab(id){document.querySelectorAll('.owner-tab').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('.owner-menu button').forEach(x=>x.classList.toggle('active',x.dataset.tab===id));if(id==='users')loadUsers();if(id==='checks')loadChecks();if(id==='orgs')loadOrgs();if(id==='analytics')loadAnalytics();if(id==='cooperation')loadCooperation();if(id==='tools')loadTools();if(id==='content'){loadSettings();loadNotices();}if(id==='homepage')loadHomepage();if(id==='admins')loadAdmins();if(id==='audit'){loadLoginLogs();loadAudit();}if(id==='system')loadSystem();if(id==='overview')refreshOwnerDashboard()}
 document.querySelectorAll('.owner-menu button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));document.querySelectorAll('[id^=set_]').forEach(el=>el.addEventListener('input',updateContentPreview));
 function consumeOwnerLoginHash(){const hash=location.hash||"";if(!hash.includes("owner_token="))return;const p=new URLSearchParams(hash.replace(/^#/,""));const token=p.get("owner_token");if(token){localStorage.setItem(OWNER_TOKEN_KEY,token);history.replaceState(null,"",location.pathname+location.search)}const error=p.get("owner_error");if(error){const el=document.getElementById("ownerLoginError");if(el)el.textContent=error;history.replaceState(null,"",location.pathname+location.search)}}
