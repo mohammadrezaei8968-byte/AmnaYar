@@ -6,6 +6,7 @@ const os=require("os");
 const util=require("util");
 const {execFile}=require("child_process");
 const multer=require("multer");
+const compression=require("compression");
 const {createProxyMiddleware}=require("http-proxy-middleware");
 
 const app=express();
@@ -13,6 +14,9 @@ const PORT=process.env.PORT||10000;
 const API_TARGET=process.env.API_TARGET||"https://amnayar-api.onrender.com";
 const WEB_DIR=path.resolve(__dirname,"../web");
 const execFileAsync=util.promisify(execFile);
+
+// Performance: gzip/brotli compress HTML, CSS and JS before sending to browsers.
+app.use(compression({threshold:1024}));
 
 // PDF compression is handled here because Ghostscript is installed on this Gateway.
 // This keeps large PDF jobs independent from the API service's runtime packages.
@@ -97,7 +101,7 @@ app.use("/api",createProxyMiddleware({
   pathRewrite:(p)=>"/api"+p
 }));
 
-app.use(express.static(WEB_DIR));
+// Long-cache static assets; HTML is revalidated frequently so deployments appear promptly.\napp.use(express.static(WEB_DIR,{maxAge:"30d",etag:true,lastModified:true,setHeaders:(res,file)=>{\n  if(/\\.(html?)$/i.test(file)) res.setHeader("Cache-Control","public,max-age=300,must-revalidate");\n  else if(/\\.(css|js|png|jpg|jpeg|webp|svg|ico|woff2?)$/i.test(file)) res.setHeader("Cache-Control","public,max-age=2592000,stale-while-revalidate=86400");\n}}));
 
 app.get("/admin",(req,res)=>res.redirect(302,"/owner"));
 
