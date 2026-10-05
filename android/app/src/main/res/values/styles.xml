@@ -1,10 +1,2 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <style name="Theme.AmnaYar" parent="@android:style/Theme.DeviceDefault.Light.NoActionBar">
-        <item name="android:fontFamily">sans</item>
-        <item name="android:windowLightStatusBar">true</item>
-        <item name="android:statusBarColor">#F4F7FB</item>
-        <item name="android:navigationBarColor">#F4F7FB</item>
-        <item name="android:windowActionModeOverlay">true</item>
-    </style>
-</resources>
+<resources><style name="AppTheme" parent="android:style/Theme.Material.Light.NoActionBar"><item name="android:fontFamily">sans</item><item name="android:colorAccent">#174f8f</item><item name="android:navigationBarColor">#081b36</item><item name="android:statusBarColor">#081b36</item><item name="android:windowLightStatusBar">false</item></style></resources>
