@@ -141,7 +141,15 @@ async function compressPDF(){
     const fd=new FormData();fd.append('file',f,f.name);fd.append('quality',String(level));
     const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),35*60*1000);
     try{
-      const r=await fetch('/api/tools/compress-pdf',{method:'POST',body:fd,signal:controller.signal});
+      const endpoints=['https://api.amnayar.ir/api/tools/compress-pdf','/api/tools/compress-pdf'];
+      let r=null,lastErr=null;
+      for(const endpoint of endpoints){
+        try{
+          r=await fetch(endpoint,{method:'POST',body:fd,signal:controller.signal});
+          if(r.status!==404&&r.status!==502&&r.status!==503)break;
+        }catch(e){lastErr=e;}
+      }
+      if(!r)throw lastErr||new Error('server_unavailable');
       if(!r.ok){
         let d={};try{d=await r.json()}catch{}
         throw new Error(d.error||('server_compress_'+r.status));
