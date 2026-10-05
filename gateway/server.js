@@ -32,11 +32,17 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
 
   const quality=Math.max(35,Math.min(85,Number(req.body?.quality||70)));
   const output=path.join(os.tmpdir(),"amnayar-compressed-"+crypto.randomUUID()+".pdf");
-  const settings=quality<=40?"/screen":quality<=60?"/ebook":quality<=75?"/printer":"/prepress";
+  const settings=quality<=40?"/screen":quality<=60?"/ebook":quality<=75?"/ebook":"/printer";
 
-  try{
-    const imageDpi=quality<=40?60:quality<=60?85:quality<=75?120:170;
-    const jpegQ=quality<=40?40:quality<=60?55:quality<=75?70:84;
+  const cleanup=async()=>Promise.allSettled([
+    fs.promises.unlink(input),
+    fs.promises.unlink(output)
+  ]);
+
+  const runGs=async(out,level)=>{
+    const imageDpi=level<=40?72:level<=60?96:level<=75?120:160;
+    const jpegQ=level<=40?40:level<=60?52:level<=75?68:82;
+    const preset=level<=40?"/screen":level<=60?"/ebook":level<=75?"/ebook":"/printer";
     await execFileAsync("gs",[
       "-sDEVICE=pdfwrite",
       "-dCompatibilityLevel=1.4",
@@ -48,28 +54,54 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
       "-dCompressFonts=true",
       "-dSubsetFonts=true",
       "-dAutoRotatePages=/None",
+      "-dDownsampleColorImages=true",
+      "-dDownsampleGrayImages=true",
+      "-dDownsampleMonoImages=true",
       "-dColorImageDownsampleType=/Average",
       "-dGrayImageDownsampleType=/Average",
       "-dMonoImageDownsampleType=/Subsample",
       "-dColorImageResolution="+imageDpi,
       "-dGrayImageResolution="+imageDpi,
       "-dMonoImageResolution="+Math.max(150,imageDpi*2),
+      "-dColorImageDownsampleThreshold=1.0",
+      "-dGrayImageDownsampleThreshold=1.0",
+      "-dMonoImageDownsampleThreshold=1.0",
+      "-dAutoFilterColorImages=false",
+      "-dAutoFilterGrayImages=false",
+      "-dColorImageFilter=/DCTEncode",
+      "-dGrayImageFilter=/DCTEncode",
+      "-dPassThroughJPEGImages=false",
+      "-dPassThroughJPXImages=false",
       "-dJPEGQ="+jpegQ,
-      "-dPDFSETTINGS="+settings,
-      "-sOutputFile="+output,
+      "-dPDFSETTINGS="+preset,
+      "-sOutputFile="+out,
       input
-    ],{
-      timeout:35*60*1000,
-      maxBuffer:4*1024*1024
-    });
+    ],{timeout:35*60*1000,maxBuffer:4*1024*1024});
+  };
 
-    const stat=await fs.promises.stat(output);
+  try{
+    await runGs(output,quality);
+    let stat=await fs.promises.stat(output);
+
+    // Ghostscript can occasionally make an already-optimized PDF larger.
+    // In that case retry once with a stronger compression profile.
+    if(stat.size>=req.file.size && quality>40){
+      await fs.promises.unlink(output).catch(()=>{});
+      await runGs(output,40);
+      stat=await fs.promises.stat(output);
+    }
+
+    const useOriginal=stat.size>=req.file.size;
+    const filePath=useOriginal?input:output;
+    const finalSize=useOriginal?req.file.size:stat.size;
+
     res.setHeader("Content-Type","application/pdf");
     res.setHeader("Content-Disposition",'attachment; filename="amnayar-compressed.pdf"');
     res.setHeader("X-Original-Size",String(req.file.size));
-    res.setHeader("X-Compressed-Size",String(stat.size));
+    res.setHeader("X-Compressed-Size",String(finalSize));
+    res.setHeader("X-Compression-Applied",useOriginal?"no":"yes");
 
-    res.sendFile(output,err=>{
+    res.sendFile(filePath,err=>{
       Promise.allSettled([
         fs.promises.unlink(input),
         fs.promises.unlink(output)
@@ -77,16 +109,12 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
       if(err&&!res.headersSent)res.status(500).json({error:"pdf_send_failed"});
     });
   }catch(e){
-    Promise.allSettled([
-      fs.promises.unlink(input),
-      fs.promises.unlink(output)
-    ]).catch(()=>{});
-
+    await cleanup();
     const msg=String(e?.stderr||e?.message||"");
     console.error("pdf_compress_failed",msg.slice(0,1500));
-
     if(/ENOENT/i.test(msg))return res.status(503).json({error:"ghostscript_unavailable"});
     if(/LIMIT_FILE_SIZE|too large|File too large/i.test(msg))return res.status(413).json({error:"pdf_too_large"});
+    if(/password|encrypted|invalid|syntax|error/i.test(msg))return res.status(422).json({error:"pdf_compress_failed"});
     return res.status(422).json({error:"pdf_compress_failed"});
   }
 });
