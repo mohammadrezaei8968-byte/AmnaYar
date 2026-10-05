@@ -1094,17 +1094,61 @@ app.get("/api/news",async(req,res)=>{
 });
 
 // Large PDF compression using Ghostscript on the API server.
-const pdfUpload = multer({dest:os.tmpdir(),limits:{fileSize:300*1024*1024},fileFilter:(req,file,cb)=>cb(null,file.mimetype==='application/pdf'||/\.pdf$/i.test(file.originalname))});
+const pdfUpload = multer({
+  dest:os.tmpdir(),
+  limits:{fileSize:500*1024*1024},
+  fileFilter:(req,file,cb)=>cb(null,file.mimetype==='application/pdf'||/\.pdf$/i.test(file.originalname))
+});
 app.post('/api/tools/compress-pdf',pdfUpload.single('file'),async(req,res)=>{
- const input=req.file?.path;if(!input)return res.status(400).json({error:'pdf_required'});
- const quality=Math.max(35,Math.min(85,Number(req.body?.quality||70)));
- const output=path.join(os.tmpdir(),'amnayar-compressed-'+crypto.randomUUID()+'.pdf');
- const settings=quality<=40?'/screen':quality<=60?'/ebook':quality<=75?'/printer':'/prepress';
- try{
-  await execFileAsync('gs',['-sDEVICE=pdfwrite','-dCompatibilityLevel=1.4','-dNOPAUSE','-dQUIET','-dBATCH','-dDetectDuplicateImages=true','-dCompressFonts=true','-dSubsetFonts=true','-dPDFSETTINGS='+settings,'-sOutputFile='+output,input],{timeout:8*60*1000,maxBuffer:2*1024*1024});
-  const stat=await fs.promises.stat(output);res.setHeader('Content-Type','application/pdf');res.setHeader('Content-Disposition','attachment; filename="amnayar-compressed.pdf"');res.setHeader('X-Original-Size',String(req.file.size));res.setHeader('X-Compressed-Size',String(stat.size));
-  res.sendFile(output,err=>{Promise.allSettled([fs.promises.unlink(input),fs.promises.unlink(output)]).catch(()=>{});if(err&&!res.headersSent)res.status(500).json({error:'pdf_send_failed'});});
- }catch(e){Promise.allSettled([fs.promises.unlink(input),fs.promises.unlink(output)]).catch(()=>{});const msg=String(e?.stderr||e?.message||'');console.error('pdf_compress_failed',msg.slice(0,1200));if(/ENOENT/i.test(msg))return res.status(503).json({error:'ghostscript_unavailable'});if(/file size|too large|LIMIT_FILE_SIZE/i.test(msg))return res.status(413).json({error:'pdf_too_large'});return res.status(422).json({error:'pdf_compress_failed'});}
+  const input=req.file?.path;
+  if(!input)return res.status(400).json({error:'pdf_required'});
+  const quality=Math.max(35,Math.min(85,Number(req.body?.quality||70)));
+  const output=path.join(os.tmpdir(),'amnayar-compressed-'+crypto.randomUUID()+'.pdf');
+  const cleanup=()=>Promise.allSettled([fs.promises.unlink(input),fs.promises.unlink(output)]);
+  const runGs=async(out,level)=>{
+    const imageDpi=level<=40?72:level<=60?96:level<=75?120:160;
+    const jpegQ=level<=40?40:level<=60?52:level<=75?68:82;
+    const preset=level<=40?'/screen':level<=75?'/ebook':'/printer';
+    await execFileAsync('gs',[
+      '-sDEVICE=pdfwrite','-dCompatibilityLevel=1.4','-dNOPAUSE','-dQUIET','-dBATCH','-dSAFER',
+      '-dDetectDuplicateImages=false','-dCompressFonts=true','-dSubsetFonts=true','-dAutoRotatePages=/None',
+      '-dDownsampleColorImages=true','-dDownsampleGrayImages=true','-dDownsampleMonoImages=true',
+      '-dColorImageDownsampleType=/Average','-dGrayImageDownsampleType=/Average','-dMonoImageDownsampleType=/Subsample',
+      '-dColorImageResolution='+imageDpi,'-dGrayImageResolution='+imageDpi,'-dMonoImageResolution='+Math.max(150,imageDpi*2),
+      '-dColorImageDownsampleThreshold=1.0','-dGrayImageDownsampleThreshold=1.0','-dMonoImageDownsampleThreshold=1.0',
+      '-dAutoFilterColorImages=false','-dAutoFilterGrayImages=false','-dColorImageFilter=/DCTEncode','-dGrayImageFilter=/DCTEncode',
+      '-dPassThroughJPEGImages=false','-dPassThroughJPXImages=false','-dJPEGQ='+jpegQ,'-dPDFSETTINGS='+preset,
+      '-sOutputFile='+out,input
+    ],{timeout:35*60*1000,maxBuffer:4*1024*1024});
+  };
+  try{
+    await runGs(output,quality);
+    let stat=await fs.promises.stat(output);
+    if(stat.size>=req.file.size&&quality>40){
+      await fs.promises.unlink(output).catch(()=>{});
+      await runGs(output,40);
+      stat=await fs.promises.stat(output);
+    }
+    const useOriginal=stat.size>=req.file.size;
+    const filePath=useOriginal?input:output;
+    const finalSize=useOriginal?req.file.size:stat.size;
+    res.setHeader('Content-Type','application/pdf');
+    res.setHeader('Content-Disposition','attachment; filename="amnayar-compressed.pdf"');
+    res.setHeader('X-Original-Size',String(req.file.size));
+    res.setHeader('X-Compressed-Size',String(finalSize));
+    res.setHeader('X-Compression-Applied',useOriginal?'no':'yes');
+    res.sendFile(filePath,err=>{
+      cleanup().catch(()=>{});
+      if(err&&!res.headersSent)res.status(500).json({error:'pdf_send_failed'});
+    });
+  }catch(e){
+    await cleanup();
+    const msg=String(e?.stderr||e?.message||'');
+    console.error('pdf_compress_failed',msg.slice(0,1500));
+    if(/ENOENT/i.test(msg))return res.status(503).json({error:'ghostscript_unavailable'});
+    if(/file size|too large|LIMIT_FILE_SIZE/i.test(msg))return res.status(413).json({error:'pdf_too_large'});
+    return res.status(422).json({error:'pdf_compress_failed'});
+  }
 });
 
 app.listen(PORT,()=>console.log(`AmnaYar API running on :${PORT}`));
