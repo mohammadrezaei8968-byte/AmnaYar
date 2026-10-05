@@ -5,7 +5,6 @@ import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.view.View
 import android.webkit.CookieManager
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -22,10 +21,6 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
 
         webView = WebView(this)
-        webView.layoutParams = android.view.ViewGroup.LayoutParams(
-            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-            android.view.ViewGroup.LayoutParams.MATCH_PARENT
-        )
         setContentView(webView)
 
         with(webView.settings) {
@@ -36,6 +31,7 @@ class MainActivity : Activity() {
             allowContentAccess = true
             loadsImagesAutomatically = true
             mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+            cacheMode = WebSettings.LOAD_DEFAULT
             userAgentString = "$userAgentString AmnaYarAndroid/1.0"
         }
 
@@ -63,13 +59,16 @@ class MainActivity : Activity() {
 
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                val uri = request.url
-                val host = uri.host.orEmpty()
-                return if (host == "amnayar.ir" || host == "www.amnayar.ir" || host == "api.amnayar.ir") {
+                val host = request.url.host.orEmpty().lowercase()
+                return if (
+                    host == "amnayar.ir" ||
+                    host == "www.amnayar.ir" ||
+                    host == "api.amnayar.ir"
+                ) {
                     false
                 } else {
                     try {
-                        startActivity(Intent(Intent.ACTION_VIEW, uri))
+                        startActivity(Intent(Intent.ACTION_VIEW, request.url))
                     } catch (_: Exception) {}
                     true
                 }
@@ -92,14 +91,19 @@ class MainActivity : Activity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == FILE_CHOOSER) {
-            val result = if (resultCode == RESULT_OK && data?.data != null) arrayOf(data.data!!) else null
+            val result =
+                if (resultCode == RESULT_OK && data?.data != null) arrayOf(data.data!!) else null
             pendingFileCallback?.onReceiveValue(result)
             pendingFileCallback = null
         }
     }
 
     override fun onBackPressed() {
-        if (webView.canGoBack()) webView.goBack() else super.onBackPressed()
+        if (webView.canGoBack()) {
+            webView.goBack()
+        } else {
+            super.onBackPressed()
+        }
     }
 
     companion object {
