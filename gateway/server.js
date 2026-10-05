@@ -50,7 +50,7 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
       "-dQUIET",
       "-dBATCH",
       "-dSAFER",
-      "-dDetectDuplicateImages=true",
+      "-dDetectDuplicateImages=false",
       "-dCompressFonts=true",
       "-dSubsetFonts=true",
       "-dAutoRotatePages=/None",
