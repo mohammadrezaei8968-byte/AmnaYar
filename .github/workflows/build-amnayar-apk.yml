@@ -1,4 +1,5 @@
 name: Build AmnaYar APK
+# final build trigger
 on:
   push:
     paths: ['android/**', '.github/workflows/build-amnayar-apk.yml']
