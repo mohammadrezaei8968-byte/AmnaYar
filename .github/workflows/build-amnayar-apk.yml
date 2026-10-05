@@ -1,0 +1,32 @@
+name: Build AmnaYar APK
+on:
+  push:
+    paths: ['android/**', '.github/workflows/build-amnayar-apk.yml']
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: android-actions/setup-android@v3
+      - name: SDK
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Gradle
+        run: |
+          curl -fsSL https://services.gradle.org/distributions/gradle-8.7-bin.zip -o /tmp/g.zip
+          unzip -q /tmp/g.zip -d /tmp
+          echo "/tmp/gradle-8.7/bin" >> "$GITHUB_PATH"
+      - name: Logo
+        run: |
+          mkdir -p android/app/src/main/res/drawable
+          curl -fsSL https://raw.githubusercontent.com/mohammadrezaei8968-byte/AmnaYar/main/web/assets/logo-amnayar.png -o android/app/src/main/res/drawable/logo.png
+      - name: Build
+        working-directory: android
+        run: gradle --no-daemon assembleRelease
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AmnaYar-Android
+          path: android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
