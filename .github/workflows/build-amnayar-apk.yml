@@ -17,29 +17,38 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Set up Java
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
-      - name: Install Android SDK
+        with:
+          packages: platform-tools
+
+      - name: Install Android SDK components
         run: |
           yes | sdkmanager --licenses >/dev/null 2>&1 || true
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.11"
-      - name: Install logo
+
+      - name: Install AmnaYar logo
         run: |
           mkdir -p android/app/src/main/res/drawable
           curl -fsSL "https://raw.githubusercontent.com/mohammadrezaei8968-byte/AmnaYar/main/web/assets/logo-amnayar.png" -o android/app/src/main/res/drawable/logo.png
           test -s android/app/src/main/res/drawable/logo.png
-      - name: Build signed installable APK
+
+      - name: Build installable APK
         working-directory: android
         run: gradle --no-daemon :app:assembleDebug
+
       - name: Verify APK
         run: |
           set -euxo pipefail
@@ -48,6 +57,7 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
           mkdir -p dist
           cp "$APK" "dist/AmnaYar.apk"
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
