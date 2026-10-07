@@ -1107,15 +1107,15 @@ app.post('/api/tools/compress-pdf',pdfUpload.single('file'),async(req,res)=>{
   const output=path.join(os.tmpdir(),'amnayar-compressed-'+crypto.randomUUID()+'.pdf');
   const cleanup=()=>Promise.allSettled([fs.promises.unlink(input),fs.promises.unlink(output)]);
   const runGs=async(out,level)=>{
-    const imageDpi=level<=40?72:level<=60?96:level<=75?120:160;
-    const jpegQ=level<=40?40:level<=60?52:level<=75?68:82;
+    const imageDpi=level<=30?55:level<=40?72:level<=60?96:level<=75?120:150;
+    const jpegQ=level<=30?28:level<=40?40:level<=60?52:level<=75?68:78;
     const preset=level<=40?'/screen':level<=75?'/ebook':'/printer';
     await execFileAsync('gs',[
       '-sDEVICE=pdfwrite','-dCompatibilityLevel=1.4','-dNOPAUSE','-dQUIET','-dBATCH','-dSAFER',
       '-dDetectDuplicateImages=false','-dCompressFonts=true','-dSubsetFonts=true','-dAutoRotatePages=/None',
       '-dDownsampleColorImages=true','-dDownsampleGrayImages=true','-dDownsampleMonoImages=true',
       '-dColorImageDownsampleType=/Average','-dGrayImageDownsampleType=/Average','-dMonoImageDownsampleType=/Subsample',
-      '-dColorImageResolution='+imageDpi,'-dGrayImageResolution='+imageDpi,'-dMonoImageResolution='+Math.max(150,imageDpi*2),
+      '-dColorImageResolution='+imageDpi,'-dGrayImageResolution='+imageDpi,'-dMonoImageResolution='+Math.max(120,imageDpi*2),
       '-dColorImageDownsampleThreshold=1.0','-dGrayImageDownsampleThreshold=1.0','-dMonoImageDownsampleThreshold=1.0',
       '-dAutoFilterColorImages=false','-dAutoFilterGrayImages=false','-dColorImageFilter=/DCTEncode','-dGrayImageFilter=/DCTEncode',
       '-dPassThroughJPEGImages=false','-dPassThroughJPXImages=false','-dJPEGQ='+jpegQ,'-dPDFSETTINGS='+preset,
@@ -1125,20 +1125,22 @@ app.post('/api/tools/compress-pdf',pdfUpload.single('file'),async(req,res)=>{
   try{
     await runGs(output,quality);
     let stat=await fs.promises.stat(output);
-    if(stat.size>=req.file.size&&quality>40){
+    // Never return a larger file as a "compressed" result.
+    if(stat.size>=req.file.size){
       await fs.promises.unlink(output).catch(()=>{});
-      await runGs(output,40);
+      await runGs(output,30);
       stat=await fs.promises.stat(output);
     }
-    const useOriginal=stat.size>=req.file.size;
-    const filePath=useOriginal?input:output;
-    const finalSize=useOriginal?req.file.size:stat.size;
+    if(stat.size>=req.file.size){
+      await cleanup();
+      return res.status(422).json({error:'pdf_already_optimized',message:'این PDF از قبل بهینه است و نسخه کوچک‌ترِ مطمئنی از آن ساخته نشد.'});
+    }
     res.setHeader('Content-Type','application/pdf');
     res.setHeader('Content-Disposition','attachment; filename="amnayar-compressed.pdf"');
     res.setHeader('X-Original-Size',String(req.file.size));
-    res.setHeader('X-Compressed-Size',String(finalSize));
-    res.setHeader('X-Compression-Applied',useOriginal?'no':'yes');
-    res.sendFile(filePath,err=>{
+    res.setHeader('X-Compressed-Size',String(stat.size));
+    res.setHeader('X-Compression-Applied','yes');
+    res.sendFile(output,err=>{
       cleanup().catch(()=>{});
       if(err&&!res.headersSent)res.status(500).json({error:'pdf_send_failed'});
     });
