@@ -107,7 +107,14 @@ function resizeImage(){const f=$('#imgFile').files[0],w=+$('#imgW').value,h=+$('
 
 function fmtBytes(n){if(!Number.isFinite(n))return '';const u=['بایت','کیلوبایت','مگابایت','گیگابایت'];let i=0;let x=n;while(x>=1024&&i<u.length-1){x/=1024;i++;}return `${x.toLocaleString('fa-IR',{maximumFractionDigits:2})} ${u[i]}`}
 function savingsText(a,b){if(!a||!b)return '';const pct=(1-b/a)*100;if(pct<=0)return `حجم اولیه: ${fmtBytes(a)} — حجم خروجی: ${fmtBytes(b)} — این فایل از قبل بهینه است.`;return `حجم اولیه: ${fmtBytes(a)} — حجم جدید: ${fmtBytes(b)} — کاهش: ${pct.toLocaleString('fa-IR',{maximumFractionDigits:1})}%`}
-function downloadBlob(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500)}
+function downloadBlob(blob,name){
+  if(window.AmnaYarDownloader&&blob&&blob.size<=50*1024*1024){
+    const reader=new FileReader();
+    reader.onload=()=>{try{window.AmnaYarDownloader.saveBase64(name||'download',blob.type||'application/octet-stream',String(reader.result).split(',')[1]||'')}catch(e){}};
+    reader.readAsDataURL(blob); return;
+  }
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500)
+}
 $('#imageQuality')?.addEventListener('input',e=>$('#imageQualityValue').textContent=e.target.value);
 
 // فشرده‌سازی سمت کاربر: برای تصویر هیچ وابستگی به سرویس Render ندارد.
@@ -232,10 +239,7 @@ function escapeHtml(v){return String(v??'').replace(/[&<>'"]/g,m=>({'&':'&amp;',
 
 function download(bytes,name,mime){
   const blob=bytes instanceof Blob?bytes:new Blob([bytes],{type:mime||'application/octet-stream'});
-  const url=URL.createObjectURL(blob),a=document.createElement('a');
-  a.href=url;a.download=name||'download';a.style.display='none';
-  document.body.appendChild(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),1500);
+  downloadBlob(blob,name||'download');
 }
 let imagePdfSelectedFiles=[];
 
@@ -311,8 +315,39 @@ document.addEventListener('DOMContentLoaded',()=>{
     imagePdfPreview();
   });
 });
-async function buildImagePdfAtSettings(files,maxDim,quality){const doc=await PDFLib.PDFDocument.create();for(let n=0;n<files.length;n++){const f=files[n];const img=await new Promise((res,rej)=>{const x=new Image(),u=URL.createObjectURL(f);x.onload=()=>{URL.revokeObjectURL(u);res(x)};x.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('image_load_failed'))};x.src=u});const sc=Math.min(1,maxDim/Math.max(img.naturalWidth,img.naturalHeight)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.naturalWidth*sc));c.height=Math.max(1,Math.round(img.naturalHeight*sc));const ctx=c.getContext('2d',{alpha:false});ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,0,0,c.width,c.height);const jpg=await new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('image_export_failed')),'image/jpeg',quality));const emb=await doc.embedJpg(await jpg.arrayBuffer());const portrait=c.height>=c.width,pw=portrait?595:842,ph=portrait?842:595,ratio=Math.min(pw/c.width,ph/c.height),dw=c.width*ratio,dh=c.height*ratio,page=doc.addPage([pw,ph]);page.drawImage(emb,{x:(pw-dw)/2,y:(ph-dh)/2,width:dw,height:dh});}return await doc.save({useObjectStreams:true});}
-async function imagesToPDF(){const input=$('#imagePdfFiles'),s=$('#imagePdfStatus'),fs=input?[...input.files]:[];if(!fs.length){if(s)s.textContent='حداقل یک عکس انتخاب کنید.';return}if(!window.PDFLib){if(s)s.textContent='کتابخانه PDF آماده نیست؛ صفحه را یک بار تازه‌سازی کنید.';return}let target=Number($('#imagePdfTargetMB')?.value||0);if($('#imagePdfTargetMB')?.value==='custom')target=Number($('#imagePdfCustomMB')?.value||0);if(target<0)target=0;const targetBytes=target*1024*1024;s.textContent='در حال ساخت PDF و تنظیم خودکار حجم...';try{let bytes=await buildImagePdfAtSettings(fs,1800,.9);if(targetBytes>0&&bytes.length>targetBytes){const settings=[[1600,.82],[1400,.75],[1200,.68],[1000,.60],[850,.52],[700,.45],[600,.38],[500,.32],[400,.26],[320,.20]];for(const [d,q] of settings){s.textContent='در حال کاهش حجم: '+d+'px / '+Math.round(q*100)+'٪ کیفیت...';bytes=await buildImagePdfAtSettings(fs,d,q);if(bytes.length<=targetBytes)break}}const name=fs.length===1?'amnayar-image-to-pdf.pdf':'amnayar-images-to-pdf.pdf';download(bytes,name,'application/pdf');const mb=(bytes.length/1048576).toFixed(2);if(targetBytes&&bytes.length>targetBytes)s.textContent='PDF ساخته شد: '+fa(mb)+' MB؛ برای این تصاویر کمتر از این مقدار با تنظیمات فعلی ممکن نشد.';else if(targetBytes)s.textContent='✅ PDF با حجم '+fa(mb)+' MB ساخته شد؛ هدف: '+fa(target)+' MB.';else s.textContent='✅ PDF با '+fa(fs.length)+' عکس آماده شد؛ حجم فایل '+fa(mb)+' MB است.';}catch(e){console.error('imagesToPDF',e);s.textContent='❌ تبدیل عکس به PDF انجام نشد؛ فایل یا فرمت عکس را بررسی کنید.';}}
+async function buildImagePdfAtSettings(files,maxDim,quality){
+  const prepared=await Promise.all(files.map(async f=>{
+    const img=await new Promise((res,rej)=>{const x=new Image(),u=URL.createObjectURL(f);x.onload=()=>{URL.revokeObjectURL(u);res(x)};x.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('image_load_failed'))};x.src=u});
+    const scale=Math.min(1,maxDim/Math.max(img.naturalWidth,img.naturalHeight)),w=Math.max(1,Math.round(img.naturalWidth*scale)),h=Math.max(1,Math.round(img.naturalHeight*scale));
+    const c=document.createElement('canvas');c.width=w;c.height=h;const ctx=c.getContext('2d',{alpha:false});ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);
+    const jpg=await new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('image_export_failed')),'image/jpeg',quality));
+    return {data:await jpg.arrayBuffer(),w,h};
+  }));
+  const doc=await PDFLib.PDFDocument.create();
+  for(const x of prepared){
+    const emb=await doc.embedJpg(x.data),portrait=x.h>=x.w,pw=portrait?595:842,ph=portrait?842:595,ratio=Math.min(pw/x.w,ph/x.h),dw=x.w*ratio,dh=x.h*ratio,page=doc.addPage([pw,ph]);
+    page.drawImage(emb,{x:(pw-dw)/2,y:(ph-dh)/2,width:dw,height:dh});
+  }
+  return await doc.save({useObjectStreams:true});
+}
+async function imagesToPDF(){
+  const input=$('#imagePdfFiles'),s=$('#imagePdfStatus'),fs=input?[...input.files]:[];
+  if(!fs.length){if(s)s.textContent='حداقل یک عکس انتخاب کنید.';return}
+  if(!window.PDFLib){if(s)s.textContent='کتابخانه PDF آماده نیست؛ صفحه را یک بار تازه‌سازی کنید.';return}
+  let target=Number($('#imagePdfTargetMB')?.value||0);if($('#imagePdfTargetMB')?.value==='custom')target=Number($('#imagePdfCustomMB')?.value||0);
+  const targetBytes=Math.max(0,target)*1024*1024;s.textContent='در حال ساخت سریع PDF...';
+  try{
+    let bytes=await buildImagePdfAtSettings(fs,targetBytes?1500:1600,targetBytes?.75:.86);
+    if(targetBytes>0&&bytes.length>targetBytes){
+      const settings=[[1200,.68],[900,.55],[700,.45],[500,.32]];
+      for(const [d,q] of settings){s.textContent='در حال بهینه‌سازی سریع: '+d+'px / '+Math.round(q*100)+'٪...';bytes=await buildImagePdfAtSettings(fs,d,q);if(bytes.length<=targetBytes)break}
+    }
+    const name=fs.length===1?'amnayar-image-to-pdf.pdf':'amnayar-images-to-pdf.pdf';
+    download(bytes,name,'application/pdf');
+    const mb=(bytes.length/1048576).toFixed(2);
+    s.textContent=targetBytes&&bytes.length>targetBytes?'PDF ساخته شد: '+fa(mb)+' MB؛ حداقل حجم قابل دستیابی با این تصاویر است.':targetBytes?'✅ PDF با حجم '+fa(mb)+' MB آماده شد.':'✅ PDF سریع آماده شد؛ حجم '+fa(mb)+' MB.';
+  }catch(e){console.error('imagesToPDF',e);s.textContent='❌ تبدیل عکس به PDF انجام نشد؛ فایل یا فرمت عکس را بررسی کنید.';}
+}
 
 
 /* ===================== جعبه ابزار عملیاتی امنا یار ===================== */
