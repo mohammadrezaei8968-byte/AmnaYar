@@ -2,6 +2,11 @@ package ir.amnayar.app
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
+import android.content.pm.PackageManager
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -45,10 +50,30 @@ class MainActivity : Activity() {
                     java.io.File(dir, safeName).writeBytes(bytes)
                     sendBroadcast(Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(java.io.File(dir, safeName))))
                 }
+                runOnUiThread {
+                    showDownloadNotification(safeName)
+                    web.evaluateJavascript("window.dispatchEvent(new CustomEvent('amnayarDownloadCompleted',{detail:{name:" + org.json.JSONObject.quote(safeName) + "}}))", null)
+                }
             } catch (_: Exception) {
                 runOnUiThread { web.loadUrl("javascript:window.dispatchEvent(new Event('amnayarDownloadFailed'))") }
             }
         }
+    }
+
+    private fun showDownloadNotification(name: String) {
+        val channelId = "amnayar_downloads"
+        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            manager.createNotificationChannel(NotificationChannel(channelId, "دانلودهای امنا یار", NotificationManager.IMPORTANCE_DEFAULT))
+        }
+        if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this, "android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) return
+        val notification = NotificationCompat.Builder(this, channelId)
+            .setSmallIcon(android.R.drawable.stat_sys_download_done)
+            .setContentTitle("دانلود امنا یار انجام شد")
+            .setContentText(name)
+            .setAutoCancel(true)
+            .build()
+        manager.notify((System.currentTimeMillis() % 100000).toInt(), notification)
     }
 
     private lateinit var web: WebView
@@ -132,6 +157,9 @@ class MainActivity : Activity() {
         }
 
         setContentView(web)
+        if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this, "android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf("android.permission.POST_NOTIFICATIONS"), 7401)
+        }
         if (savedInstanceState == null) web.loadUrl("https://amnayar.ir/") else web.restoreState(savedInstanceState)
     }
 
