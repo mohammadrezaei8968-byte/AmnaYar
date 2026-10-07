@@ -1103,16 +1103,16 @@ const pdfUpload = multer({
 app.post('/api/tools/compress-pdf',pdfUpload.single('file'),async(req,res)=>{
   const input=req.file?.path;
   if(!input)return res.status(400).json({error:'pdf_required'});
-  const quality=Math.max(35,Math.min(85,Number(req.body?.quality||70)));
+  const quality=Math.max(25,Math.min(75,Number(req.body?.quality||55)));
   const output=path.join(os.tmpdir(),'amnayar-compressed-'+crypto.randomUUID()+'.pdf');
   const cleanup=()=>Promise.allSettled([fs.promises.unlink(input),fs.promises.unlink(output)]);
   const runGs=async(out,level)=>{
     const imageDpi=level<=30?55:level<=40?72:level<=60?96:level<=75?120:150;
     const jpegQ=level<=30?28:level<=40?40:level<=60?52:level<=75?68:78;
-    const preset=level<=40?'/screen':level<=75?'/ebook':'/printer';
+    const preset=level<=60?'/screen':'/ebook';
     await execFileAsync('gs',[
       '-sDEVICE=pdfwrite','-dCompatibilityLevel=1.4','-dNOPAUSE','-dQUIET','-dBATCH','-dSAFER',
-      '-dDetectDuplicateImages=false','-dCompressFonts=true','-dSubsetFonts=true','-dAutoRotatePages=/None',
+      '-dDetectDuplicateImages=true','-dCompressFonts=true','-dSubsetFonts=true','-dAutoRotatePages=/None',
       '-dDownsampleColorImages=true','-dDownsampleGrayImages=true','-dDownsampleMonoImages=true',
       '-dColorImageDownsampleType=/Average','-dGrayImageDownsampleType=/Average','-dMonoImageDownsampleType=/Subsample',
       '-dColorImageResolution='+imageDpi,'-dGrayImageResolution='+imageDpi,'-dMonoImageResolution='+Math.max(120,imageDpi*2),
@@ -1120,7 +1120,7 @@ app.post('/api/tools/compress-pdf',pdfUpload.single('file'),async(req,res)=>{
       '-dAutoFilterColorImages=false','-dAutoFilterGrayImages=false','-dColorImageFilter=/DCTEncode','-dGrayImageFilter=/DCTEncode',
       '-dPassThroughJPEGImages=false','-dPassThroughJPXImages=false','-dJPEGQ='+jpegQ,'-dPDFSETTINGS='+preset,
       '-sOutputFile='+out,input
-    ],{timeout:35*60*1000,maxBuffer:4*1024*1024});
+    ],{timeout:8*60*1000,maxBuffer:4*1024*1024});
   };
   try{
     await runGs(output,quality);
