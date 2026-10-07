@@ -127,22 +127,23 @@ async function compressImage(){
     const q=Math.min(0.95,Math.max(0.2,Number($('#imageQuality').value)/100));
     const src=URL.createObjectURL(f),img=new Image();
     await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=src});
-    const maxSide=3000;
+    const maxSide=2400;
     const scale=Math.min(1,maxSide/Math.max(img.naturalWidth,img.naturalHeight));
     const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.naturalWidth*scale));c.height=Math.max(1,Math.round(img.naturalHeight*scale));
-    c.getContext('2d',{alpha:false}).drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(src);
+    const ctx=c.getContext('2d',{alpha:false});ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,0,0,c.width,c.height);
     let blob=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error('خروجی تصویر ساخته نشد.')),'image/jpeg',q));
     if(blob.size>=f.size){
-      const tries=[[Math.min(2400,c.width),0.62],[Math.min(1800,c.width),0.48],[Math.min(1400,c.width),0.34]];
+      const tries=[[1800,0.58],[1400,0.42],[1000,0.30]];
       for(const [dim,qq] of tries){
-        if(blob.size<f.size)break;
         const scale2=Math.min(1,dim/Math.max(img.naturalWidth,img.naturalHeight));
         c.width=Math.max(1,Math.round(img.naturalWidth*scale2));c.height=Math.max(1,Math.round(img.naturalHeight*scale2));
-        c.getContext('2d',{alpha:false}).drawImage(img,0,0,c.width,c.height);
+        ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,0,0,c.width,c.height);
         blob=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error('خروجی تصویر ساخته نشد.')),'image/jpeg',qq));
+        if(blob.size<f.size)break;
       }
     }
-    if(blob.size>=f.size){s.textContent='این تصویر از قبل کم‌حجم است و نسخه کوچک‌تری با کیفیت مناسب ساخته نشد.';return;}
+    URL.revokeObjectURL(src);
+    if(blob.size>=f.size){s.textContent='این فایل از قبل کم‌حجم است؛ خروجی بزرگ‌تر دانلود نشد.';return;}
     downloadBlob(blob,'amnayar-compressed.jpg');s.textContent=savingsText(f.size,blob.size);
   }catch(e){s.textContent='فشرده‌سازی تصویر انجام نشد؛ فرمت تصویر را بررسی کنید.';}
 }
@@ -197,8 +198,8 @@ async function compressPDF(){
     try{
       const pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise;
       const out=await PDFLib.PDFDocument.create();
-      const scale=level<=40?0.9:level<=60?1.1:level<=75?1.35:1.7;
-      const quality=level<=40?0.45:level<=60?0.58:level<=75?0.72:0.86;
+      const scale=level<=40?0.78:level<=60?0.92:level<=75?1.08:1.25;
+      const quality=level<=40?0.38:level<=60?0.48:level<=75?0.60:0.72;
       for(let n=1;n<=pdf.numPages;n++){
         const page=await pdf.getPage(n),vp=page.getViewport({scale});
         const c=document.createElement('canvas');
