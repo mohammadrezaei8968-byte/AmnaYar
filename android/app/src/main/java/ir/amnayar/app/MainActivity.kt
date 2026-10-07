@@ -4,8 +4,6 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import androidx.core.app.NotificationCompat
-import androidx.core.content.ContextCompat
 import android.content.pm.PackageManager
 import android.content.Intent
 import android.net.Uri
@@ -66,13 +64,22 @@ class MainActivity : Activity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             manager.createNotificationChannel(NotificationChannel(channelId, "دانلودهای امنا یار", NotificationManager.IMPORTANCE_DEFAULT))
         }
-        if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this, "android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) return
-        val notification = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(android.R.drawable.stat_sys_download_done)
-            .setContentTitle("دانلود امنا یار انجام شد")
-            .setContentText(name)
-            .setAutoCancel(true)
-            .build()
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) return
+        val notification = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            android.app.Notification.Builder(this, channelId)
+                .setSmallIcon(android.R.drawable.stat_sys_download_done)
+                .setContentTitle("دانلود امنا یار انجام شد")
+                .setContentText(name)
+                .setAutoCancel(true)
+                .build()
+        } else {
+            android.app.Notification.Builder(this)
+                .setSmallIcon(android.R.drawable.stat_sys_download_done)
+                .setContentTitle("دانلود امنا یار انجام شد")
+                .setContentText(name)
+                .setAutoCancel(true)
+                .build()
+        }
         manager.notify((System.currentTimeMillis() % 100000).toInt(), notification)
     }
 
@@ -157,7 +164,7 @@ class MainActivity : Activity() {
         }
 
         setContentView(web)
-        if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this, "android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) {
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf("android.permission.POST_NOTIFICATIONS"), 7401)
         }
         if (savedInstanceState == null) web.loadUrl("https://amnayar.ir/") else web.restoreState(savedInstanceState)
