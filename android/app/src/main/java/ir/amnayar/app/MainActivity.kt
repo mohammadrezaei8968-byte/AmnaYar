@@ -5,6 +5,10 @@ import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Build
+import android.os.Environment
+import android.util.Base64
+import android.webkit.JavascriptInterface
 import android.provider.MediaStore
 import android.view.View
 import android.webkit.CookieManager
@@ -17,6 +21,36 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 
 class MainActivity : Activity() {
+    private inner class DownloadBridge {
+        @JavascriptInterface
+        fun saveBase64(name: String, mime: String, base64: String) {
+            try {
+                val safeName = name.substringAfterLast('/').ifBlank { "amnayar-download" }
+                val bytes = Base64.decode(base64, Base64.DEFAULT)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    val values = android.content.ContentValues().apply {
+                        put(android.provider.MediaStore.Downloads.DISPLAY_NAME, safeName)
+                        put(android.provider.MediaStore.Downloads.MIME_TYPE, mime.ifBlank { "application/octet-stream" })
+                        put(android.provider.MediaStore.Downloads.IS_PENDING, 1)
+                    }
+                    val uri = contentResolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                        ?: throw IllegalStateException("download_uri_failed")
+                    contentResolver.openOutputStream(uri).use { it?.write(bytes) }
+                    values.clear()
+                    values.put(android.provider.MediaStore.Downloads.IS_PENDING, 0)
+                    contentResolver.update(uri, values, null, null)
+                } else {
+                    val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                    if (!dir.exists()) dir.mkdirs()
+                    java.io.File(dir, safeName).writeBytes(bytes)
+                    sendBroadcast(Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(java.io.File(dir, safeName))))
+                }
+            } catch (_: Exception) {
+                runOnUiThread { web.loadUrl("javascript:window.dispatchEvent(new Event('amnayarDownloadFailed'))") }
+            }
+        }
+    }
+
     private lateinit var web: WebView
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
     private val fileChooserRequestCode = 4101
@@ -46,6 +80,20 @@ class MainActivity : Activity() {
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
                 if (request.isForMainFrame) view.postDelayed({ view.loadUrl("https://amnayar.ir/") }, 500)
             }
+        }
+
+        web.addJavascriptInterface(DownloadBridge(), "AmnaYarDownloader")
+
+        web.setDownloadListener { url, userAgent, contentDisposition, mimeType, _ ->
+            try {
+                val request = android.app.DownloadManager.Request(Uri.parse(url))
+                request.setMimeType(mimeType ?: "application/octet-stream")
+                request.addRequestHeader("User-Agent", userAgent ?: "")
+                request.setDescription("دانلود فایل امنا یار")
+                request.setTitle(android.webkit.URLUtil.guessFileName(url, contentDisposition, mimeType))
+                request.setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                (getSystemService(DOWNLOAD_SERVICE) as android.app.DownloadManager).enqueue(request)
+            } catch (_: Exception) { }
         }
 
         web.webChromeClient = object : WebChromeClient() {
