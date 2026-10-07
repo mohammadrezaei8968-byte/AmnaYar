@@ -22,7 +22,7 @@ app.use(compression({threshold:1024}));
 // This keeps large PDF jobs independent from the API service's runtime packages.
 const pdfUpload=multer({
   dest:os.tmpdir(),
-  limits:{fileSize:500*1024*1024},
+  limits:{fileSize:1024*1024*1024},
   fileFilter:(req,file,cb)=>cb(null,file.mimetype==="application/pdf"||/\.pdf$/i.test(file.originalname))
 });
 
@@ -30,9 +30,9 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
   const input=req.file?.path;
   if(!input)return res.status(400).json({error:"pdf_required"});
 
-  const quality=Math.max(35,Math.min(85,Number(req.body?.quality||70)));
+  const quality=Math.max(25,Math.min(75,Number(req.body?.quality||55)));
   const output=path.join(os.tmpdir(),"amnayar-compressed-"+crypto.randomUUID()+".pdf");
-  const settings=quality<=40?"/screen":quality<=60?"/ebook":quality<=75?"/ebook":"/printer";
+  const settings=quality<=45?"/screen":quality<=65?"/ebook":"/ebook";
 
   const cleanup=async()=>Promise.allSettled([
     fs.promises.unlink(input),
@@ -40,9 +40,9 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
   ]);
 
   const runGs=async(out,level)=>{
-    const imageDpi=level<=40?72:level<=60?96:level<=75?120:160;
-    const jpegQ=level<=40?40:level<=60?52:level<=75?68:82;
-    const preset=level<=40?"/screen":level<=60?"/ebook":level<=75?"/ebook":"/printer";
+    const imageDpi=level<=30?60:level<=45?72:level<=60?90:120;
+    const jpegQ=level<=30?32:level<=45?42:level<=60?52:62;
+    const preset=level<=45?"/screen":"/ebook";
     await execFileAsync("gs",[
       "-sDEVICE=pdfwrite",
       "-dCompatibilityLevel=1.4",
@@ -50,7 +50,7 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
       "-dQUIET",
       "-dBATCH",
       "-dSAFER",
-      "-dDetectDuplicateImages=false",
+      "-dDetectDuplicateImages=true",
       "-dCompressFonts=true",
       "-dSubsetFonts=true",
       "-dAutoRotatePages=/None",
@@ -76,7 +76,7 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
       "-dPDFSETTINGS="+preset,
       "-sOutputFile="+out,
       input
-    ],{timeout:35*60*1000,maxBuffer:4*1024*1024});
+    ],{timeout:20*60*1000,maxBuffer:4*1024*1024});
   };
 
   try{
@@ -85,9 +85,9 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
 
     // Ghostscript can occasionally make an already-optimized PDF larger.
     // In that case retry once with a stronger compression profile.
-    if(stat.size>=req.file.size && quality>40){
+    if(stat.size>=req.file.size && quality>30){
       await fs.promises.unlink(output).catch(()=>{});
-      await runGs(output,40);
+      await runGs(output,30);
       stat=await fs.promises.stat(output);
     }
 
@@ -148,6 +148,6 @@ app.use((req,res,next)=>{
 app.use((req,res)=>res.status(404).send("Not Found"));
 
 const server=app.listen(PORT,"0.0.0.0",()=>console.log("AmnaYar gateway listening on "+PORT));
-server.requestTimeout=35*60*1000;
+server.requestTimeout=20*60*1000;
 server.headersTimeout=120*1000;
 server.keepAliveTimeout=120*1000;
