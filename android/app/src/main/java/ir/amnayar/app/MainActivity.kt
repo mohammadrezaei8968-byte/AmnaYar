@@ -23,6 +23,7 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 
+// AmnaYar Android shell: the live website receives conversion/compression updates automatically.
 class MainActivity : Activity() {
     private inner class DownloadBridge {
         @JavascriptInterface
