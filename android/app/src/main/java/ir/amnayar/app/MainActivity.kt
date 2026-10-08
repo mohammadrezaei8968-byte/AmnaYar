@@ -54,7 +54,7 @@ class MainActivity : Activity() {
                     web.evaluateJavascript("window.dispatchEvent(new CustomEvent('amnayarDownloadCompleted',{detail:{name:" + org.json.JSONObject.quote(safeName) + "}}))", null)
                 }
             } catch (_: Exception) {
-                runOnUiThread { android.widget.Toast.makeText(this, "دانلود انجام نشد", android.widget.Toast.LENGTH_LONG).show(); web.loadUrl("javascript:window.dispatchEvent(new Event('amnayarDownloadFailed'))") }
+                runOnUiThread { android.widget.Toast.makeText(this@MainActivity, "دانلود انجام نشد", android.widget.Toast.LENGTH_LONG).show(); web.loadUrl("javascript:window.dispatchEvent(new Event('amnayarDownloadFailed'))") }
             }
         }
     }
