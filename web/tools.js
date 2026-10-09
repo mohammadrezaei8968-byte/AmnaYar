@@ -662,7 +662,7 @@ function startTranslationVoice(direction){
  window.__amnaTranslationVoiceDirection=direction;
  if(activeTranslationRecognizers[direction]){status.textContent='تشخیص گفتار همین زبان در حال اجراست.';return}
  if(window.AmnaYarSpeech&&typeof window.AmnaYarSpeech.startListening==='function'){
-   try{window.AmnaYarSpeech.startListening(direction);status.textContent='صحبت کنید؛ تشخیص گفتار در حال اجراست.';return}catch(e){}
+   try{window.AmnaYarSpeech.startListening(direction==='fa-en'?'translate-fa-en':'translate-en-fa');status.textContent='صحبت کنید؛ تشخیص گفتار در حال اجراست.';return}catch(e){}
  }
  const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
  if(!Recognition){status.textContent='تشخیص گفتار در این مرورگر در دسترس نیست؛ در Chrome به‌روز یا اپلیکیشن امنا یار امتحان کنید.';return}
@@ -678,10 +678,15 @@ function startTranslationVoice(direction){
 function stopTranslationVoice(direction){
  const status=document.getElementById(direction==='fa-en'?'plainFaStatus':'plainEnStatus');
  try{
-   if(window.AmnaYarSpeech&&typeof window.AmnaYarSpeech.stopListening==='function'){window.AmnaYarSpeech.stopListening(direction);return}
+   if(window.AmnaYarSpeech&&typeof window.AmnaYarSpeech.stopListening==='function'){window.AmnaYarSpeech.stopListening();return}
    const rec=activeTranslationRecognizers[direction];if(rec)rec.stop();else status.textContent='ضبط گفتار این زبان فعال نیست.';
  }catch(e){status.textContent='توقف گفتار انجام نشد؛ دوباره تلاش کنید.'}
 }
+window.amnayarTranslationInputVoiceResult=function(text,direction,error){
+ const faToEn=direction==='translate-fa-en',input=document.getElementById(faToEn?'plainFaText':'plainEnText'),status=document.getElementById(faToEn?'plainFaStatus':'plainEnStatus');
+ if(error||!text){status.textContent=error==='permission'?'اجازه میکروفون را فعال کنید.':'گفتار ثبت نشد؛ دوباره تلاش کنید.';return}
+ input.value=text;status.textContent='گفتار به متن تبدیل شد؛ برای ترجمه، دکمه ترجمه را بزنید.';
+};
 function copyTranslation(id){const el=document.getElementById(id);if(!el||!el.value){return}if(navigator.clipboard?.writeText)navigator.clipboard.writeText(el.value).then(()=>{const s=document.getElementById(id==='plainEnResult'?'plainFaStatus':'plainEnStatus');if(s)s.textContent='ترجمه کپی شد.'}).catch(()=>{el.focus();el.select();document.execCommand('copy')});else{el.focus();el.select();document.execCommand('copy')}}
 (function checkAmnaAppUpdate(){if(new URLSearchParams(location.search).get('app')!=='1')return;fetch('/app-version.json?ts='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{if(!v||!v.latestVersion)return;const current=new URLSearchParams(location.search).get('appVersion')||'1.0.0';const parts=x=>String(x).split('.').map(n=>parseInt(n,10)||0);const newer=(a,b)=>{a=parts(a);b=parts(b);for(let i=0;i<Math.max(a.length,b.length);i++){if((a[i]||0)!==(b[i]||0))return(a[i]||0)>(b[i]||0)}return false};if(!newer(v.latestVersion,current))return;const bar=document.createElement('div');bar.style.cssText='position:fixed;z-index:100000;top:8px;left:8px;right:8px;background:#0c6b48;color:#fff;padding:14px;border-radius:14px;box-shadow:0 8px 30px #0003;display:flex;gap:10px;align-items:center;justify-content:space-between;direction:rtl';bar.innerHTML='<span>نسخه جدید امنا یار ('+String(v.latestVersion).replace(/[&<>"]/g,'')+') منتشر شده است.</span><button type="button" style="border:0;border-radius:9px;padding:9px 12px;font-weight:bold" id="amnaUpdateNow">به‌روزرسانی</button><button type="button" aria-label="بستن" id="amnaUpdateClose" style="border:0;background:transparent;color:white;font-size:20px">×</button>';document.body.appendChild(bar);document.getElementById('amnaUpdateNow').onclick=()=>{const url=String(v.bazaarUrl||'https://cafebazaar.ir/app/ir.amnayar.app');location.href=url};document.getElementById('amnaUpdateClose').onclick=()=>bar.remove()}).catch(()=>{})})();
 
