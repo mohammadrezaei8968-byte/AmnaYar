@@ -216,7 +216,20 @@ class MainActivity : Activity() {
         CookieManager.getInstance().setAcceptThirdPartyCookies(web, true)
 
         web.webViewClient = object : WebViewClient() {
-            override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest) = false
+            override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+                val uri = request.url
+                val host = (uri.host ?: "").lowercase()
+                val internal = host == "amnayar.ir" || host == "www.amnayar.ir" || host == "api.amnayar.ir"
+                if ((uri.scheme == "http" || uri.scheme == "https") && !internal) {
+                    return try {
+                        startActivity(Intent(Intent.ACTION_VIEW, uri))
+                        true
+                    } catch (_: Exception) {
+                        false
+                    }
+                }
+                return false
+            }
             override fun onPageFinished(view: WebView, url: String) {
                 super.onPageFinished(view, url)
                 // These removals apply only inside the Android app; normal website visitors still see site ads.
