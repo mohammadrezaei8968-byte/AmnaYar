@@ -103,6 +103,8 @@ jobs:
       - name: Publish APK to AmnaYar website
         run: |
           set -euo pipefail
+          git fetch origin main
+          git checkout -B main origin/main
           mkdir -p web/downloads
           install -m 0644 dist/AmnaYar.apk web/downloads/AmnaYar.apk
           git config user.name "github-actions[bot]"
@@ -112,7 +114,7 @@ jobs:
             echo "Website APK is already up to date."
           else
             git commit -m "Publish AmnaYar Android APK"
-            git push origin HEAD:main
+            git push origin main
           fi
 
       - name: Upload APK artifact
