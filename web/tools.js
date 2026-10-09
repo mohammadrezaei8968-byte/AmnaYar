@@ -609,7 +609,7 @@ async function loadReferenceDocument(){
  }catch(e){console.error('document extraction',e);status.textContent='خواندن فایل انجام نشد: '+(e.message||'فرمت فایل را بررسی کنید.')}
  finally{if(ocrWorker)try{await ocrWorker.terminate()}catch(e){}}
 }
-async async function askReferenceDocument(){
+async function askReferenceDocument(){
  const q=String($('#docQaQuestion')?.value||'').trim(),out=$('#docQaAnswer'),status=$('#docQaStatus'),button=$('#docQaAsk');
  if(!amnaReferenceChunks.length){out.textContent='ابتدا فایل مرجع را بارگذاری و پردازش کنید.';return}
  if(!q){out.textContent='پرسش خود را وارد کنید یا با گفتار ثبت کنید.';return}
