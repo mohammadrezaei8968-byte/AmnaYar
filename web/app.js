@@ -11,7 +11,7 @@ function clearAllAuthTokens(){['amnayar_auth_token','amnayar_token','amnayar_acc
 function deviceLimitMessage(){return 'این حساب روی یک گوشی دیگر فعال است. برای استفاده روی این گوشی، ابتدا دستگاه قبلی باید از حساب خارج یا غیرفعال شود.'}
 async function bindAppDevice(token){
  const key=appDeviceKey();if(!key)return {token};
- const response=await fetch('/api/device/register',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'X-Device-Key':key},body:JSON.stringify({deviceKey:key,channel:'android',appVersion:'1.0.0'}),cache:'no-store'});
+ const response=await fetch('/api/device/register',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'X-Device-Key':key},body:JSON.stringify({deviceKey:key,channel:'android',appVersion:'1.0.7'}),cache:'no-store'});
  let data={};try{data=await response.json()}catch(e){}
  if(!response.ok||!data.token)return {error:data.error||'device_register_failed'};
  return {token:data.token};
