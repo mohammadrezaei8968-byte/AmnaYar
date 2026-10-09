@@ -105,9 +105,33 @@ function gregorianToJalaliUI(){const p=parts($('#gdate').value);if(!validGregori
 const jalaliMonthNames=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
 let jalaliCalendarTarget=null,jalaliCalendarYear=0,jalaliCalendarMonth=0;
 function openJalaliCalendar(pickerId,textId){jalaliCalendarTarget={pickerId,textId};const typed=parts($('#'+textId)?.value||$('#'+pickerId)?.value);if(validJalaliParts(typed)){jalaliCalendarYear=typed[0];jalaliCalendarMonth=typed[1]}else{const d=new Date();[jalaliCalendarYear,jalaliCalendarMonth]=g2j(d.getFullYear(),d.getMonth()+1,d.getDate()).slice(0,2)}renderJalaliCalendar()}
-function renderJalaliCalendar(){let pop=$('#amnayarJalaliCalendar');if(!pop){pop=document.createElement('div');pop.id='amnayarJalaliCalendar';pop.className='amnayar-jalali-calendar';pop.setAttribute('role','dialog');pop.setAttribute('aria-label','تقویم شمسی');document.body.appendChild(pop)}let days=31;while(days>0&&!validJalaliParts([jalaliCalendarYear,jalaliCalendarMonth,days]))days--;const first=j2g(jalaliCalendarYear,jalaliCalendarMonth,1),weekday=(new Date(Date.UTC(first[0],first[1]-1,first[2])).getUTCDay()+1)%7;let years='';for(let y=1200;y<=1600;y++)years+='<option value="'+y+'" '+(y===jalaliCalendarYear?'selected':'')+'>'+faDateDigits(y)+'</option>';let months=jalaliMonthNames.map((m,i)=>'<option value="'+(i+1)+'" '+(i+1===jalaliCalendarMonth?'selected':'')+'>'+m+'</option>').join('');let html='<div class="jalali-cal-head"><button type="button" aria-label="سال قبل" onclick="shiftJalaliCalendar(-12)">«</button><button type="button" aria-label="ماه قبل" onclick="shiftJalaliCalendar(-1)">‹</button><select id="jalaliCalMonth" aria-label="انتخاب ماه">'+months+'</select><select id="jalaliCalYear" aria-label="انتخاب سال">'+years+'</select><button type="button" aria-label="ماه بعد" onclick="shiftJalaliCalendar(1)">›</button><button type="button" aria-label="سال بعد" onclick="shiftJalaliCalendar(12)">»</button></div><div class="jalali-cal-grid">'+['ش','ی','د','س','چ','پ','ج'].map(x=>'<span class="jalali-cal-week">'+x+'</span>').join('');for(let i=0;i<weekday;i++)html+='<span></span>';for(let d=1;d<=days;d++)html+='<button type="button" '+(d===parts($('#'+jalaliCalendarTarget.textId)?.value||'')[2]&&jalaliCalendarYear===parts($('#'+jalaliCalendarTarget.textId)?.value||'')[0]&&jalaliCalendarMonth===parts($('#'+jalaliCalendarTarget.textId)?.value||'')[1]?'class="selected"':'')+' onclick="selectJalaliCalendarDay('+d+')">'+faDateDigits(d)+'</button>';html+='</div><div class="jalali-cal-foot"><button type="button" class="btn soft" onclick="selectJalaliToday()">امروز</button><button type="button" class="btn soft" onclick="document.getElementById(\'amnayarJalaliCalendar\').remove()">بستن</button></div>';pop.innerHTML=html;$('#jalaliCalMonth').addEventListener('change',e=>{jalaliCalendarMonth=Number(e.target.value);renderJalaliCalendar()});$('#jalaliCalYear').addEventListener('change',e=>{jalaliCalendarYear=Number(e.target.value);renderJalaliCalendar()});pop.style.display='block';const target=$('#'+jalaliCalendarTarget.pickerId);const r=target.getBoundingClientRect();pop.style.top=Math.min(window.scrollY+r.bottom+6,window.scrollY+window.innerHeight-360)+'px';pop.style.left=Math.max(8,Math.min(window.innerWidth-r.width-8,r.left))+'px'}
+function renderJalaliCalendar(){
+ const pop=$('#amnayarJalaliCalendar');
+ if(!pop||!jalaliCalendarTarget)return;
+ let days=31;
+ while(days>0&&!validJalaliParts([jalaliCalendarYear,jalaliCalendarMonth,days]))days--;
+ const first=j2g(jalaliCalendarYear,jalaliCalendarMonth,1);
+ const weekday=(new Date(Date.UTC(first[0],first[1]-1,first[2])).getUTCDay()+1)%7;
+ const current=parts($('#'+jalaliCalendarTarget.textId)?.value||'');
+ const years=Array.from({length:401},(_,i)=>1200+i).map(y=>'<option value="'+y+'" '+(y===jalaliCalendarYear?'selected':'')+'>'+faDateDigits(y)+'</option>').join('');
+ const months=jalaliMonthNames.map((m,i)=>'<option value="'+(i+1)+'" '+(i+1===jalaliCalendarMonth?'selected':'')+'>'+m+'</option>').join('');
+ let out='<div class="jalali-cal-head"><button type="button" data-cal-shift="-12" aria-label="سال قبل">«</button><button type="button" data-cal-shift="-1" aria-label="ماه قبل">‹</button><select id="jalaliCalMonth" aria-label="انتخاب ماه">'+months+'</select><select id="jalaliCalYear" aria-label="انتخاب سال">'+years+'</select><button type="button" data-cal-shift="1" aria-label="ماه بعد">›</button><button type="button" data-cal-shift="12" aria-label="سال بعد">»</button></div><div class="jalali-cal-grid">'+['ش','ی','د','س','چ','پ','ج'].map(x=>'<span class="jalali-cal-week">'+x+'</span>').join('');
+ for(let i=0;i<weekday;i++)out+='<span></span>';
+ for(let d=1;d<=days;d++)out+='<button type="button" data-cal-day="'+d+'" '+(d===current[2]&&jalaliCalendarYear===current[0]&&jalaliCalendarMonth===current[1]?'class="selected"':'')+'>'+faDateDigits(d)+'</button>';
+ out+='</div><div class="jalali-cal-foot"><button type="button" class="btn soft" data-cal-today>امروز</button><button type="button" class="btn soft" data-cal-close>بستن</button></div>';
+ pop.innerHTML=out;pop.style.display='block';
+ pop.querySelectorAll('[data-cal-shift]').forEach(el=>el.addEventListener('click',()=>shiftJalaliCalendar(Number(el.dataset.calShift))));
+ pop.querySelector('#jalaliCalMonth').addEventListener('change',e=>{jalaliCalendarMonth=Number(e.target.value);renderJalaliCalendar()});
+ pop.querySelector('#jalaliCalYear').addEventListener('change',e=>{jalaliCalendarYear=Number(e.target.value);renderJalaliCalendar()});
+ pop.querySelectorAll('[data-cal-day]').forEach(el=>el.addEventListener('click',()=>selectJalaliCalendarDay(Number(el.dataset.calDay))));
+ pop.querySelector('[data-cal-today]').addEventListener('click',selectJalaliToday);
+ pop.querySelector('[data-cal-close]').addEventListener('click',()=>{pop.remove();jalaliCalendarTarget=null});
+ const target=$('#'+jalaliCalendarTarget.pickerId),r=target.getBoundingClientRect();
+ pop.style.top=Math.max(window.scrollY+8,Math.min(window.scrollY+r.bottom+6,window.scrollY+window.innerHeight-360))+'px';
+ pop.style.left=Math.max(8,Math.min(window.innerWidth-r.width-8,r.left))+'px';
+}
 function selectJalaliToday(){const d=new Date(),j=g2j(d.getFullYear(),d.getMonth()+1,d.getDate());jalaliCalendarYear=j[0];jalaliCalendarMonth=j[1];selectJalaliCalendarDay(j[2])}
-function shiftJalaliCalendar(delta){const index=(jalaliCalendarYear*12)+(jalaliCalendarMonth-1)+Number(delta||0);jalaliCalendarYear=Math.floor(index/12);jalaliCalendarMonth=((index%12)+12)%12+1;renderJalaliCalendar()}
+function shiftJalaliCalendar(delta){const index=(jalaliCalendarYear*12)+(jalaliCalendarMonth-1)+Number(delta||0);const year=Math.floor(index/12),month=((index%12)+12)%12+1;if(year<1200||year>1600)return;jalaliCalendarYear=year;jalaliCalendarMonth=month;renderJalaliCalendar()}
 function selectJalaliCalendarDay(day){if(!jalaliCalendarTarget)return;const value=faDateDigits(datePartsText([jalaliCalendarYear,jalaliCalendarMonth,day]));const picker=$('#'+jalaliCalendarTarget.pickerId),text=$('#'+jalaliCalendarTarget.textId);if(picker)picker.value=value;if(text)text.value=value;$('#amnayarJalaliCalendar')?.remove();jalaliCalendarTarget=null}
 document.addEventListener('click',e=>{const pop=$('#amnayarJalaliCalendar');if(pop&&!pop.contains(e.target)&&!e.target.matches('[data-jalali-picker]'))pop.remove()});
 [['invDatePicker','invDate'],['dateDiffStartPicker','dateDiffStart'],['dateDiffEndPicker','dateDiffEnd']].forEach(([pickerId,textId])=>{const p=$('#'+pickerId);if(p){p.addEventListener('click',()=>openJalaliCalendar(pickerId,textId));p.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openJalaliCalendar(pickerId,textId)}});}});
@@ -542,7 +566,7 @@ async function loadReferenceDocument(){
  if(f.size>100*1024*1024){status.textContent='حجم فایل حداکثر ۱۰۰ مگابایت باشد.';return}
  status.textContent='در حال خواندن فایل…';amnaReferenceChunks=[];if(ask)ask.disabled=true;
  const ext=(f.name.split('.').pop()||'').toLowerCase();let ocrWorker=null;
- const addText=(source,text)=>{const clean=String(text||'').replace(/\s+/g,' ').trim();if(!clean)return;const size=1800;for(let i=0;i<clean.length;i+=size)amnaReferenceChunks.push({source,text:clean.slice(i,i+size)})};
+ const addText=(source,text)=>{const clean=String(text||'').replace(/[\\t ]+/g,' ').replace(/\\n{2,}/g,'\\n').trim();if(!clean)return;const sentences=clean.split(/(?<=[.!?؟؛])\\s+|\\n+/).map(x=>x.trim()).filter(Boolean);let chunk='';for(const sentence of sentences){if((chunk+' '+sentence).trim().length>650&&chunk){amnaReferenceChunks.push({source,text:chunk.trim()});chunk=''}chunk+=(chunk?' ':'')+sentence;if(chunk.length>900){for(let i=0;i<chunk.length;i+=650)amnaReferenceChunks.push({source,text:chunk.slice(i,i+650)});chunk=''}}if(chunk.trim())amnaReferenceChunks.push({source,text:chunk.trim()})};
  async function ensureOcrWorker(){
   if(ocrWorker)return ocrWorker;
   if(!window.Tesseract)await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.onload=resolve;s.onerror=()=>reject(new Error('کتابخانه OCR بارگذاری نشد؛ اتصال اینترنت را بررسی کنید.'));document.head.appendChild(s)});
@@ -588,24 +612,25 @@ function askReferenceDocument(){
  const q=String($('#docQaQuestion')?.value||'').trim(),out=$('#docQaAnswer');
  if(!amnaReferenceChunks.length){out.textContent='ابتدا فایل مرجع را بارگذاری و پردازش کنید.';return}
  if(!q){out.textContent='پرسش خود را وارد کنید یا با گفتار ثبت کنید.';return}
- const normalizeDoc=s=>String(s||'').toLocaleLowerCase('fa').replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[^\p{L}\p{N}]+/gu,' ').trim();
- const stop=new Set('از به با در را برای که این آن است بود شد می و یا اگر تا درباره طبق چیست چطور چگونه کدام چه آیا لطفا لطفاً من شما فایل متن مبلغ تاریخ شماره نام طبق این فایل'.split(' '));
- const words=[...new Set(normalizeDoc(q).split(/\s+/).filter(w=>w.length>1&&!stop.has(w)))];
+ const normalizeDoc=s=>String(s||'').toLocaleLowerCase('fa').replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[^\\p{L}\\p{N}]+/gu,' ').trim();
+ const stop=new Set('از به با در را برای که این آن است بود شد می و یا اگر تا درباره طبق چیست چطور چگونه کدام چه آیا لطفا لطفاً من شما فایل متن مبلغ تاریخ شماره نام'.split(/\\s+/));
+ const normalized=normalizeDoc(q),words=[...new Set(normalized.split(/\\s+/).filter(w=>w.length>1&&!stop.has(w)))];
  if(!words.length){out.textContent='برای جست‌وجوی دقیق‌تر، سؤال را با یک نام، عدد، تاریخ یا عبارت مشخص‌تر بنویسید.';return}
- const phrase=normalizeDoc(q);
  const ranked=amnaReferenceChunks.map(c=>{
-  const t=normalizeDoc(c.text),tokens=new Set(t.split(/\s+/));
-  const hits=words.filter(w=>tokens.has(w)||t.includes(w)).length;
-  const coverage=hits/words.length;
-  const phraseBonus=phrase.length>5&&t.includes(phrase)?words.length+4:0;
-  return{...c,score:hits+coverage*2+phraseBonus,hits,coverage}
- }).filter(x=>x.hits>0).sort((a,b)=>b.score-a.score).slice(0,5);
- if(!ranked.length){out.textContent='در متن استخراج‌شده از فایل، بخش مرتبطی پیدا نشد. سؤال را با واژه‌های موجود در فایل بازنویسی کنید.';return}
- const best=ranked[0],answer=best.text.length>1000?best.text.slice(0,1000)+'…':best.text;
- out.innerHTML='<p><b>پاسخ بر اساس محتوای فایل</b></p><p>'+escapeDocQa(answer)+'</p><p class="muted">منبع پاسخ: '+escapeDocQa(best.source)+' — تطبیق واژه‌های سؤال: '+fa(best.hits)+' از '+fa(words.length)+'</p><details><summary>نمایش بخش‌های مرتبط دیگر</summary>'+ranked.slice(1).map((x,i)=>'<article class="docqa-source"><b>منبع '+fa(i+2)+' — '+escapeDocQa(x.source)+'</b><p>'+escapeDocQa(x.text.slice(0,1000))+(x.text.length>1000?'…':'')+'</p></article>').join('')+'</details><p class="muted">این پاسخ استخراجی است و فقط به متن قابل خواندن فایل متکی است؛ در این نسخه مدل هوش مصنوعی مولد به سرویس متصل نشده است.</p>';
+  const t=normalizeDoc(c.text),tokens=new Set(t.split(/\\s+/));
+  const hits=words.filter(w=>tokens.has(w)).length;
+  const partial=words.filter(w=>!tokens.has(w)&&t.includes(w)).length;
+  const phraseBonus=normalized.length>5&&t.includes(normalized)?words.length*2:0;
+  const coverage=(hits+partial*.45)/words.length;
+  return {...c,hits,coverage,score:hits+partial*.45+phraseBonus};
+ }).filter(x=>x.hits>0||x.coverage>=.35).sort((a,b)=>b.score-a.score).slice(0,5);
+ const best=ranked[0];
+ if(!best||best.hits===0||best.coverage<.25){out.textContent='در فایل، مدرک کافی برای پاسخ دقیق به این سؤال پیدا نشد. سؤال را با نام، عبارت، مبلغ یا تاریخ موجود در فایل دقیق‌تر بنویسید.';return}
+ const answer=best.text.length>900?best.text.slice(0,900)+'…':best.text;
+ out.innerHTML='<p><b>بخش مرتبط از فایل</b></p><p>'+escapeDocQa(answer)+'</p><p class="muted">منبع: '+escapeDocQa(best.source)+' — تطبیق واژه‌ها: '+fa(best.hits)+' از '+fa(words.length)+'</p><details><summary>سایر بخش‌های مرتبط</summary>'+ranked.slice(1).map((x,i)=>'<article class="docqa-source"><b>منبع '+fa(i+2)+' — '+escapeDocQa(x.source)+'</b><p>'+escapeDocQa(x.text.slice(0,700))+(x.text.length>700?'…':'')+'</p></article>').join('')+'</details><p class="muted">پاسخ از متن فایل استخراج شده است؛ برای پاسخ تحلیلی و استنتاجی، اتصال مدل هوش مصنوعی و کلید سرویس لازم است.</p>';
 }
 function escapeDocQa(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
-function startDocumentQuestionVoice(){const status=$('#docQaStatus');if(window.AmnaYarSpeech?.startListening){try{window.AmnaYarSpeech.startListening('doc-qa');status.textContent='صحبت کنید؛ پس از پایان گفتار، پرسش در کادر قرار می‌گیرد.';return}catch(e){}}const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R){status.textContent='تشخیص گفتار در این مرورگر فعال نیست؛ از نسخه اندروید یا مرورگر سازگار استفاده کنید.';return}const r=new R();r.lang='fa-IR';r.interimResults=false;r.onresult=e=>{$('#docQaQuestion').value=e.results[0][0].transcript;status.textContent='پرسش صوتی ثبت شد؛ برای جست‌وجو دکمه پاسخ را بزنید.'};r.onerror=()=>status.textContent='گفتار ثبت نشد؛ اجازه میکروفون را بررسی کنید.';r.start()}
+function startDocumentQuestionVoice(){const status=$('#docQaStatus');if(window.AmnaYarSpeech?.startListening){try{window.AmnaYarSpeech.startListening('doc-qa');status.textContent='صحبت کنید؛ پس از پایان گفتار، پرسش در کادر قرار می‌گیرد.';return}catch(e){}}const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R){status.textContent='تشخیص گفتار در این مرورگر فعال نیست؛ از نسخه اندروید یا مرورگر سازگار استفاده کنید.';return}const r=new R();r.lang='fa-IR';r.interimResults=false;r.maxAlternatives=1;r.onresult=e=>{const text=e.results?.[0]?.[0]?.transcript||'';if(text){$('#docQaQuestion').value=text;status.textContent='پرسش صوتی ثبت شد؛ برای جست‌وجو دکمه پاسخ را بزنید.'}else status.textContent='گفتاری تشخیص داده نشد؛ دوباره تلاش کنید.'};r.onerror=e=>status.textContent=e.error==='not-allowed'?'اجازه میکروفون را در مرورگر فعال کنید.':'گفتار ثبت نشد؛ اتصال اینترنت و میکروفون را بررسی کنید.';try{r.start()}catch(e){status.textContent='شروع میکروفون ممکن نشد؛ دوباره تلاش کنید.'}}
 window.amnayarDocumentQuestionResult=function(text,direction,error){const status=$('#docQaStatus');if(error||!text){status.textContent='گفتار پرسش ثبت نشد؛ دوباره تلاش کنید.';return}$('#docQaQuestion').value=text;status.textContent='پرسش صوتی ثبت شد؛ برای یافتن پاسخ از فایل، دکمه پاسخ را بزنید.'};
 
 // Professional calendar helpers and local audio recorder for speech tools.
