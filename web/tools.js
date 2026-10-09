@@ -243,35 +243,7 @@ async function compressImage(){
 }
 
 // PDF بدون ارسال فایل به سرور دوباره ذخیره می‌شود و ساختار فایل بهینه می‌شود.
-async function compressPDF(){
-  const f=$('#compressPdfFile').files[0],s=$('#compressPdfStatus');
-  if(!f)return s.textContent='فایل PDF را انتخاب کنید.';
-  const MAX=500*1024*1024;
-  if(f.size>MAX)return s.textContent='حداکثر حجم PDF برابر ۵۰۰ مگابایت است.';
-  const level=Math.max(25,Math.min(75,Number($('#pdfQuality').value||55)));
-  const fd=new FormData();fd.append('file',f,f.name);fd.append('quality',String(level));
-  const xhr=new XMLHttpRequest();xhr.open('POST','/api/tools/compress-pdf');xhr.responseType='blob';xhr.timeout=45*60*1000;
-  const started=Date.now();s.textContent='در حال آماده‌سازی آپلود PDF…';
-  xhr.upload.onprogress=e=>{if(e.lengthComputable){const pct=Math.round(e.loaded/e.total*100),elapsed=Math.max(.25,(Date.now()-started)/1000),rate=(e.loaded/1048576)/elapsed;s.textContent='آپلود PDF: '+pct.toLocaleString('fa-IR')+'٪ — '+(e.loaded/1048576).toFixed(1)+' از '+(e.total/1048576).toFixed(1)+' مگابایت؛ '+rate.toFixed(1)+' مگابایت/ثانیه'}};
-  xhr.upload.onload=()=>{s.textContent='آپلود کامل شد؛ سرور در حال فشرده‌سازی PDF است…'};
-  xhr.onload=async()=>{
-   if(xhr.status<200||xhr.status>=300){
-    let code='',message='فشرده‌سازی PDF انجام نشد؛ اتصال سرور و سلامت فایل را بررسی کنید.';
-    try{const d=JSON.parse(await xhr.response.text());code=String(d.error||'');if(code==='ghostscript_unavailable')message='سرویس فشرده‌سازی PDF روی سرور فعال نیست.';else if(code==='pdf_already_optimized')message='این PDF از قبل بهینه است و نسخه کوچک‌تری ساخته نشد.';else if(code==='pdf_too_large')message='حجم PDF از حد مجاز بیشتر است.';else if(code==='pdf_compress_failed')message='سرور نتوانست این PDF را پردازش کند؛ ممکن است فایل رمزدار یا آسیب‌دیده باشد.'}catch(_){}
-    s.textContent=message;showConversionNotice(message,false);return;
-   }
-   const blob=xhr.response,original=Number(xhr.getResponseHeader('X-Original-Size')||f.size),compressed=Number(xhr.getResponseHeader('X-Compressed-Size')||blob.size);
-   if(!blob||!blob.size){s.textContent='سرور خروجی خالی برگرداند؛ دوباره تلاش کنید.';return}
-   if(compressed>=original){s.textContent='این PDF از قبل کم‌حجم است؛ خروجی بزرگ‌تر دانلود نشد.';showConversionNotice(s.textContent,false);return}
-   downloadBlob(blob,'amnayar-compressed.pdf');s.textContent=savingsText(original,compressed)+' — فشرده‌سازی انجام شد.';
-  };
-  xhr.onerror=()=>{s.textContent='ارتباط با سرور فشرده‌سازی قطع شد؛ اتصال اینترنت را بررسی کنید.'};
-  xhr.ontimeout=()=>{s.textContent='پردازش PDF بیش از زمان مجاز طول کشید؛ فایل کوچک‌تری را امتحان کنید.'};
-  xhr.send(fd);
-}
-
-// ویدئو در خود مرورگر با MediaRecorder به WebM فشرده می‌شود؛ فایل به سرور ارسال نمی‌شود.
-async function compressVideo(){
+function compressVideo(){
   const f=$('#compressVideoFile').files[0],s=$('#compressVideoStatus');
   if(!f)return s.textContent='ویدئو را انتخاب کنید.';
   const max=2*1024*1024*1024;
@@ -787,8 +759,8 @@ async function compressPDF(){
     try{
       const fd=new FormData();fd.append('file',f,f.name);fd.append('quality',String(level));
       const blob=await new Promise((resolve,reject)=>{
-        const xhr=new XMLHttpRequest();xhr.open('POST',routes[i]);xhr.responseType='blob';xhr.timeout=45*60*1000;
-        xhr.upload.onprogress=e=>{if(e.lengthComputable){const pct=Math.round(e.loaded/e.total*100);s.textContent='ارسال PDF به سرور: '+pct.toLocaleString('fa-IR')+'٪ ('+(e.loaded/1048576).toFixed(1)+' از '+(e.total/1048576).toFixed(1)+' مگابایت)';}};
+        const xhr=new XMLHttpRequest();xhr.open('POST',routes[i]);xhr.responseType='blob';xhr.timeout=45*60*1000;const started=Date.now();
+        xhr.upload.onprogress=e=>{if(e.lengthComputable){const pct=Math.round(e.loaded/e.total*100),elapsed=Math.max(.25,(Date.now()-started)/1000),rate=(e.loaded/1048576)/elapsed;s.textContent='ارسال PDF به سرور: '+pct.toLocaleString('fa-IR')+'٪ ('+(e.loaded/1048576).toFixed(1)+' از '+(e.total/1048576).toFixed(1)+' مگابایت) — '+rate.toFixed(1)+' مگابایت/ثانیه';}};
         xhr.upload.onload=()=>{s.textContent='آپلود کامل شد؛ در حال فشرده‌سازی PDF روی سرور…'};
         xhr.onload=async()=>{
           if(xhr.status>=200&&xhr.status<300){resolve({blob:xhr.response,xhr});return}
