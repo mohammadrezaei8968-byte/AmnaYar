@@ -866,7 +866,7 @@ body{background:linear-gradient(180deg,#f8fafd 0,#f3f7fb 48%,#fff 100%);color:va
 
 /* AmnaYar mobile readability, Persian date picker, and document assistant */
 .tool-panel .tool-actions{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px}
-.tool-panel .tool-actions .btn{flex:1 1 145px;min-width:0;white-space:normal;overflow-wrap:anywhere;line-height:1.45;padding:10px 12px}
+.tool-panel .tool-actions .btn{flex:1 1 145px;min-width:0;white-space:nowrap;overflow-wrap:normal;word-break:keep-all;line-height:1.45;padding:10px 12px}
 .tool-panel h2,.tool-panel h3,.tool-panel p,.tool-panel label{overflow-wrap:anywhere;word-break:normal}
 .tool-panel input,.tool-panel select,.tool-panel textarea{min-width:0;max-width:100%;width:100%}
 .invoice-date-field,.date-distance-box>div>div{min-width:0}
@@ -888,7 +888,7 @@ body{background:linear-gradient(180deg,#f8fafd 0,#f3f7fb 48%,#fff 100%);color:va
  .tool-panel{padding:14px!important}
  .tool-panel h2{font-size:19px;line-height:1.65;letter-spacing:0}
  .tool-panel h3{font-size:16px;line-height:1.6}
- .tool-panel .tool-actions .btn{flex:1 1 100%;font-size:14px}
+ .tool-panel .tool-actions .btn{flex:1 1 100%;font-size:12px}
  .tool-panel input,.tool-panel select,.tool-panel textarea{font-size:14px}
  .tool-panel .two-col{grid-template-columns:minmax(0,1fr)!important}
  .tool-panel .invoice-row{grid-template-columns:minmax(0,1fr)!important}
