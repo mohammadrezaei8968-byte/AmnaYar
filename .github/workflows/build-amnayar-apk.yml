@@ -51,6 +51,9 @@ jobs:
           node --check web/app.js
           node --check gateway/server.js
           node --check backend/src/server.js
+          grep -q 'tools.js?v=61012' web/tools.html
+          grep -q 'app.js?v=3956' web/index.html
+          grep -q 'versionName = "1.0.7"' android/app/build.gradle.kts
           git diff --check
 
       - name: Build installable APK
