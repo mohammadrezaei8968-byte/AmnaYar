@@ -104,19 +104,28 @@ jobs:
       - name: Publish APK to AmnaYar website
         run: |
           set -euo pipefail
-          git fetch origin main
-          git checkout -B main origin/main
-          mkdir -p web/downloads
-          install -m 0644 dist/AmnaYar.apk web/downloads/AmnaYar.apk
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add web/downloads/AmnaYar.apk
-          if git diff --cached --quiet; then
-            echo "Website APK is already up to date."
-          else
+          published=false
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git checkout -B main origin/main
+            mkdir -p web/downloads
+            install -m 0644 dist/AmnaYar.apk web/downloads/AmnaYar.apk
+            git add web/downloads/AmnaYar.apk
+            if git diff --cached --quiet; then
+              echo "Website APK is already up to date."
+              published=true
+              break
+            fi
             git commit -m "Publish AmnaYar Android APK"
-            git push origin main
-          fi
+            if git push origin main; then
+              published=true
+              break
+            fi
+            echo "Publish raced with another commit; retrying against latest main."
+          done
+          test "$published" = true
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
