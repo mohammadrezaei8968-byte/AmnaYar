@@ -273,10 +273,6 @@ function compressVideo(){
 if(new URLSearchParams(location.search).get('tool')==='gold'){window.addEventListener('DOMContentLoaded',()=>setTimeout(loadLiveGoldPrices,250));}
 function escapeHtml(v){return String(v??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]))}
 
-function download(bytes,name,mime){
-  const blob=bytes instanceof Blob?bytes:new Blob([bytes],{type:mime||'application/octet-stream'});
-  downloadBlob(blob,name||'download');
-}
 let imagePdfSelectedFiles=[];
 
 function syncImagePdfInput(){
