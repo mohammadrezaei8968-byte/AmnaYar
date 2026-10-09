@@ -35,7 +35,7 @@ class MainActivity : Activity() {
         @JavascriptInterface
         fun startListening(direction: String) {
             runOnUiThread {
-                pendingSpeechDirection = if (direction == "en-fa") "en-fa" else "fa-en"
+                pendingSpeechDirection = if (direction == "en-fa") "en-fa" else if (direction == "doc-qa") "doc-qa" else "fa-en"
                 if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
                     requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), speechPermissionRequestCode)
                     return@runOnUiThread
@@ -100,7 +100,7 @@ class MainActivity : Activity() {
         val safeError = org.json.JSONObject.quote(error)
         if (::web.isInitialized) {
             web.post {
-                web.evaluateJavascript("window.amnayarVoiceResult && window.amnayarVoiceResult($safeText,$safeDirection,$safeError)", null)
+                if (direction == "doc-qa") web.evaluateJavascript("window.amnayarDocumentQuestionResult && window.amnayarDocumentQuestionResult($safeText,$safeDirection,$safeError)", null) else web.evaluateJavascript("window.amnayarVoiceResult && window.amnayarVoiceResult($safeText,$safeDirection,$safeError)", null)
             }
         }
     }
@@ -344,6 +344,7 @@ class MainActivity : Activity() {
                 // These removals apply only inside the Android app; normal website visitors still see site ads.
                 view.evaluateJavascript("""(function(){
                   window.__AMNAYAR_ANDROID_APP__=true;
+                  document.querySelectorAll('a[href]').forEach(function(a){try{var u=new URL(a.href,location.href);if(u.origin===location.origin){u.searchParams.set('app','1');a.href=u.toString();}}catch(e){}});
                   document.querySelectorAll('a[target="_blank"]').forEach(function(a){try{if(new URL(a.href,location.href).origin!==location.origin)a.target='_self';}catch(e){}});
                   var style=document.getElementById('amnayar-app-cleanup');
                   if(!style){style=document.createElement('style');style.id='amnayar-app-cleanup';style.textContent='#topics,#support,.support,.ay-ad-showcase,.ad-grid,.ad-slot,.amnayar-free-ad,.monetization-section,.advertisement,.ad-container,[data-ad],iframe[src*="ad"],a[href="/advertising.html"],a[href^="/advertising.html"],a[href="#support"]{display:none!important}';document.head.appendChild(style);}

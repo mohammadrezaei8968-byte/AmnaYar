@@ -863,3 +863,33 @@ body{background:linear-gradient(180deg,#f8fafd 0,#f3f7fb 48%,#fff 100%);color:va
 .hero-v2 .hero-copy h1 strong{-webkit-text-fill-color:#000 !important;background:none !important}
 .hero-v2 .trust span{background:rgba(255,255,255,.62) !important;border-color:rgba(0,0,0,.14) !important}
 .hero-v2{background:linear-gradient(135deg,#f0fff5 0%,#d7f4e2 48%,#b9e7cc 100%) !important}
+
+/* AmnaYar mobile readability, Persian date picker, and document assistant */
+.tool-panel .tool-actions{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px}
+.tool-panel .tool-actions .btn{flex:1 1 145px;min-width:0;white-space:normal;overflow-wrap:anywhere;line-height:1.45;padding:10px 12px}
+.tool-panel h2,.tool-panel h3,.tool-panel p,.tool-panel label{overflow-wrap:anywhere;word-break:normal}
+.tool-panel input,.tool-panel select,.tool-panel textarea{min-width:0;max-width:100%;width:100%}
+.invoice-date-field,.date-distance-box>div>div{min-width:0}
+.amnayar-jalali-calendar{position:absolute;z-index:100001;width:290px;max-width:calc(100vw - 16px);padding:12px;background:#fff;border:1px solid #d7e2ef;border-radius:16px;box-shadow:0 16px 45px rgba(9,42,86,.22);direction:rtl;color:#14243b}
+.jalali-cal-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.jalali-cal-head strong{font-size:14px}
+.jalali-cal-head button,.jalali-cal-grid button{border:0;border-radius:8px;background:#eef5ff;color:#12345a;min-height:34px;cursor:pointer;font:inherit}
+.jalali-cal-head button{width:36px;font-size:22px}
+.jalali-cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.jalali-cal-grid button{padding:4px 0}
+.jalali-cal-week{text-align:center;font-size:11px;font-weight:800;color:#617389;padding:5px 0}
+.jalali-cal-grid button:hover,.jalali-cal-grid button:focus{background:#0d6b55;color:white}
+[data-jalali-picker]{cursor:pointer;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%230d6b55' stroke-width='2'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M16 3v4M8 3v4M3 10h18'/%3E%3C/svg%3E") no-repeat left 12px center!important;padding-left:38px!important}
+.docqa-answer{margin-top:14px;line-height:1.9;overflow-wrap:anywhere}
+.docqa-source{margin-top:10px;padding:12px;border:1px solid #dbe5ef;border-radius:12px;background:#f8fbff}
+.docqa-source b{display:block;color:#0d6b55;margin-bottom:6px}
+.docqa-source p{margin:0;white-space:pre-wrap}
+@media(max-width:600px){
+ .tool-panel{padding:14px!important}
+ .tool-panel h2{font-size:19px;line-height:1.65;letter-spacing:0}
+ .tool-panel h3{font-size:16px;line-height:1.6}
+ .tool-panel .tool-actions .btn{flex:1 1 100%;font-size:14px}
+ .tool-panel input,.tool-panel select,.tool-panel textarea{font-size:14px}
+ .tool-panel .two-col{grid-template-columns:minmax(0,1fr)!important}
+ .tool-panel .invoice-row{grid-template-columns:minmax(0,1fr)!important}
+}
