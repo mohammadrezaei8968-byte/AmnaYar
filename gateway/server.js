@@ -41,8 +41,8 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
   ]);
 
   const runGs=async(out,level)=>{
-    const imageDpi=level<=30?60:level<=45?72:level<=60?90:120;
-    const jpegQ=level<=30?32:level<=45?42:level<=60?52:62;
+    const imageDpi=level<=20?45:level<=30?55:level<=45?72:level<=60?90:120;
+    const jpegQ=level<=20?20:level<=30?28:level<=45?40:level<=60?50:60;
     const preset=level<=45?"/screen":"/ebook";
     await execFileAsync("gs",[
       "-sDEVICE=pdfwrite",
@@ -81,15 +81,14 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
   };
 
   try{
-    await runGs(output,quality);
-    let stat=await fs.promises.stat(output);
-
-    // Ghostscript can occasionally make an already-optimized PDF larger.
-    // In that case retry once with a stronger compression profile.
-    if(stat.size>=req.file.size && quality>30){
+    let stat;
+    // Try progressively stronger image downsampling if the selected profile does not shrink the file.
+    const profiles=[...new Set([quality,30,20])];
+    for(const profile of profiles){
       await fs.promises.unlink(output).catch(()=>{});
-      await runGs(output,30);
+      await runGs(output,profile);
       stat=await fs.promises.stat(output);
+      if(stat.size<req.file.size)break;
     }
 
     const useOriginal=stat.size>=req.file.size;
@@ -124,7 +123,7 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
 // Large video compression on the gateway using FFmpeg. Uploads are streamed to a temporary file.
 const videoUpload=multer({
   dest:os.tmpdir(),
-  limits:{fileSize:1024*1024*1024},
+  limits:{fileSize:2*1024*1024*1024},
   fileFilter:(req,file,cb)=>{
     const allowed=/\.(mp4|mov|m4v|mkv|webm|avi|3gp)$/i.test(file.originalname||"");
     cb(null,String(file.mimetype||"").startsWith("video/")||allowed);
@@ -134,17 +133,17 @@ app.post("/api/tools/compress-video",videoUpload.single("file"),async(req,res)=>
   const input=req.file?.path;
   if(!input)return res.status(400).json({error:"video_required"});
   const quality=String(req.body?.quality||"balanced");
-  const crf=quality==="small"?32:quality==="high"?25:29;
+  const crf=quality==="small"?35:quality==="high"?27:32;
   const output=path.join(os.tmpdir(),"amnayar-video-"+crypto.randomUUID()+".mp4");
   const cleanup=()=>Promise.allSettled([fs.promises.unlink(input),fs.promises.unlink(output)]);
   try{
     if(!ffmpegPath)return res.status(503).json({error:"ffmpeg_unavailable"});
     await execFileAsync(ffmpegPath,[
       "-hide_banner","-loglevel","error","-y","-i",input,
-      "-map","0:v:0","-map","0:a?","-vf","scale='min(1280,iw)':-2:flags=fast_bilinear",
+      "-map","0:v:0","-map","0:a?","-vf","scale='min(960,iw)':-2:flags=fast_bilinear",
       "-c:v","libx264","-preset","ultrafast","-crf",String(crf),
       "-c:a","aac","-b:a","96k","-movflags","+faststart","-threads","0",output
-    ],{timeout:60*60*1000,maxBuffer:4*1024*1024});
+    ],{timeout:2*60*60*1000,maxBuffer:4*1024*1024});
     const stat=await fs.promises.stat(output);
     const useOriginal=stat.size>=req.file.size;
     const filePath=useOriginal?input:output;
@@ -197,6 +196,6 @@ app.use((req,res,next)=>{
 app.use((req,res)=>res.status(404).send("Not Found"));
 
 const server=app.listen(PORT,"0.0.0.0",()=>console.log("AmnaYar gateway listening on "+PORT));
-server.requestTimeout=60*60*1000;
+server.requestTimeout=2*60*60*1000;
 server.headersTimeout=120*1000;
 server.keepAliveTimeout=120*1000;
