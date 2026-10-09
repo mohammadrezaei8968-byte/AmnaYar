@@ -373,7 +373,7 @@ class MainActivity : Activity() {
                     fetch('/api/me',{headers:{Authorization:'Bearer '+token},cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(u){
                       if(!u)return;var name=String(u.display_name||u.username||u.email||'کاربر');
                       var nav=document.querySelector('.nav-actions,.dashboard-nav .nav-actions,.nav nav,.nav');
-                      if(!nav||document.getElementById('amnayarAppUserChip'))return;
+                      if(!nav||document.getElementById('amnayarAppUserChip')||document.getElementById('amnaToolsUser'))return;
                       var chip=document.createElement('span');chip.id='amnayarAppUserChip';chip.className='user-chip';chip.textContent='کاربر: '+name;
                       chip.style.cssText='display:inline-block;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:7px 10px;border:1px solid #d8e5f4;border-radius:10px;background:#f4f8ff;color:#12345a;font-size:12px;font-weight:800';
                       nav.appendChild(chip);
