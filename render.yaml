@@ -3,7 +3,7 @@ services:
     runtime: node
     name: amnayar-gateway
     rootDir: gateway
-    buildCommand: apt-get update && apt-get install -y ghostscript && npm install
+    buildCommand: apt-get update && apt-get install -y ghostscript ffmpeg && npm install
     startCommand: npm start
     plan: free
     healthCheckPath: /health
@@ -44,7 +44,7 @@ services:
       - key: APP_DOWNLOAD_URL
         sync: false
       - key: MAX_ACTIVE_DEVICES
-        value: "2"
+        value: "1"
       - key: INITIAL_CREDITS
         value: "2"
       - key: DB_FILE
