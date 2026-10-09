@@ -41,39 +41,44 @@ async function translateText(direction){
     }
   }
 }
+const activeVoiceRecognizers=Object.create(null);
+function setVoiceButtons(direction,recording){
+  const p=direction==='fa-en'?'fa':'en',start=$('#'+p+'RecordStart'),stop=$('#'+p+'RecordStop');
+  if(start)start.disabled=!!recording;if(stop)stop.disabled=!recording;
+}
 function startVoiceTranslation(direction){
   const status=$('#'+(direction==='fa-en'?'faVoiceStatus':'enVoiceStatus'));
   const input=direction==='fa-en'?$('#faToEnText'):$('#enToFaText');
-  status.textContent='در حال شنیدن صدا…';
+  input.value='';setVoiceButtons(direction,true);
+  status.textContent='در حال ضبط؛ صحبت کنید و سپس «پایان ضبط» را بزنید.';
   if(window.AmnaYarSpeech&&typeof window.AmnaYarSpeech.startListening==='function'){
-    try{window.AmnaYarSpeech.startListening(direction)}catch(e){status.textContent='شروع تشخیص گفتار ممکن نشد؛ دوباره تلاش کنید.'}
+    try{window.AmnaYarSpeech.startListening(direction)}catch(e){setVoiceButtons(direction,false);status.textContent='شروع ضبط صدا ممکن نشد؛ دوباره تلاش کنید.'}
     return;
   }
   const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!Recognition){status.textContent='تشخیص گفتار در این مرورگر پشتیبانی نمی‌شود؛ از Chrome یا Edge به‌روز استفاده کنید.';return}
-  const recognition=new Recognition();
-  recognition.lang=direction==='fa-en'?'fa-IR':'en-US';
-  recognition.interimResults=false;
-  recognition.maxAlternatives=1;
+  if(!Recognition){setVoiceButtons(direction,false);status.textContent='تشخیص گفتار در این مرورگر پشتیبانی نمی‌شود؛ از Chrome یا Edge به‌روز استفاده کنید.';return}
+  const recognition=new Recognition();activeVoiceRecognizers[direction]=recognition;
+  recognition.lang=direction==='fa-en'?'fa-IR':'en-US';recognition.interimResults=true;recognition.continuous=true;recognition.maxAlternatives=1;
+  let finalTranscript='';
   recognition.onresult=event=>{
-    const spoken=event.results?.[0]?.[0]?.transcript||'';
-    if(!spoken){status.textContent='گفتار قابل تشخیص نبود؛ دوباره تلاش کنید.';return}
-    input.value=spoken;
-    status.textContent='گفتار به متن تبدیل شد؛ در حال ترجمه…';
-    translateText(direction);
+    for(let i=event.resultIndex;i<event.results.length;i++){const item=event.results[i];if(item.isFinal)finalTranscript+=item[0].transcript+' ';}
+    if(finalTranscript.trim())input.value=finalTranscript.trim();
   };
-  recognition.onerror=event=>{status.textContent=event.error==='not-allowed'?'اجازه میکروفون را در مرورگر فعال کنید.':'تشخیص گفتار انجام نشد؛ دوباره تلاش کنید.'};
-  recognition.onend=()=>{if(status.textContent==='در حال شنیدن صدا…')status.textContent='گفتاری دریافت نشد؛ دوباره تلاش کنید.'};
-  try{recognition.start()}catch(e){status.textContent='میکروفون در حال استفاده است؛ چند لحظه دیگر تلاش کنید.'}
+  recognition.onerror=event=>{setVoiceButtons(direction,false);status.textContent=event.error==='not-allowed'?'اجازه میکروفون را در مرورگر فعال کنید.':'ضبط گفتار انجام نشد؛ دوباره تلاش کنید.'};
+  recognition.onend=()=>{setVoiceButtons(direction,false);if(input.value.trim())status.textContent='گفتار ثبت شد؛ برای ترجمه دکمه ترجمه را بزنید.';else if(status.textContent.startsWith('در حال ضبط'))status.textContent='گفتاری ثبت نشد؛ دوباره شروع کنید.'};
+  try{recognition.start()}catch(e){setVoiceButtons(direction,false);status.textContent='میکروفون در حال استفاده است؛ چند لحظه دیگر تلاش کنید.'}
+}
+function stopVoiceTranslation(direction){
+  const status=$('#'+(direction==='fa-en'?'faVoiceStatus':'enVoiceStatus')),recognition=activeVoiceRecognizers[direction];
+  try{if(window.AmnaYarSpeech&&typeof window.AmnaYarSpeech.stopListening==='function')window.AmnaYarSpeech.stopListening();else if(recognition)recognition.stop();setVoiceButtons(direction,false);status.textContent='در حال پایان ضبط…';}
+  catch(e){setVoiceButtons(direction,false);status.textContent='ضبط متوقف نشد؛ دوباره تلاش کنید.'}
 }
 window.amnayarVoiceResult=function(text,direction,error){
-  const status=$('#'+(direction==='fa-en'?'faVoiceStatus':'enVoiceStatus'));
-  const input=direction==='fa-en'?$('#faToEnText'):$('#enToFaText');
+  const status=$('#'+(direction==='fa-en'?'faVoiceStatus':'enVoiceStatus')),input=direction==='fa-en'?$('#faToEnText'):$('#enToFaText');
+  setVoiceButtons(direction,false);
   if(error){status.textContent=error==='permission'?'اجازه دسترسی به میکروفون را فعال کنید.':error==='unsupported'?'سرویس تشخیص گفتار روی این دستگاه در دسترس نیست.':'گفتار تشخیص داده نشد؛ دوباره تلاش کنید.';return}
   if(!text){status.textContent='گفتاری دریافت نشد؛ دوباره تلاش کنید.';return}
-  input.value=text;
-  status.textContent='گفتار به متن تبدیل شد؛ در حال ترجمه…';
-  translateText(direction);
+  input.value=text;status.textContent='گفتار ثبت شد؛ برای ترجمه، دکمه ترجمه را بزنید.';
 }
 const $=s=>document.querySelector(s); const fa=n=>n.toLocaleString('fa-IR');
 async function mergePDFs(){const files=[...$('#mergeFiles').files];if(!files.length)return $('#mergeStatus').textContent='حداقل یک فایل انتخاب کنید.';$('#mergeStatus').textContent='در حال پردازش...';const out=await PDFLib.PDFDocument.create();for(const f of files){const doc=await PDFLib.PDFDocument.load(await f.arrayBuffer());const pages=await out.copyPages(doc,doc.getPageIndices());pages.forEach(p=>out.addPage(p));}download(await out.save(),'amnayar-merged.pdf','application/pdf');$('#mergeStatus').textContent='فایل ادغام شد.'}
@@ -125,17 +130,20 @@ function depositToRent(){const d=+$('#deposit').value,r=+$('#depositRate').value
 function rentToDeposit(){const r=+$('#rentAmount').value,k=+$('#rentRate').value||3;if(!r||!k)return $('#rentDepositResult').textContent='اجاره و نرخ تبدیل را وارد کنید.';$('#rentDepositResult').textContent=`رهن معادل تقریبی: ${money(r/(k/100))}`}
 function addInvoiceRow(){const wrap=$('#invoiceItems'),row=document.createElement('div');row.className='invoice-row';row.innerHTML='<input class="inv-desc" placeholder="شرح کالا یا خدمت"><input class="inv-qty" type="number" min="1" value="1" placeholder="تعداد"><input class="inv-price" type="number" min="0" placeholder="قیمت واحد (تومان)"><button type="button" class="btn soft" onclick="this.parentElement.remove()">حذف</button>';wrap.appendChild(row)}
 async function makeInvoicePDF(){
-  if(!window.PDFLib)return $('#invoiceResult').textContent='کتابخانه PDF آماده نیست؛ چند ثانیه بعد دوباره تلاش کنید.';
+  const status=$('#invoiceResult');
+  if(!window.PDFLib){status.textContent='کتابخانه PDF آماده نیست؛ چند ثانیه بعد دوباره تلاش کنید.';return}
   const rows=[...document.querySelectorAll('.invoice-row')].map(r=>({d:r.querySelector('.inv-desc').value.trim(),q:+r.querySelector('.inv-qty').value||0,p:+r.querySelector('.inv-price').value||0})).filter(x=>x.d&&x.q&&x.p);
-  if(!rows.length)return $('#invoiceResult').textContent='حداقل یک ردیف فاکتور را کامل کنید.';
+  if(!rows.length){status.textContent='حداقل یک ردیف فاکتور را کامل کنید.';return}
   const seller=$('#invSeller').value.trim()||'—',buyer=$('#invBuyer').value.trim()||'—',date=$('#invDate').value.trim()||'—',num=$('#invNumber').value.trim()||'—';
   const total=rows.reduce((a,x)=>a+x.q*x.p,0),scale=2,w=1120,h=Math.max(1584,430+rows.length*82),canvas=document.createElement('canvas');canvas.width=w*scale;canvas.height=h*scale;
-  const ctx=canvas.getContext('2d');ctx.scale(scale,scale);ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.direction='rtl';ctx.textAlign='right';ctx.fillStyle='#14243b';ctx.font='700 34px Arial';ctx.fillText('فاکتور فروش — امنا یار',w-70,70);
+  const ctx=canvas.getContext('2d');ctx.scale(scale,scale);ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.direction='rtl';ctx.textAlign='right';ctx.fillStyle='#14243b';ctx.font='700 34px Arial';ctx.fillText('فاکتور فروش',w-70,70);
+  const logoFile=$('#invLogo')?.files?.[0];
+  if(logoFile){try{const url=URL.createObjectURL(logoFile);const logo=await new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=reject;im.src=url});const ratio=Math.min(160/logo.width,100/logo.height,1);ctx.drawImage(logo,70,25,logo.width*ratio,logo.height*ratio);URL.revokeObjectURL(url)}catch(e){status.textContent='لوگو بارگذاری نشد؛ فاکتور بدون لوگو ساخته می‌شود.'}}
   ctx.font='20px Arial';ctx.fillStyle='#52637a';ctx.fillText('شماره: '+num,w-70,112);ctx.fillText('تاریخ: '+date,w-70,145);ctx.fillStyle='#14243b';ctx.font='700 22px Arial';ctx.fillText('فروشنده: '+seller,w-70,205);ctx.fillText('خریدار: '+buyer,w-70,240);
   const left=70,right=w-70,top=285,rowH=58;ctx.fillStyle='#eef4fb';ctx.fillRect(left,top,right-left,rowH);ctx.fillStyle='#14243b';ctx.font='700 19px Arial';ctx.fillText('شرح کالا / خدمت',right-25,top+37);ctx.fillText('تعداد',right-600,top+37);ctx.fillText('قیمت واحد',right-760,top+37);ctx.fillText('جمع',left+90,top+37);
   ctx.font='18px Arial';let y=top+rowH;rows.forEach(x=>{ctx.fillStyle='#fff';ctx.fillRect(left,y,right-left,rowH);ctx.strokeStyle='#dce4ee';ctx.strokeRect(left,y,right-left,rowH);ctx.fillStyle='#14243b';ctx.fillText(x.d.slice(0,45),right-25,y+37);ctx.fillText(fa(x.q),right-600,y+37);ctx.fillText(fa(Math.round(x.p).toLocaleString('en-US')),right-760,y+37);ctx.fillText(fa(Math.round(x.q*x.p).toLocaleString('en-US')),left+90,y+37);y+=rowH;});
-  ctx.font='700 24px Arial';ctx.fillText('جمع کل: '+money(total),right,y+55);ctx.font='16px Arial';ctx.fillStyle='#718096';ctx.fillText('ساخته‌شده رایگان توسط امنا یار',right,h-35);
-  const png=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('canvas_export_failed')),'image/png'));const doc=await PDFLib.PDFDocument.create();const page=doc.addPage([w/2,h/2]);const img=await doc.embedPng(await png.arrayBuffer());page.drawImage(img,{x:0,y:0,width:w/2,height:h/2});const bytes=await doc.save();download(bytes,'amnayar-invoice-'+num+'.pdf','application/pdf');$('#invoiceResult').textContent='فاکتور آماده شد — جمع کل: '+money(total);
+  ctx.font='700 24px Arial';ctx.fillText('جمع کل: '+money(total),right,y+55);ctx.font='16px Arial';ctx.fillStyle='#718096';ctx.fillText('ساخته‌شده توسط امنا یار',right,h-35);
+  try{const png=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('canvas_export_failed')),'image/png'));const doc=await PDFLib.PDFDocument.create();const page=doc.addPage([w/2,h/2]);const img=await doc.embedPng(await png.arrayBuffer());page.drawImage(img,{x:0,y:0,width:w/2,height:h/2});const bytes=await doc.save();download(bytes,'amnayar-invoice-'+num+'.pdf','application/pdf');status.textContent='فاکتور آماده شد — جمع کل: '+money(total)}catch(e){console.error('invoice pdf',e);status.textContent='ساخت PDF انجام نشد؛ دوباره تلاش کنید.'}
 }
 function resizeImage(){const f=$('#imgFile').files[0],w=+$('#imgW').value,h=+$('#imgH').value;if(!f||!w||!h)return $('#imgStatus').textContent='فایل و ابعاد را وارد کنید.';const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(im,0,0,w,h);c.toBlob(b=>download(b,'amnayar-image.png','image/png'),'image/png');URL.revokeObjectURL(im.src);$('#imgStatus').textContent='تصویر آماده شد.'};im.src=URL.createObjectURL(f)}
 
@@ -177,7 +185,7 @@ async function compressImage(){
 }
 
 // PDF بدون ارسال فایل به سرور دوباره ذخیره می‌شود و ساختار فایل بهینه می‌شود.
-async function compressPDF(){const f=$('#compressPdfFile').files[0],s=$('#compressPdfStatus');if(!f)return s.textContent='فایل PDF را انتخاب کنید.';const MAX=1024*1024*1024;if(f.size>MAX)return s.textContent='حداکثر حجم PDF یک گیگابایت است.';const level=Math.max(25,Math.min(75,Number($('#pdfQuality').value||55)));s.textContent='در حال فشرده‌سازی PDF حجیم... لطفاً صفحه را نبندید.';try{const fd=new FormData();fd.append('file',f,f.name);fd.append('quality',String(level));const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),20*60*1000);try{const r=await fetch('/api/tools/compress-pdf',{method:'POST',body:fd,signal:controller.signal});if(!r.ok){let d={};try{d=await r.json()}catch{}throw new Error(d.error||('server_compress_'+r.status))}const blob=await r.blob(),original=Number(r.headers.get('X-Original-Size')||f.size),compressed=Number(r.headers.get('X-Compressed-Size')||blob.size);if(compressed>=original){s.textContent='این PDF از قبل کم‌حجم است؛ خروجی بزرگ‌تر دانلود نشد.';showConversionNotice('فایل از قبل کم‌حجم است؛ خروجی بزرگ‌تر دانلود نشد.',false);return}downloadBlob(blob,'amnayar-compressed.pdf');s.textContent=savingsText(original,compressed)+' — فشرده‌سازی انجام شد.'}finally{clearTimeout(timer)}}catch(e){console.error('PDF compression',e);s.textContent=e?.name==='AbortError'?'پردازش فایل حجیم بیش از زمان مجاز طول کشید؛ سطح فشرده‌سازی را بیشتر کنید.':'فشرده‌سازی PDF انجام نشد؛ فایل ممکن است رمزدار یا آسیب‌دیده باشد.';showConversionNotice('فشرده‌سازی PDF انجام نشد.',false)}}
+async function compressPDF(){const f=$('#compressPdfFile').files[0],s=$('#compressPdfStatus');if(!f)return s.textContent='فایل PDF را انتخاب کنید.';const MAX=500*1024*1024;if(f.size>MAX)return s.textContent='حداکثر حجم PDF برابر ۵۰۰ مگابایت است.';const level=Math.max(25,Math.min(75,Number($('#pdfQuality').value||55)));s.textContent='در حال فشرده‌سازی PDF حجیم... لطفاً صفحه را نبندید.';try{const fd=new FormData();fd.append('file',f,f.name);fd.append('quality',String(level));const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),45*60*1000);try{const r=await fetch('/api/tools/compress-pdf',{method:'POST',body:fd,signal:controller.signal});if(!r.ok){let d={};try{d=await r.json()}catch{}throw new Error(d.error||('server_compress_'+r.status))}const blob=await r.blob(),original=Number(r.headers.get('X-Original-Size')||f.size),compressed=Number(r.headers.get('X-Compressed-Size')||blob.size);if(compressed>=original){s.textContent='این PDF از قبل کم‌حجم است؛ خروجی بزرگ‌تر دانلود نشد.';showConversionNotice('فایل از قبل کم‌حجم است؛ خروجی بزرگ‌تر دانلود نشد.',false);return}downloadBlob(blob,'amnayar-compressed.pdf');s.textContent=savingsText(original,compressed)+' — فشرده‌سازی انجام شد.'}finally{clearTimeout(timer)}}catch(e){console.error('PDF compression',e);s.textContent=e?.name==='AbortError'?'پردازش فایل حجیم بیش از زمان مجاز طول کشید؛ سطح فشرده‌سازی را بیشتر کنید.':'فشرده‌سازی PDF انجام نشد؛ فایل ممکن است رمزدار یا آسیب‌دیده باشد.';showConversionNotice('فشرده‌سازی PDF انجام نشد.',false)}}
 
 // ویدئو در خود مرورگر با MediaRecorder به WebM فشرده می‌شود؛ فایل به سرور ارسال نمی‌شود.
 async function compressVideo(){
