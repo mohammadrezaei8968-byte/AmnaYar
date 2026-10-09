@@ -194,3 +194,5 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 
 // اولین ورود: فقط یک بار فرم ثبت‌نام را خودکار نمایش بده.
 (function firstVisitRegistration(){try{if(localStorage.getItem('amnayar_first_visit_prompted')==='1')return;if(getStoredAuthToken())return;localStorage.setItem('amnayar_first_visit_prompted','1');setTimeout(()=>openAuth('register'),700);}catch(e){}})();
+
+(function forceRegistrationFromGuestGate(){try{if(new URLSearchParams(location.search).get('register')==='1'&&!getStoredAuthToken())setTimeout(()=>openAuth('register'),250)}catch(e){}})();
