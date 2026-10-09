@@ -354,19 +354,6 @@ class MainActivity : Activity() {
                 view.evaluateJavascript("""(function(){
                   window.__AMNAYAR_ANDROID_APP__=true;
                   (function(){
-                    function record(title,kind){try{var key='amnayar_action_history',rows=JSON.parse(localStorage.getItem(key)||'[]');rows.unshift({title:String(title||'اقدام در برنامه'),kind:String(kind||'app'),at:new Date().toISOString()});localStorage.setItem(key,JSON.stringify(rows.slice(0,100)))}catch(e){}}
-                    document.addEventListener('click',function(e){
-                      var el=e.target.closest('button,a,[role="button"]');if(!el||el.closest('.tool-panel'))return;
-                      var title=(el.innerText||el.textContent||el.getAttribute('aria-label')||'').replace(/\s+/g,' ').trim();
-                      if(!title||/^(خانه|بازگشت|بستن|بعداً|خروج)$/.test(title))return;
-                      record((document.querySelector('h1')?.textContent||document.title)+' — '+title,'app');
-                    },true);
-                    document.addEventListener('change',function(e){
-                      var el=e.target;if(!el.matches('input[type="file"]')||el.closest('.tool-panel')||!el.files||!el.files.length)return;
-                      record('انتخاب فایل: '+el.files[0].name,'file');
-                    },true);
-                  })();
-                  (function(){
                     var keys=['amnayar_auth_token','amnayar_token','amnayar_access_token','auth_token'];
                     var token='';for(var i=0;i<keys.length;i++){try{token=localStorage.getItem(keys[i])||''}catch(e){}if(token)break}
                     if(!token)return;
