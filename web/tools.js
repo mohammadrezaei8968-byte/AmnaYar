@@ -88,7 +88,7 @@ function download(bytes,name,type){downloadBlob(new Blob([bytes],{type}),name)}
 function j2g(jy,jm,jd){let jy2=jy-979,jm2=jm-1,jd2=jd-1;let j_day=365*jy2+Math.floor(jy2/33)*8+Math.floor((jy2%33+3)/4);for(let i=0;i<jm2;i++)j_day+=i<6?31:30;j_day+=jd2;let g_day=j_day+79;let gy=1600+400*Math.floor(g_day/146097);g_day%=146097;let leap=true;if(g_day>=36525){g_day--;gy+=100*Math.floor(g_day/36524);g_day%=36524;if(g_day>=365)g_day++;else leap=false}gy+=4*Math.floor(g_day/1461);g_day%=1461;if(g_day>=366){leap=false;g_day--;gy+=Math.floor(g_day/365);g_day%=365}let gd=g_day+1,gm=0;const md=[31,leap?29:28,31,30,31,30,31,31,30,31,30,31];while(gd>md[gm])gd-=md[gm++];return[gy,gm+1,gd]}
 function g2j(gy,gm,gd){const g_d_m=[0,31,59,90,120,151,181,212,243,273,304,334];let gy2=gy-(gm>2?0:1),days=355666+365*gy2+Math.floor(gy2/4)-Math.floor(gy2/100)+Math.floor((gy2+3)/400)+gd+g_d_m[gm-1];let jy=-1595+33*Math.floor(days/12053);days%=12053;jy+=4*Math.floor(days/1461);days%=1461;if(days>365){jy+=Math.floor((days-1)/365);days=(days-1)%365}let jm=days<186?1+Math.floor(days/31):7+Math.floor((days-186)/30);let jd=1+(days<186?days%31:(days-186)%30);return[jy,jm,jd]}
 function parts(s){return String(s||'').trim().replaceAll('-','/').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).split('/').map(Number)}
-function faDateDigits(value){return String(value).replace(/\\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[Number(d)])}
+function faDateDigits(value){return String(value).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[Number(d)])}
 function datePartsText(p){return String(p[0]).padStart(4,'0')+'/'+String(p[1]).padStart(2,'0')+'/'+String(p[2]).padStart(2,'0')}
 function validJalaliParts(p){if(p.length!==3||!p.every(Number.isInteger)||p[0]<1||p[1]<1||p[1]>12||p[2]<1||p[2]>(p[1]<=6?31:30))return false;const g=j2g(...p),back=g2j(...g);return back.every((v,i)=>v===p[i])}
 function jalaliToGregorianUI(){const p=parts($('#jdate').value);if(!validJalaliParts(p))return $('#jgResult').textContent='تاریخ شمسی معتبر را به شکل ۱۴۰۵/۰۶/۲۰ وارد کنید.';const r=j2g(...p);$('#jgResult').textContent='میلادی: '+faDateDigits(datePartsText(r))}
@@ -202,7 +202,7 @@ async function compressPDF(){const f=$('#compressPdfFile').files[0],s=$('#compre
 async function compressVideo(){
   const f=$('#compressVideoFile').files[0],s=$('#compressVideoStatus');
   if(!f)return s.textContent='ویدئو را انتخاب کنید.';
-  const max=1024*1024*1024;
+  const max=2*1024*1024*1024;
   if(f.size>max)return s.textContent='حداکثر حجم هر ویدئو ۱ گیگابایت است.';
   const q=$('#videoQuality').value;
   s.textContent='در حال ارسال ویدئو برای فشرده‌سازی؛ برای فایل‌های حجیم این مرحله ممکن است زمان ببرد…';
