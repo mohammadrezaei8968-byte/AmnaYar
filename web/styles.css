@@ -940,3 +940,6 @@ body{background:linear-gradient(180deg,#f8fafd 0,#f3f7fb 48%,#fff 100%);color:va
 .tool-usage-track i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#0e4a91,#10b9a6)}
 .tool-usage-row>b{text-align:left;color:#123d70}
 @media(max-width:600px){.activity-metrics{gap:6px}.activity-metrics>div{padding:10px}.activity-metrics b{font-size:21px}.tool-usage-row{grid-template-columns:minmax(80px,1fr) minmax(45px,1.2fr) 25px;gap:6px}}
+
+/* Remove personal action-history panels everywhere on AmnaYar, including tool pages. */
+.amna-action-history,.activity-analytics,.history-panel,[id*="action-history"],[class*="action-history"]{display:none!important;visibility:hidden!important}
