@@ -36,7 +36,13 @@ class MainActivity : Activity() {
         @JavascriptInterface
         fun startListening(direction: String) {
             runOnUiThread {
-                pendingSpeechDirection = if (direction == "en-fa") "en-fa" else if (direction == "doc-qa") "doc-qa" else "fa-en"
+                pendingSpeechDirection = when (direction) {
+                    "en-fa" -> "en-fa"
+                    "doc-qa" -> "doc-qa"
+                    "translate-en-fa" -> "translate-en-fa"
+                    "translate-fa-en" -> "translate-fa-en"
+                    else -> "fa-en"
+                }
                 if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
                     requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), speechPermissionRequestCode)
                     return@runOnUiThread
@@ -81,7 +87,7 @@ class MainActivity : Activity() {
                     }
                 })
             }
-            val language = if (direction == "en-fa") "en-US" else "fa-IR"
+            val language = if (direction == "en-fa" || direction == "translate-en-fa") "en-US" else "fa-IR"
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE, language)
@@ -101,7 +107,7 @@ class MainActivity : Activity() {
         val safeError = org.json.JSONObject.quote(error)
         if (::web.isInitialized) {
             web.post {
-                if (direction == "doc-qa") web.evaluateJavascript("window.amnayarDocumentQuestionResult && window.amnayarDocumentQuestionResult($safeText,$safeDirection,$safeError)", null) else web.evaluateJavascript("window.amnayarVoiceResult && window.amnayarVoiceResult($safeText,$safeDirection,$safeError)", null)
+                if (direction == "doc-qa") web.evaluateJavascript("window.amnayarDocumentQuestionResult && window.amnayarDocumentQuestionResult($safeText,$safeDirection,$safeError)", null) else if (direction.startsWith("translate-")) web.evaluateJavascript("window.amnayarTranslationInputVoiceResult && window.amnayarTranslationInputVoiceResult($safeText,$safeDirection,$safeError)", null) else web.evaluateJavascript("window.amnayarVoiceResult && window.amnayarVoiceResult($safeText,$safeDirection,$safeError)", null)
             }
         }
     }
