@@ -208,7 +208,7 @@ async function compressVideo(){
   s.textContent='در حال ارسال ویدئو برای فشرده‌سازی؛ برای فایل‌های حجیم این مرحله ممکن است زمان ببرد…';
   const fd=new FormData();fd.append('file',f,f.name);fd.append('quality',q);
   const xhr=new XMLHttpRequest();xhr.open('POST','/api/tools/compress-video');xhr.responseType='blob';xhr.timeout=2*60*60*1000;
-  xhr.upload.onprogress=e=>{if(e.lengthComputable)s.textContent='در حال ارسال ویدئو: '+Math.round(e.loaded/e.total*100)+'٪';};
+  xhr.upload.onprogress=e=>{if(e.lengthComputable)s.textContent='در حال ارسال فیلم: '+Math.round(e.loaded/e.total*100)+'٪';};xhr.upload.onload=()=>{s.textContent='آپلود کامل شد؛ سرور در حال کم‌کردن حجم فیلم است…';};
   xhr.onload=async()=>{
     if(xhr.status<200||xhr.status>=300){
       let message='فشرده‌سازی ویدئو انجام نشد؛ فایل یا فرمت را بررسی کنید.';
