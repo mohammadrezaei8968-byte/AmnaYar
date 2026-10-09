@@ -3,6 +3,8 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+val releaseKeystorePath = System.getenv("AMNAYAR_KEYSTORE_PATH")
+
 android {
     namespace = "ir.amnayar.app"
     compileSdk = 35
@@ -19,8 +21,22 @@ android {
         versionName = "1.0.7"
     }
 
+    signingConfigs {
+        create("release") {
+            if (!releaseKeystorePath.isNullOrBlank()) {
+                storeFile = file(releaseKeystorePath)
+                storePassword = System.getenv("AMNAYAR_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("AMNAYAR_KEY_ALIAS")
+                keyPassword = System.getenv("AMNAYAR_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (!releaseKeystorePath.isNullOrBlank()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
