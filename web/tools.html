@@ -51,7 +51,7 @@
  document.querySelectorAll('.tool-panel[id]').forEach(sec=>{
    const t=map.get(sec.id); sec.style.display=(t&&t.enabled)?'':'none'; if(!t)return;
    const h=sec.querySelector('h2'),p=sec.querySelector(':scope > p');
-   if(h){const icon=t.icon||'🛠️'; h.textContent=icon+' '+t.name;}
+   if(h&&sec.id!=='translate'){const icon=t.icon||'🛠️'; h.textContent=icon+' '+t.name;}
    if(p&&t.description)p.textContent=t.description;
  });
 }catch(e){console.warn('public tools config',e)}finally{
