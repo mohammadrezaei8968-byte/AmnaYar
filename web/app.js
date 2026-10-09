@@ -79,7 +79,7 @@ const siteSearchItems = [
   {title:'فاکتور‌ساز فارسی', desc:'ساخت و دریافت فاکتور PDF رایگان', href:'/tools.html?tool=invoice', tags:'فاکتور صورت حساب pdf فروشنده خریدار'},
   {title:'ادغام و جداسازی PDF', desc:'ترکیب PDF یا جداسازی صفحات', href:'/tools.html?tool=pdf', tags:'pdf پی دی اف ادغام جداسازی'},
   {title:'تبدیل تاریخ', desc:'تبدیل شمسی و میلادی', href:'/tools.html?tool=date', tags:'تاریخ شمسی میلادی تبدیل'},
-  {title:'ابزار تصویر', desc:'تغییر اندازه، فشرده‌سازی و تبدیل فرمت', href:'/tools.html?tool=image', tags:'تصویر عکس resize compression'},
+
   {title:'سامانه‌های رسمی', desc:'دسترسی مستقیم به مراجع رسمی', href:'#official', tags:'سامانه رسمی استعلام'},
   {title:'چرا امنا یار؟', desc:'ویژگی‌ها و رویکرد سایت', href:'#why', tags:'امنا یار رایگان امنیت'}
 ];
