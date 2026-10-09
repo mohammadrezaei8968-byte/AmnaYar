@@ -209,4 +209,4 @@ async function loadDailyNews(){
 }
 function escapeNewsHtml(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
 document.addEventListener("DOMContentLoaded",()=>{loadDailyNews();setInterval(loadDailyNews,5*60*1000);});
-</script><script>(function(){if(new URLSearchParams(location.search).get('app')!=='1')return;const hasToken=['amnayar_auth_token','amnayar_token','amnayar_access_token','auth_token'].some(k=>{try{return !!localStorage.getItem(k)}catch(e){return false}});if(hasToken)return;document.addEventListener('click',function(e){const a=e.target.closest('a[href]');if(!a)return;let u;try{u=new URL(a.href,location.href)}catch(_){return}if(u.origin===location.origin||!/^https?:$/.test(u.protocol))return;e.preventDefault();e.stopImmediatePropagation();if(confirm('برای ورود به سامانه‌های رسمی و انجام استعلام‌ها، لطفاً ابتدا در امنا یار ثبت‌نام کنید. اکنون به صفحه ثبت‌نام بروید؟'))location.href='/?register=1&app=1'},true)})();</script></body></html>
+</script></body></html>
