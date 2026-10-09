@@ -382,7 +382,6 @@ class MainActivity : Activity() {
                     if(/اینستاگرام امنا یار|@amnayar\.2026|برای گوگل و اینستاگرام/i.test(t))el.remove();
                   });
                 })();""", null)
-            }
                 // Check a public release manifest and show an in-app update prompt only for newer releases.
                 view.evaluateJavascript("""(function(){
                   if(window.__amnayarVersionCheckStarted)return;window.__amnayarVersionCheckStarted=true;
