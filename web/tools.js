@@ -71,7 +71,7 @@ function startVoiceTranslation(direction){
     for(let i=event.resultIndex;i<event.results.length;i++){const item=event.results[i];if(item.isFinal)finalTranscript+=item[0].transcript+' ';}
     if(finalTranscript.trim())input.value=finalTranscript.trim();
   };
-  recognition.onerror=event=>{setVoiceButtons(direction,false);status.textContent=event.error==='not-allowed'?'اجازه میکروفون را در مرورگر فعال کنید.':'ضبط گفتار انجام نشد؛ دوباره تلاش کنید.'};
+  recognition.onerror=event=>{setVoiceButtons(direction,false);finishVoiceWait(direction);status.textContent=event.error==='not-allowed'?'اجازه میکروفون را در مرورگر فعال کنید.':'ضبط گفتار انجام نشد؛ دوباره تلاش کنید.'};
   recognition.onend=()=>{setVoiceButtons(direction,false);finishVoiceWait(direction);if(input.value.trim())status.textContent='گفتار ثبت شد؛ برای ترجمه دکمه ترجمه را بزنید.';else if(status.textContent.startsWith('در حال ضبط'))status.textContent='گفتاری ثبت نشد؛ دوباره شروع کنید.'};
   try{recognition.start()}catch(e){setVoiceButtons(direction,false);status.textContent='میکروفون در حال استفاده است؛ چند لحظه دیگر تلاش کنید.'}
 }
