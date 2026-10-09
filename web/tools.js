@@ -41,6 +41,27 @@ async function translateText(direction){
     }
   }
 }
+function startVoiceTranslation(direction){
+  const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const status=$('#'+(direction==='fa-en'?'faVoiceStatus':'enVoiceStatus'));
+  const input=direction==='fa-en'?$('#faToEnText'):$('#enToFaText');
+  if(!Recognition){status.textContent='تشخیص گفتار در این مرورگر پشتیبانی نمی‌شود؛ از Chrome یا Edge به‌روز استفاده کنید.';return}
+  const recognition=new Recognition();
+  recognition.lang=direction==='fa-en'?'fa-IR':'en-US';
+  recognition.interimResults=false;
+  recognition.maxAlternatives=1;
+  status.textContent='در حال شنیدن صدا…';
+  recognition.onresult=event=>{
+    const spoken=event.results?.[0]?.[0]?.transcript||'';
+    if(!spoken){status.textContent='گفتار قابل تشخیص نبود؛ دوباره تلاش کنید.';return}
+    input.value=spoken;
+    status.textContent='گفتار به متن تبدیل شد؛ در حال ترجمه…';
+    translateText(direction);
+  };
+  recognition.onerror=event=>{status.textContent=event.error==='not-allowed'?'اجازه میکروفون را در مرورگر فعال کنید.':'تشخیص گفتار انجام نشد؛ دوباره تلاش کنید.'};
+  recognition.onend=()=>{if(status.textContent==='در حال شنیدن صدا…')status.textContent='گفتاری دریافت نشد؛ دوباره تلاش کنید.'};
+  try{recognition.start()}catch(e){status.textContent='میکروفون در حال استفاده است؛ چند لحظه دیگر تلاش کنید.'}
+}
 const $=s=>document.querySelector(s); const fa=n=>n.toLocaleString('fa-IR');
 async function mergePDFs(){const files=[...$('#mergeFiles').files];if(!files.length)return $('#mergeStatus').textContent='حداقل یک فایل انتخاب کنید.';$('#mergeStatus').textContent='در حال پردازش...';const out=await PDFLib.PDFDocument.create();for(const f of files){const doc=await PDFLib.PDFDocument.load(await f.arrayBuffer());const pages=await out.copyPages(doc,doc.getPageIndices());pages.forEach(p=>out.addPage(p));}download(await out.save(),'amnayar-merged.pdf','application/pdf');$('#mergeStatus').textContent='فایل ادغام شد.'}
 function parsePages(s,max){const set=new Set();const normalized=String(s||'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٬،]/g,',').replace(/[–—−]/g,'-').replace(/\s+/g,'');for(const part of normalized.split(',').filter(Boolean)){if(part.includes('-')){const ab=part.split('-');if(ab.length!==2)continue;let[a,b]=ab.map(Number);if(!Number.isInteger(a)||!Number.isInteger(b))continue;a=Math.max(1,Math.min(max,a));b=Math.max(1,Math.min(max,b));if(a>b)[a,b]=[b,a];for(let i=a;i<=b;i++)set.add(i-1)}else{const n=Number(part);if(Number.isInteger(n)&&n>=1&&n<=max)set.add(n-1)}}return [...set].sort((a,b)=>a-b)}
@@ -197,6 +218,15 @@ function clearImagePdf(){
   if(s)s.textContent='';
 }
 
+function moveImagePdfFile(index,delta){
+  const target=index+delta;
+  if(target<0||target>=imagePdfSelectedFiles.length)return;
+  const [file]=imagePdfSelectedFiles.splice(index,1);
+  imagePdfSelectedFiles.splice(target,0,file);
+  syncImagePdfInput();
+  imagePdfPreview();
+}
+
 function removeImagePdfFile(index){
   if(index<0||index>=imagePdfSelectedFiles.length)return;
   imagePdfSelectedFiles.splice(index,1);
@@ -225,13 +255,21 @@ function imagePdfPreview(){
     img.onload=()=>URL.revokeObjectURL(u);
     const name=document.createElement('small');
     name.textContent=(n+1)+'. '+f.name;
+    const order=document.createElement('div');
+    order.style.cssText='display:flex;gap:5px;margin-top:7px';
+    [['↑ بالا',-1],['↓ پایین',1]].forEach(([label,delta])=>{
+      const move=document.createElement('button');move.type='button';move.textContent=label;
+      move.disabled=(delta<0&&n===0)||(delta>0&&n===fs.length-1);
+      move.style.cssText='flex:1;border:0;background:#eaf2fa;color:#244c76;border-radius:8px;padding:6px 4px;cursor:pointer;font:inherit;font-size:10px;font-weight:800';
+      move.onclick=()=>moveImagePdfFile(n,delta);order.appendChild(move);
+    });
     const del=document.createElement('button');
     del.type='button';
     del.textContent='✕ حذف';
     del.setAttribute('aria-label','حذف '+f.name);
     del.style.cssText='border:0;background:#fff0f0;color:#b33a3a;border-radius:8px;padding:6px 9px;margin-top:7px;cursor:pointer;font:inherit;font-size:10px;font-weight:800;width:100%';
     del.onclick=()=>removeImagePdfFile(n);
-    item.append(img,name,del);
+    item.append(img,name,order,del);
     p.appendChild(item);
   });
   if(c)c.textContent='تعداد عکس‌های انتخاب‌شده: '+fa(fs.length);
