@@ -353,6 +353,19 @@ class MainActivity : Activity() {
                 // These removals apply only inside the Android app; normal website visitors still see site ads.
                 view.evaluateJavascript("""(function(){
                   window.__AMNAYAR_ANDROID_APP__=true;
+                  (function(){
+                    var keys=['amnayar_auth_token','amnayar_token','amnayar_access_token','auth_token'];
+                    var token='';for(var i=0;i<keys.length;i++){try{token=localStorage.getItem(keys[i])||''}catch(e){}if(token)break}
+                    if(!token)return;
+                    fetch('/api/me',{headers:{Authorization:'Bearer '+token},cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(u){
+                      if(!u)return;var name=String(u.display_name||u.username||u.email||'کاربر');
+                      var nav=document.querySelector('.nav-actions,.dashboard-nav .nav-actions,.nav nav,.nav');
+                      if(!nav||document.getElementById('amnayarAppUserChip'))return;
+                      var chip=document.createElement('span');chip.id='amnayarAppUserChip';chip.className='user-chip';chip.textContent='کاربر: '+name;
+                      chip.style.cssText='display:inline-block;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:7px 10px;border:1px solid #d8e5f4;border-radius:10px;background:#f4f8ff;color:#12345a;font-size:12px;font-weight:800';
+                      nav.appendChild(chip);
+                    }).catch(function(){});
+                  })();
                   document.querySelectorAll('a[href]').forEach(function(a){try{var u=new URL(a.href,location.href);if(u.origin===location.origin){u.searchParams.set('app','1');u.searchParams.set('appVersion',new URLSearchParams(location.search).get('appVersion')||'1.0.2');a.href=u.toString();}}catch(e){}});
                   document.querySelectorAll('a[target="_blank"]').forEach(function(a){try{if(new URL(a.href,location.href).origin!==location.origin)a.target='_self';}catch(e){}});
                   var style=document.getElementById('amnayar-app-cleanup');
