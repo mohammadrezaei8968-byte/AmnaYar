@@ -192,10 +192,9 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addShare);else addShare();
 })();
 
-// اولین ورود: فقط یک بار فرم ثبت‌نام را خودکار نمایش بده.
-(function firstVisitRegistration(){try{if(localStorage.getItem('amnayar_first_visit_prompted')==='1')return;if(getStoredAuthToken())return;localStorage.setItem('amnayar_first_visit_prompted','1');setTimeout(()=>openAuth('register'),700);}catch(e){}})();
+;
 
-(function forceRegistrationFromGuestGate(){try{if(new URLSearchParams(location.search).get('register')==='1'&&!getStoredAuthToken())setTimeout(()=>openAuth('register'),250)}catch(e){}})();
+;
 
 (function checkAmnaAppUpdate(){if(new URLSearchParams(location.search).get('app')!=='1')return;fetch('/app-version.json?ts='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{if(!v||!v.latestVersion)return;const current='1.0.0',parts=x=>String(x).split('.').map(n=>parseInt(n,10)||0),newer=(a,b)=>{a=parts(a);b=parts(b);for(let i=0;i<Math.max(a.length,b.length);i++){if((a[i]||0)!==(b[i]||0))return(a[i]||0)>(b[i]||0)}return false};if(!newer(v.latestVersion,current))return;const bar=document.createElement('div');bar.style.cssText='position:fixed;z-index:100000;top:8px;left:8px;right:8px;background:#0c6b48;color:#fff;padding:14px;border-radius:14px;box-shadow:0 8px 30px #0003;display:flex;gap:10px;align-items:center;justify-content:space-between;direction:rtl';bar.innerHTML='<span>نسخه جدید امنا یار ('+String(v.latestVersion).replace(/[&<>"]/g,'')+') منتشر شده است.</span><button type="button" style="border:0;border-radius:9px;padding:9px 12px;font-weight:bold" id="amnaUpdateNow">به‌روزرسانی</button><button type="button" aria-label="بستن" id="amnaUpdateClose" style="border:0;background:transparent;color:white;font-size:20px">×</button>';document.body.appendChild(bar);document.getElementById('amnaUpdateNow').onclick=()=>location.href=String(v.bazaarUrl||'https://cafebazaar.ir/app/ir.amnayar.app');document.getElementById('amnaUpdateClose').onclick=()=>bar.remove()}).catch(()=>{})})();
 
