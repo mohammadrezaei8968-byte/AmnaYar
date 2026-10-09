@@ -570,28 +570,73 @@ document.addEventListener('click',e=>{const b=e.target.closest('.tool-list butto
 /* Document-grounded Q&A: extracts only the user's uploaded file and returns matching source passages. */
 let amnaReferenceChunks=[];
 async function loadReferenceDocument(){
- const f=$('#docQaFile')?.files?.[0],status=$('#docQaStatus');if(!f){status.textContent='ابتدا فایل را انتخاب کنید.';return}
- if(f.size>100*1024*1024){status.textContent='برای پردازش سریع و امن، حجم فایل حداکثر ۱۰۰ مگابایت باشد.';return}
- status.textContent='در حال خواندن فایل…';amnaReferenceChunks=[];
- const ext=(f.name.split('.').pop()||'').toLowerCase();
- async function ensureTesseract(){if(window.Tesseract)return;await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.onload=resolve;s.onerror=()=>reject(new Error('کتابخانه OCR بارگذاری نشد؛ اتصال اینترنت را بررسی کنید.'));document.head.appendChild(s)});if(!window.Tesseract)throw new Error('سرویس OCR در دسترس نیست.')}
- async function ocrImage(image,label){await ensureTesseract();status.textContent='در حال استخراج نوشته از تصویر؛ این مرحله ممکن است زمان ببرد…';const r=await Tesseract.recognize(image,'fas+eng',{logger:m=>{if(m.status==='recognizing text')status.textContent='تشخیص نوشته از تصویر: '+Math.round((m.progress||0)*100).toLocaleString('fa-IR')+'٪'}});const text=String(r.data?.text||'').trim();if(text)amnaReferenceChunks.push({source:label,text})}
+ const f=$('#docQaFile')?.files?.[0],status=$('#docQaStatus'),ask=$('#docQaAsk');
+ if(!f){status.textContent='ابتدا فایل را انتخاب کنید.';return}
+ if(f.size>100*1024*1024){status.textContent='حجم فایل حداکثر ۱۰۰ مگابایت باشد.';return}
+ status.textContent='در حال خواندن فایل…';amnaReferenceChunks=[];if(ask)ask.disabled=true;
+ const ext=(f.name.split('.').pop()||'').toLowerCase();let ocrWorker=null;
+ const addText=(source,text)=>{const clean=String(text||'').replace(/\s+/g,' ').trim();if(!clean)return;const size=1800;for(let i=0;i<clean.length;i+=size)amnaReferenceChunks.push({source,text:clean.slice(i,i+size)})};
+ async function ensureOcrWorker(){
+  if(ocrWorker)return ocrWorker;
+  if(!window.Tesseract)await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.onload=resolve;s.onerror=()=>reject(new Error('کتابخانه OCR بارگذاری نشد؛ اتصال اینترنت را بررسی کنید.'));document.head.appendChild(s)});
+  if(!window.Tesseract)throw new Error('سرویس OCR در دسترس نیست.');
+  ocrWorker=await Tesseract.createWorker('fas+eng',1,{logger:m=>{if(m.status==='recognizing text')status.textContent='تشخیص نوشته از تصویر: '+Math.round((m.progress||0)*100).toLocaleString('fa-IR')+'٪'}});
+  return ocrWorker;
+ }
+ async function ocrImage(image,label){const worker=await ensureOcrWorker();const r=await worker.recognize(image);const text=String(r.data?.text||'').trim();if(text)addText(label,text);return text.length}
  try{
-  if(ext==='txt'){const text=await f.text();text.split(/\n+/).map(x=>x.trim()).filter(Boolean).forEach((text,i)=>amnaReferenceChunks.push({source:'بخش '+fa(i+1),text}))}
-  else if(['png','jpg','jpeg','webp','bmp','tif','tiff'].includes(ext)||f.type.startsWith('image/')){await ocrImage(f,'تصویر '+f.name)}
+  if(ext==='txt'){addText('متن '+f.name,await f.text())}
+  else if(['png','jpg','jpeg','webp','bmp','tif','tiff'].includes(ext)||f.type.startsWith('image/')){status.textContent='در حال OCR تصویر…';await ocrImage(f,'تصویر '+f.name)}
   else if(ext==='pdf'){
    if(!window.pdfjsLib)throw new Error('کتابخانه PDF بارگذاری نشده است؛ اتصال اینترنت را بررسی کنید.');
    pdfjsLib.GlobalWorkerOptions.workerSrc=window.__amnaPdfWorkerSrc||'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
    const pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer(),useWorkerFetch:false,isEvalSupported:false}).promise;
-   for(let p=1;p<=pdf.numPages;p++){const page=await pdf.getPage(p),content=await page.getTextContent(),txt=content.items.map(x=>x.str).join(' ').replace(/\s+/g,' ').trim();if(txt)amnaReferenceChunks.push({source:'صفحه '+fa(p),text:txt});else if(pdf.numPages<=15){const viewport=page.getViewport({scale:1.25}),canvas=document.createElement('canvas');canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;await ocrImage(canvas,'صفحه '+fa(p)+' (OCR)');canvas.width=1;canvas.height=1}}
-  }else if(ext==='docx'){if(!window.mammoth)throw new Error('کتابخانه Word بارگذاری نشده است.');const r=await mammoth.extractRawText({arrayBuffer:await f.arrayBuffer()});r.value.split(/\n+/).map(x=>x.trim()).filter(Boolean).forEach((text,i)=>amnaReferenceChunks.push({source:'بخش '+fa(i+1),text}))}
-  else if(ext==='xlsx'||ext==='xls'){if(!window.XLSX)throw new Error('کتابخانه Excel بارگذاری نشده است.');const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});for(const name of wb.SheetNames){const rows=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:false});for(let i=0;i<rows.length;i++){const text=rows[i].map(v=>String(v??'').trim()).filter(Boolean).join(' | ');if(text)amnaReferenceChunks.push({source:'برگه '+name+'، ردیف '+fa(i+1),text})}}}
-  else throw new Error('فرمت پشتیبانی‌شده: PDF، DOCX، XLSX، XLS، TXT و تصویر.');
-  if(!amnaReferenceChunks.length)throw new Error('متن قابل جست‌وجویی پیدا نشد؛ فایل را بررسی کنید.');
-  status.textContent='فایل خوانده شد: '+f.name+' — '+fa(amnaReferenceChunks.length)+' بخش آماده پرسش است. سؤال را بنویسید یا با صدا بگویید.';$('#docQaAsk').disabled=false;
+   for(let p=1;p<=pdf.numPages;p++){
+    status.textContent='خواندن صفحه '+fa(p)+' از '+fa(pdf.numPages)+'…';
+    const page=await pdf.getPage(p),content=await page.getTextContent(),txt=content.items.map(x=>x.str).join(' ').replace(/\s+/g,' ').trim();
+    if(txt.length>20)addText('صفحه '+fa(p),txt);
+    else{
+     status.textContent='صفحه '+fa(p)+' متن قابل استخراج ندارد؛ در حال OCR…';
+     const viewport=page.getViewport({scale:1.35}),canvas=document.createElement('canvas');canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);
+     await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
+     await ocrImage(canvas,'صفحه '+fa(p)+' (OCR)');canvas.width=1;canvas.height=1;
+    }
+    await new Promise(resolve=>setTimeout(resolve,0));
+   }
+  }else if(ext==='docx'){
+   if(!window.mammoth)throw new Error('کتابخانه Word بارگذاری نشده است.');
+   const r=await mammoth.extractRawText({arrayBuffer:await f.arrayBuffer()});addText('سند Word '+f.name,r.value)
+  }else if(ext==='xlsx'||ext==='xls'){
+   if(!window.XLSX)throw new Error('کتابخانه Excel بارگذاری نشده است.');
+   const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});
+   for(const name of wb.SheetNames){const rows=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:false});for(let i=0;i<rows.length;i++){const row=rows[i].map(v=>String(v??'').trim()).filter(Boolean).join(' | ');if(row)addText('برگه '+name+'، ردیف '+fa(i+1),row)}}
+  }else throw new Error('فرمت پشتیبانی‌شده: PDF، DOCX، XLSX، XLS، TXT و تصویر. فایل Word قدیمی DOC را ابتدا به DOCX تبدیل کنید.');
+  if(!amnaReferenceChunks.length)throw new Error('متن قابل استخراج پیدا نشد؛ فایل خالی، رمزدار یا ناخوانا است.');
+  status.textContent='فایل خوانده شد: '+f.name+' — '+fa(amnaReferenceChunks.length)+' بخش قابل جست‌وجو آماده است. سؤال را بنویسید یا با گفتار بگویید.';
+  if(ask)ask.disabled=false;
  }catch(e){console.error('document extraction',e);status.textContent='خواندن فایل انجام نشد: '+(e.message||'فرمت فایل را بررسی کنید.')}
+ finally{if(ocrWorker)try{await ocrWorker.terminate()}catch(e){}}
 }
-function askReferenceDocument(){const q=String($('#docQaQuestion')?.value||'').trim(),out=$('#docQaAnswer');if(!amnaReferenceChunks.length){out.textContent='ابتدا فایل مرجع را بارگذاری و پردازش کنید.';return}if(!q){out.textContent='پرسش خود را وارد کنید یا با گفتار ثبت کنید.';return}const normalizeDoc=s=>String(s||'').toLocaleLowerCase('fa').replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[^\p{L}\p{N}]+/gu,' ').trim();const stop=new Set('از به با در را برای که این آن است بود شد می و یا اگر تا درباره طبق چیست چطور چگونه کدام چه آیا لطفا لطفاً من شما فایل متن مبلغ تاریخ شماره نام'.split(' '));const words=[...new Set(normalizeDoc(q).split(/\s+/).filter(w=>w.length>1&&!stop.has(w)))];const ranked=amnaReferenceChunks.map(c=>{const t=normalizeDoc(c.text),tokens=new Set(t.split(/\s+/));const hits=words.filter(w=>tokens.has(w)||t.includes(w)).length;const phrase=normalizeDoc(q);return{...c,score:hits+(phrase.length>4&&t.includes(phrase)?words.length+3:0),hits}}).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,5);if(!ranked.length){out.textContent='در متن استخراج‌شده از فایل، بخش مرتبطی پیدا نشد. اگر PDF اسکن‌شده یا عکس است، ابتدا نسخه دارای متن (OCR) تهیه کنید یا پرسش را با واژه‌های دقیق‌تر بنویسید.';return}out.innerHTML='<p><b>نتیجه جست‌وجو در فایل</b> — پاسخ زیر فقط از متن خود فایل استخراج شده است:</p>'+ranked.map((x,i)=>'<article class="docqa-source"><b>منبع '+(i+1)+' — '+escapeDocQa(x.source)+'</b><p>'+escapeDocQa(x.text.slice(0,1400))+(x.text.length>1400?'…':'')+'</p></article>').join('');}
+function askReferenceDocument(){
+ const q=String($('#docQaQuestion')?.value||'').trim(),out=$('#docQaAnswer');
+ if(!amnaReferenceChunks.length){out.textContent='ابتدا فایل مرجع را بارگذاری و پردازش کنید.';return}
+ if(!q){out.textContent='پرسش خود را وارد کنید یا با گفتار ثبت کنید.';return}
+ const normalizeDoc=s=>String(s||'').toLocaleLowerCase('fa').replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[^\p{L}\p{N}]+/gu,' ').trim();
+ const stop=new Set('از به با در را برای که این آن است بود شد می و یا اگر تا درباره طبق چیست چطور چگونه کدام چه آیا لطفا لطفاً من شما فایل متن مبلغ تاریخ شماره نام طبق این فایل'.split(' '));
+ const words=[...new Set(normalizeDoc(q).split(/\s+/).filter(w=>w.length>1&&!stop.has(w)))];
+ if(!words.length){out.textContent='برای جست‌وجوی دقیق‌تر، سؤال را با یک نام، عدد، تاریخ یا عبارت مشخص‌تر بنویسید.';return}
+ const phrase=normalizeDoc(q);
+ const ranked=amnaReferenceChunks.map(c=>{
+  const t=normalizeDoc(c.text),tokens=new Set(t.split(/\s+/));
+  const hits=words.filter(w=>tokens.has(w)||t.includes(w)).length;
+  const coverage=hits/words.length;
+  const phraseBonus=phrase.length>5&&t.includes(phrase)?words.length+4:0;
+  return{...c,score:hits+coverage*2+phraseBonus,hits,coverage}
+ }).filter(x=>x.hits>0).sort((a,b)=>b.score-a.score).slice(0,5);
+ if(!ranked.length){out.textContent='در متن استخراج‌شده از فایل، بخش مرتبطی پیدا نشد. سؤال را با واژه‌های موجود در فایل بازنویسی کنید.';return}
+ const best=ranked[0],answer=best.text.length>1000?best.text.slice(0,1000)+'…':best.text;
+ out.innerHTML='<p><b>پاسخ بر اساس محتوای فایل</b></p><p>'+escapeDocQa(answer)+'</p><p class="muted">منبع پاسخ: '+escapeDocQa(best.source)+' — تطبیق واژه‌های سؤال: '+fa(best.hits)+' از '+fa(words.length)+'</p><details><summary>نمایش بخش‌های مرتبط دیگر</summary>'+ranked.slice(1).map((x,i)=>'<article class="docqa-source"><b>منبع '+fa(i+2)+' — '+escapeDocQa(x.source)+'</b><p>'+escapeDocQa(x.text.slice(0,1000))+(x.text.length>1000?'…':'')+'</p></article>').join('')+'</details><p class="muted">این پاسخ استخراجی است و فقط به متن قابل خواندن فایل متکی است؛ در این نسخه مدل هوش مصنوعی مولد به سرویس متصل نشده است.</p>';
+}
 function escapeDocQa(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function startDocumentQuestionVoice(){const status=$('#docQaStatus');if(window.AmnaYarSpeech?.startListening){try{window.AmnaYarSpeech.startListening('doc-qa');status.textContent='صحبت کنید؛ پس از پایان گفتار، پرسش در کادر قرار می‌گیرد.';return}catch(e){}}const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R){status.textContent='تشخیص گفتار در این مرورگر فعال نیست؛ از نسخه اندروید یا مرورگر سازگار استفاده کنید.';return}const r=new R();r.lang='fa-IR';r.interimResults=false;r.onresult=e=>{$('#docQaQuestion').value=e.results[0][0].transcript;status.textContent='پرسش صوتی ثبت شد؛ برای جست‌وجو دکمه پاسخ را بزنید.'};r.onerror=()=>status.textContent='گفتار ثبت نشد؛ اجازه میکروفون را بررسی کنید.';r.start()}
 window.amnayarDocumentQuestionResult=function(text,direction,error){const status=$('#docQaStatus');if(error||!text){status.textContent='گفتار پرسش ثبت نشد؛ دوباره تلاش کنید.';return}$('#docQaQuestion').value=text;status.textContent='پرسش صوتی ثبت شد؛ برای یافتن پاسخ از فایل، دکمه پاسخ را بزنید.'};
