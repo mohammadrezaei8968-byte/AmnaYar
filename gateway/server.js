@@ -23,7 +23,7 @@ app.use(compression({threshold:1024}));
 // This keeps large PDF jobs independent from the API service's runtime packages.
 const pdfUpload=multer({
   dest:os.tmpdir(),
-  limits:{fileSize:1024*1024*1024},
+  limits:{fileSize:500*1024*1024},
   fileFilter:(req,file,cb)=>cb(null,file.mimetype==="application/pdf"||/\.pdf$/i.test(file.originalname))
 });
 
@@ -77,7 +77,7 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
       "-dPDFSETTINGS="+preset,
       "-sOutputFile="+out,
       input
-    ],{timeout:20*60*1000,maxBuffer:4*1024*1024});
+    ],{timeout:45*60*1000,maxBuffer:4*1024*1024});
   };
 
   try{
@@ -134,16 +134,16 @@ app.post("/api/tools/compress-video",videoUpload.single("file"),async(req,res)=>
   const input=req.file?.path;
   if(!input)return res.status(400).json({error:"video_required"});
   const quality=String(req.body?.quality||"balanced");
-  const crf=quality==="small"?30:quality==="high"?24:27;
+  const crf=quality==="small"?32:quality==="high"?25:29;
   const output=path.join(os.tmpdir(),"amnayar-video-"+crypto.randomUUID()+".mp4");
   const cleanup=()=>Promise.allSettled([fs.promises.unlink(input),fs.promises.unlink(output)]);
   try{
     if(!ffmpegPath)return res.status(503).json({error:"ffmpeg_unavailable"});
     await execFileAsync(ffmpegPath,[
       "-hide_banner","-loglevel","error","-y","-i",input,
-      "-map","0:v:0","-map","0:a?","-vf","scale='min(1280,iw)':-2","-r","30",
-      "-c:v","libx264","-preset","veryfast","-crf",String(crf),
-      "-c:a","aac","-b:a","96k","-movflags","+faststart","-threads","2",output
+      "-map","0:v:0","-map","0:a?","-vf","scale='min(1280,iw)':-2:flags=fast_bilinear",
+      "-c:v","libx264","-preset","ultrafast","-crf",String(crf),
+      "-c:a","aac","-b:a","96k","-movflags","+faststart","-threads","0",output
     ],{timeout:60*60*1000,maxBuffer:4*1024*1024});
     const stat=await fs.promises.stat(output);
     const useOriginal=stat.size>=req.file.size;
@@ -197,6 +197,6 @@ app.use((req,res,next)=>{
 app.use((req,res)=>res.status(404).send("Not Found"));
 
 const server=app.listen(PORT,"0.0.0.0",()=>console.log("AmnaYar gateway listening on "+PORT));
-server.requestTimeout=20*60*1000;
+server.requestTimeout=60*60*1000;
 server.headersTimeout=120*1000;
 server.keepAliveTimeout=120*1000;
