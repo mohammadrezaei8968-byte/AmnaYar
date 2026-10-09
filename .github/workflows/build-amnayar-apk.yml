@@ -12,7 +12,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       actions: write
     steps:
       - name: Checkout
@@ -69,7 +69,22 @@ jobs:
           mkdir -p dist
           cp "$APK" "dist/AmnaYar.apk"
 
-      - name: Upload APK
+      - name: Publish APK to AmnaYar website
+        run: |
+          set -euo pipefail
+          mkdir -p web/downloads
+          install -m 0644 dist/AmnaYar.apk web/downloads/AmnaYar.apk
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web/downloads/AmnaYar.apk
+          if git diff --cached --quiet; then
+            echo "Website APK is already up to date."
+          else
+            git commit -m "Publish AmnaYar Android APK"
+            git push origin HEAD:main
+          fi
+
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: AmnaYar-Android-APK
