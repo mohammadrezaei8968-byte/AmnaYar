@@ -344,6 +344,7 @@ class MainActivity : Activity() {
                 // These removals apply only inside the Android app; normal website visitors still see site ads.
                 view.evaluateJavascript("""(function(){
                   window.__AMNAYAR_ANDROID_APP__=true;
+                  document.querySelectorAll('a[href]').forEach(function(a){try{var u=new URL(a.href,location.href);if(u.origin===location.origin){u.searchParams.set('app','1');a.href=u.toString();}}catch(e){}});
                   document.querySelectorAll('a[target="_blank"]').forEach(function(a){try{if(new URL(a.href,location.href).origin!==location.origin)a.target='_self';}catch(e){}});
                   var style=document.getElementById('amnayar-app-cleanup');
                   if(!style){style=document.createElement('style');style.id='amnayar-app-cleanup';style.textContent='#topics,#support,.support,.ay-ad-showcase,.ad-grid,.ad-slot,.amnayar-free-ad,.monetization-section,.advertisement,.ad-container,[data-ad],iframe[src*="ad"],a[href="/advertising.html"],a[href^="/advertising.html"],a[href="#support"]{display:none!important}';document.head.appendChild(style);}
