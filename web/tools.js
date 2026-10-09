@@ -53,7 +53,12 @@ function setVoiceButtons(direction,recording){
   const p=direction==='fa-en'?'fa':'en',start=$('#'+p+'RecordStart'),stop=$('#'+p+'RecordStop');
   if(start)start.disabled=!!recording;if(stop)stop.disabled=!recording;
 }
+function stopAllAmnaAudioRecorders(){
+  const active=window.__amnaAudioRecorders||{};
+  Object.keys(active).forEach(id=>{const item=active[id];try{if(item?.rec&&item.rec.state!=='inactive')item.rec.stop()}catch(_){}try{item?.stream?.getTracks?.().forEach(track=>track.stop())}catch(_){}delete active[id]});
+}
 function startVoiceTranslation(direction){
+  stopAllAmnaAudioRecorders();
   const status=$('#'+(direction==='fa-en'?'faVoiceStatus':'enVoiceStatus'));
   const input=direction==='fa-en'?$('#faToEnText'):$('#enToFaText');
   input.value='';voiceStopPending[direction]=false;setVoiceButtons(direction,true);
@@ -71,7 +76,7 @@ function startVoiceTranslation(direction){
     for(let i=event.resultIndex;i<event.results.length;i++){const item=event.results[i];if(item.isFinal)finalTranscript+=item[0].transcript+' ';}
     if(finalTranscript.trim())input.value=finalTranscript.trim();
   };
-  recognition.onerror=event=>{setVoiceButtons(direction,false);finishVoiceWait(direction);status.textContent=event.error==='not-allowed'?'اجازه میکروفون را در مرورگر فعال کنید.':'ضبط گفتار انجام نشد؛ دوباره تلاش کنید.'};
+  recognition.onerror=event=>{setVoiceButtons(direction,false);finishVoiceWait(direction);status.textContent=event.error==='not-allowed'?'اجازه میکروفون را در مرورگر فعال کنید.':event.error==='audio-capture'?'میکروفون در دسترس نیست یا توسط ضبط دیگری اشغال شده؛ ضبط فعال را متوقف و دوباره تلاش کنید.':event.error==='network'?'سرویس تشخیص گفتار آنلاین در دسترس نیست؛ اتصال اینترنت را بررسی کنید.':'ضبط گفتار انجام نشد؛ مجوز میکروفون و اتصال اینترنت را بررسی و دوباره تلاش کنید.'};
   recognition.onend=()=>{setVoiceButtons(direction,false);finishVoiceWait(direction);if(input.value.trim())status.textContent='گفتار به متن تبدیل شد؛ متن را بازبینی یا اصلاح کنید.';else if(status.textContent.startsWith('در حال ضبط'))status.textContent='گفتاری ثبت نشد؛ دوباره شروع کنید.'};
   try{recognition.start()}catch(e){setVoiceButtons(direction,false);status.textContent='میکروفون در حال استفاده است؛ چند لحظه دیگر تلاش کنید.'}
 }
@@ -625,11 +630,18 @@ async function askReferenceDocument(){
   const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||'سرویس هوش مصنوعی در دسترس نیست.');
   out.innerHTML='<p><b>پاسخ هوش مصنوعی بر اساس فایل</b></p><p>'+escapeDocQa(data.answer||'پاسخی دریافت نشد.')+'</p><p class="muted">منابع بررسی‌شده: '+ranked.map(x=>escapeDocQa(x.source)).join('، ')+'</p>';
   if(status)status.textContent='پرسش با هوش مصنوعی پردازش شد.';
- }catch(e){out.textContent=e.message||'پرسش‌وپاسخ هوشمند انجام نشد.';if(status)status.textContent='برای پاسخ هوشمند، سرویس AI سمت سرور باید فعال و کلید آن تنظیم شده باشد.'}
+ }catch(e){
+  const message=String(e?.message||'');
+  if(message.includes('OPENAI_API_KEY')||message.includes('پیکربندی نشده')){
+   const excerpts=ranked.slice(0,3).map(x=>'<li><b>'+escapeDocQa(x.source)+'</b><p>'+escapeDocQa(String(x.text||'').slice(0,900))+'</p></li>').join('');
+   out.innerHTML='<p><b>بخش‌های مرتبط فایل (پاسخ موقت):</b> کلید سرویس AI روی سرور تنظیم نشده است؛ برای جلوگیری از توقف کار، بخش‌های مرتبط زیر نمایش داده شده‌اند.</p><ol>'+excerpts+'</ol>';
+   if(status)status.textContent='بخش‌های مرتبط فایل نمایش داده شد؛ برای پاسخ تولیدی باید OPENAI_API_KEY در Render تنظیم شود.';
+  }else{out.textContent=message||'پرسش‌وپاسخ از فایل انجام نشد.';if(status)status.textContent='سرویس پرسش‌وپاسخ در دسترس نیست؛ وضعیت سرویس API بررسی شود.'}
+ }
  finally{if(button){button.disabled=false;button.textContent=oldLabel||'یافتن پاسخ در فایل'}}
 }
 function escapeDocQa(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
-function startDocumentQuestionVoice(){const status=$('#docQaStatus');if(window.AmnaYarSpeech?.startListening){try{window.AmnaYarSpeech.startListening('doc-qa');status.textContent='صحبت کنید؛ پس از پایان گفتار، پرسش در کادر قرار می‌گیرد.';return}catch(e){}}const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R){status.textContent='تشخیص گفتار در این مرورگر فعال نیست؛ از نسخه اندروید یا مرورگر سازگار استفاده کنید.';return}const r=new R();r.lang='fa-IR';r.interimResults=false;r.maxAlternatives=1;r.onresult=e=>{const text=e.results?.[0]?.[0]?.transcript||'';if(text){$('#docQaQuestion').value=text;status.textContent='پرسش صوتی ثبت شد؛ برای جست‌وجو دکمه پاسخ را بزنید.'}else status.textContent='گفتاری تشخیص داده نشد؛ دوباره تلاش کنید.'};r.onerror=e=>status.textContent=e.error==='not-allowed'?'اجازه میکروفون را در مرورگر فعال کنید.':'گفتار ثبت نشد؛ اتصال اینترنت و میکروفون را بررسی کنید.';try{r.start()}catch(e){status.textContent='شروع میکروفون ممکن نشد؛ دوباره تلاش کنید.'}}
+function startDocumentQuestionVoice(){stopAllAmnaAudioRecorders();const status=$('#docQaStatus');if(window.AmnaYarSpeech?.startListening){try{window.AmnaYarSpeech.startListening('doc-qa');status.textContent='صحبت کنید؛ پس از پایان گفتار، پرسش در کادر قرار می‌گیرد.';return}catch(e){}}const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R){status.textContent='تشخیص گفتار در این مرورگر فعال نیست؛ از نسخه اندروید یا مرورگر سازگار استفاده کنید.';return}const r=new R();r.lang='fa-IR';r.interimResults=false;r.maxAlternatives=1;r.onresult=e=>{const text=e.results?.[0]?.[0]?.transcript||'';if(text){$('#docQaQuestion').value=text;status.textContent='پرسش صوتی ثبت شد؛ برای جست‌وجو دکمه پاسخ را بزنید.'}else status.textContent='گفتاری تشخیص داده نشد؛ دوباره تلاش کنید.'};r.onerror=e=>status.textContent=e.error==='not-allowed'?'اجازه میکروفون را در مرورگر فعال کنید.':e.error==='audio-capture'?'میکروفون در دسترس نیست یا ضبط دیگری آن را اشغال کرده است؛ ضبط فعال را متوقف کنید.':e.error==='network'?'تشخیص گفتار آنلاین در دسترس نیست؛ اینترنت را بررسی کنید.':'گفتار ثبت نشد؛ مجوز میکروفون و اتصال اینترنت را بررسی کنید.';try{r.start()}catch(e){status.textContent='شروع میکروفون ممکن نشد؛ دوباره تلاش کنید.'}}
 window.amnayarDocumentQuestionResult=function(text,direction,error){const status=$('#docQaStatus');if(error||!text){status.textContent='گفتار پرسش ثبت نشد؛ دوباره تلاش کنید.';return}$('#docQaQuestion').value=text;status.textContent='پرسش صوتی ثبت شد؛ برای یافتن پاسخ از فایل، دکمه پاسخ را بزنید.'};
 
 // Professional calendar helpers and local audio recorder for speech tools.
