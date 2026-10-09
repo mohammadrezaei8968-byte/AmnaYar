@@ -23,6 +23,7 @@
     "multer": "^2.0.2",
     "sharp": "^0.34.3",
     "http-proxy-middleware": "^3.0.3",
-    "compression": "^1.8.1"
+    "compression": "^1.8.1",
+    "ffmpeg-static": "^5.2.0"
   }
 }
