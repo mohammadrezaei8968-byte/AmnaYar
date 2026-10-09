@@ -116,14 +116,14 @@ class MainActivity : Activity() {
                 view.evaluateJavascript("""(function(){
                   window.__AMNAYAR_ANDROID_APP__=true;
                   var style=document.getElementById('amnayar-app-cleanup');
-                  if(!style){style=document.createElement('style');style.id='amnayar-app-cleanup';style.textContent='#topics,#support,.support,.ay-ad-showcase,.ad-grid,.ad-slot,.amnayar-free-ad,.monetization-section,[data-ad],iframe[src*="ad"]{display:none!important}';document.head.appendChild(style);}
+                  if(!style){style=document.createElement('style');style.id='amnayar-app-cleanup';style.textContent='#topics,#support,.support,.ay-ad-showcase,.ad-grid,.ad-slot,.amnayar-free-ad,.monetization-section,.advertisement,.ad-container,[data-ad],iframe[src*="ad"],a[href="/advertising.html"],a[href^="/advertising.html"],a[href="#support"]{display:none!important}';document.head.appendChild(style);}
                   document.querySelectorAll('a,button,[role="button"]').forEach(function(el){
                     var t=(el.innerText||el.textContent||'').replace(/\s+/g,' ').trim();
-                    if(/^(اشتراک.?گذاری|اشتراک گذاری|Share|Share this)$/i.test(t))el.remove();
+                    if(/اشتراک.?گذاری|share/i.test(t))el.remove();
                   });
                   document.querySelectorAll('a').forEach(function(el){
                     var t=(el.innerText||el.textContent||'').trim();
-                    if(/اینستاگرام امنا یار|@amnayar\.2026/i.test(t))el.remove();
+                    if(/اینستاگرام امنا یار|@amnayar\.2026|برای گوگل و اینستاگرام/i.test(t))el.remove();
                   });
                 })();""", null)
             }
