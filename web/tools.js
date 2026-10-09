@@ -674,7 +674,7 @@ async function compressPDF(){
         if(code==='pdf_already_optimized'){s.textContent='این PDF با روش فعلی کوچک‌تر نشد؛ فایل از قبل بهینه است یا تصاویر فشرده ندارد.';return}
         if(code==='ghostscript_unavailable'){s.textContent='ابزار فشرده‌سازی روی سرور نصب/فعال نیست؛ سرویس سرور باید اصلاح شود.';return}
         if(code==='pdf_too_large'){s.textContent='حجم فایل از حد مجاز سرور بیشتر است.';return}
-        throw new Error(code||('server_'+response.status));
+        s.textContent='سرور نتوانست PDF را فشرده کند ('+(code||response.status)+'). فایل آسیب‌دیده، رمزدار یا از قبل بهینه را بررسی کنید.';return;
       }
       const blob=await response.blob();
       const original=Number(response.headers.get('X-Original-Size')||f.size),compressed=Number(response.headers.get('X-Compressed-Size')||blob.size);
