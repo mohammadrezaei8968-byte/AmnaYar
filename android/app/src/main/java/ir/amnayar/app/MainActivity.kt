@@ -13,6 +13,7 @@ import android.os.Environment
 import android.util.Base64
 import android.webkit.JavascriptInterface
 import android.provider.MediaStore
+import android.provider.Settings
 import android.view.View
 import android.webkit.CookieManager
 import android.webkit.ValueCallback
@@ -25,6 +26,20 @@ import android.webkit.WebViewClient
 
 // AmnaYar Android shell: the live website receives conversion/compression updates automatically.
 class MainActivity : Activity() {
+    private inner class DeviceBridge {
+        @JavascriptInterface
+        fun getDeviceKey(): String {
+            val androidId = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID)
+            if (!androidId.isNullOrBlank() && androidId.length >= 16) return androidId
+            val prefs = getSharedPreferences("amnayar_device", MODE_PRIVATE)
+            val existing = prefs.getString("device_key", null)
+            if (!existing.isNullOrBlank()) return existing
+            val generated = java.util.UUID.randomUUID().toString().replace("-", "")
+            prefs.edit().putString("device_key", generated).apply()
+            return generated
+        }
+    }
+
     private inner class DownloadBridge {
         @JavascriptInterface
         fun saveBase64(name: String, mime: String, base64: String) {
@@ -133,6 +148,7 @@ class MainActivity : Activity() {
         }
 
         web.addJavascriptInterface(DownloadBridge(), "AmnaYarDownloader")
+        web.addJavascriptInterface(DeviceBridge(), "AmnaYarDevice")
 
         web.setDownloadListener { url, userAgent, contentDisposition, mimeType, _ ->
             try {

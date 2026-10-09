@@ -5,12 +5,57 @@ function loginForm(){return `<h2>ورود به امنا یار</h2><p class="mut
 function registerForm(){return `<h2>ثبت‌نام رایگان</h2><p class="muted">برای شروع، نام خودتان، ایمیل، نام کاربری و رمز عبور را وارد کنید.</p><form class="form" onsubmit="register(event)"><input id="displayName" placeholder="نام شما، مثلاً محمد" required maxlength="80"><input id="email" type="email" placeholder="ایمیل" required><input id="username" placeholder="نام کاربری یکتا (انگلیسی)" required><input id="password" type="password" placeholder="رمز عبور حداقل ۸ کاراکتر" required><button class="btn primary full">ثبت‌نام رایگان</button></form><p><button class="link" onclick="openAuth('login')">قبلاً حساب دارم</button></p>`}
 const AUTH_TOKEN_KEY='amnayar_auth_token';
 function getStoredAuthToken(){return localStorage.getItem(AUTH_TOKEN_KEY)||''}
-async function register(e){e.preventDefault();const btn=e.submitter;if(btn){btn.disabled=true;btn.textContent='در حال ثبت‌نام...'}try{const r=await api('/api/auth/register','POST',{display_name:$('#displayName').value,email:$('#email').value,username:$('#username').value,password:$('#password').value});if(r.error)return alert(r.error);if(!r.user||!r.token)return alert('ثبت‌نام انجام نشد؛ پاسخ نامعتبر از سرور دریافت شد.');localStorage.setItem(AUTH_TOKEN_KEY,r.token);closeModal();loadNavUser();location.href='/'}catch(err){alert('ارتباط با سرور برقرار نشد. لطفاً دوباره تلاش کنید.')}finally{if(btn){btn.disabled=false;btn.textContent='ثبت‌نام رایگان'}}}
-async function login(e){e.preventDefault();const btn=e.submitter;if(btn){btn.disabled=true;btn.textContent='در حال ورود...'}try{const identifier=String($('#identifier').value||'').trim();const password=String($('#password').value||'');if(!identifier||!password)return alert('ایمیل/نام کاربری و رمز عبور را وارد کنید.');const r=await api('/api/auth/login','POST',{identifier,password});if(r.error)return alert(String(r.error));if(!r.user||!r.token)return alert('ورود انجام نشد؛ پاسخ نامعتبر از سرور دریافت شد.');['amnayar_auth_token','amnayar_token','amnayar_access_token','auth_token'].forEach(k=>localStorage.setItem(k,r.token));closeModal();await loadNavUser();location.href='/dashboard.html'}catch(err){console.error('AmnaYar login',err);alert('ارتباط با سرور برقرار نشد. لطفاً صفحه را یک‌بار تازه‌سازی کنید و دوباره وارد شوید.')}finally{if(btn){btn.disabled=false;btn.textContent='ورود'}}}
-async function api(url,method='GET',body){const headers=body?{'Content-Type':'application/json'}:{};const token=getStoredAuthToken();if(token)headers.Authorization='Bearer '+token;const r=await fetch(url,{method,credentials:'include',headers,body:body?JSON.stringify(body):undefined,cache:'no-store'});let j={};try{j=await r.json()}catch{}if(r.status===401&&url!=='/api/auth/login'&&url!=='/api/auth/register'){localStorage.removeItem(AUTH_TOKEN_KEY)}if(!r.ok&&!j.error)j.error=`خطای سرور (${r.status})`;return j}
+function appDeviceKey(){try{return String(window.AmnaYarDevice?.getDeviceKey?.()||'')}catch(e){return ''}}
+function saveAllAuthTokens(token){['amnayar_auth_token','amnayar_token','amnayar_access_token','auth_token'].forEach(k=>localStorage.setItem(k,token))}
+function clearAllAuthTokens(){['amnayar_auth_token','amnayar_token','amnayar_access_token','auth_token'].forEach(k=>localStorage.removeItem(k))}
+function deviceLimitMessage(){return 'این حساب روی یک گوشی دیگر فعال است. برای استفاده روی این گوشی، ابتدا دستگاه قبلی باید از حساب خارج یا غیرفعال شود.'}
+async function bindAppDevice(token){
+ const key=appDeviceKey();if(!key)return {token};
+ const response=await fetch('/api/device/register',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'X-Device-Key':key},body:JSON.stringify({deviceKey:key,channel:'android',appVersion:'1.0.0'}),cache:'no-store'});
+ let data={};try{data=await response.json()}catch(e){}
+ if(!response.ok||!data.token)return {error:data.error||'device_register_failed'};
+ return {token:data.token};
+}
+async function register(e){
+ e.preventDefault();const btn=e.submitter;if(btn){btn.disabled=true;btn.textContent='در حال ثبت‌نام...'}
+ try{
+  const r=await api('/api/auth/register','POST',{display_name:$('#displayName').value,email:$('#email').value,username:$('#username').value,password:$('#password').value});
+  if(r.error)return alert(r.error);
+  if(!r.user||!r.token)return alert('ثبت‌نام انجام نشد؛ پاسخ نامعتبر از سرور دریافت شد.');
+  const bound=await bindAppDevice(r.token);
+  if(bound.error)return alert(bound.error==='device_limit_reached'?deviceLimitMessage():'ثبت دستگاه انجام نشد؛ اتصال سرور را بررسی کنید.');
+  if(appDeviceKey())saveAllAuthTokens(bound.token);else localStorage.setItem(AUTH_TOKEN_KEY,bound.token);
+  closeModal();loadNavUser();location.href='/';
+ }catch(err){alert('ارتباط با سرور برقرار نشد. لطفاً دوباره تلاش کنید.')}
+ finally{if(btn){btn.disabled=false;btn.textContent='ثبت‌نام رایگان'}}
+}
+async function login(e){
+ e.preventDefault();const btn=e.submitter;if(btn){btn.disabled=true;btn.textContent='در حال ورود...'}
+ try{
+  const identifier=String($('#identifier').value||'').trim(),password=String($('#password').value||'');
+  if(!identifier||!password)return alert('ایمیل/نام کاربری و رمز عبور را وارد کنید.');
+  const r=await api('/api/auth/login','POST',{identifier,password});
+  if(r.error)return alert(String(r.error));
+  if(!r.user||!r.token)return alert('ورود انجام نشد؛ پاسخ نامعتبر از سرور دریافت شد.');
+  const bound=await bindAppDevice(r.token);
+  if(bound.error)return alert(bound.error==='device_limit_reached'?deviceLimitMessage():'ثبت دستگاه انجام نشد؛ اتصال سرور را بررسی کنید.');
+  saveAllAuthTokens(appDeviceKey()?bound.token:r.token);
+  closeModal();await loadNavUser();location.href='/dashboard.html';
+ }catch(err){console.error('AmnaYar login',err);alert('ارتباط با سرور برقرار نشد. لطفاً صفحه را یک‌بار تازه‌سازی کنید و دوباره وارد شوید.')}
+ finally{if(btn){btn.disabled=false;btn.textContent='ورود'}}
+}
+async function api(url,method='GET',body){
+ const headers=body?{'Content-Type':'application/json'}:{},token=getStoredAuthToken(),key=appDeviceKey();
+ if(token)headers.Authorization='Bearer '+token;if(key)headers['X-Device-Key']=key;
+ const r=await fetch(url,{method,credentials:'include',headers,body:body?JSON.stringify(body):undefined,cache:'no-store'});
+ let j={};try{j=await r.json()}catch{}
+ if(r.status===401&&url!=='/api/auth/login'&&url!=='/api/auth/register')localStorage.removeItem(AUTH_TOKEN_KEY);
+ if(!r.ok&&!j.error)j.error=`خطای سرور (${r.status})`;
+ return j;
+}
 async function startCheck(kind){location.href='/?check='+encodeURIComponent(kind)+'#quick-check'}
 
-async function loadNavUser(){const box=document.getElementById('navActions');if(!box)return;const token=getStoredAuthToken();if(!token)return;try{const me=await api('/api/me');const user=me&& (me.user||me);if(!user||!user.username)return;const name=String(user.display_name||user.username);box.innerHTML='<span class="user-chip">سلام، '+name+' عزیز</span><a class="btn soft" href="/dashboard.html">داشبورد</a><button class="btn ghost" onclick="logoutNav()">خروج</button>'}catch(e){}}
+async function loadNavUser(){const box=document.getElementById('navActions');if(!box)return;let token=getStoredAuthToken();if(!token)return;try{if(appDeviceKey()){const bound=await bindAppDevice(token);if(bound.error){clearAllAuthTokens();if(bound.error==='device_limit_reached')alert(deviceLimitMessage());return}saveAllAuthTokens(bound.token);token=bound.token}const me=await api('/api/me');const user=me&& (me.user||me);if(!user||!user.username)return;const name=String(user.display_name||user.username);box.innerHTML='<span class="user-chip">سلام، '+name+' عزیز</span><a class="btn soft" href="/dashboard.html">داشبورد</a><button class="btn ghost" onclick="logoutNav()">خروج</button>'}catch(e){}}
 async function logoutNav(){
   try{await api('/api/auth/logout','POST')}catch(e){}
   localStorage.removeItem(AUTH_TOKEN_KEY);

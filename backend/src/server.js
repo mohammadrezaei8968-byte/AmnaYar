@@ -213,8 +213,10 @@ function auth(req,res,next){
     if(token.did){
       const raw=String(req.headers["x-device-key"]||"");
       if(!raw || deviceDigest(raw)!==token.did) return res.status(401).json({error:"device_not_authorized"});
+      const max=Math.max(1,Number(process.env.MAX_ACTIVE_DEVICES||2));
       const d=db.prepare("SELECT id FROM devices WHERE user_id=? AND device_key=? AND active=1").get(u.id,token.did);
-      if(!d) return res.status(401).json({error:"device_not_authorized"});
+      const allowed=db.prepare("SELECT device_key FROM devices WHERE user_id=? AND active=1 ORDER BY created_at DESC,id DESC LIMIT ?").all(u.id,max).some(row=>row.device_key===token.did);
+      if(!d || !allowed) return res.status(401).json({error:"device_not_authorized"});
     }
     req.user=token; next();
   } catch { res.status(401).json({error:"unauthorized"}); }
