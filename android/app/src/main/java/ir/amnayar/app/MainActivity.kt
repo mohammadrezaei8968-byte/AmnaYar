@@ -179,7 +179,7 @@ class MainActivity : Activity() {
         val openIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && fileUri != null) {
             Intent(Intent.ACTION_VIEW).setDataAndType(fileUri, mimeType).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         } else {
-            Intent(DownloadManager.ACTION_VIEW_DOWNLOADS)
+            Intent(android.app.DownloadManager.ACTION_VIEW_DOWNLOADS)
         }
         val flags = PendingIntent.FLAG_UPDATE_CURRENT or if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
         val pending = PendingIntent.getActivity(this, (System.currentTimeMillis() % Int.MAX_VALUE).toInt(), openIntent, flags)
