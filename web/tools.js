@@ -41,6 +41,27 @@ async function translateText(direction){
     }
   }
 }
+function startVoiceTranslation(direction){
+  const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const status=$('#'+(direction==='fa-en'?'faVoiceStatus':'enVoiceStatus'));
+  const input=direction==='fa-en'?$('#faToEnText'):$('#enToFaText');
+  if(!Recognition){status.textContent='تشخیص گفتار در این مرورگر پشتیبانی نمی‌شود؛ از Chrome یا Edge به‌روز استفاده کنید.';return}
+  const recognition=new Recognition();
+  recognition.lang=direction==='fa-en'?'fa-IR':'en-US';
+  recognition.interimResults=false;
+  recognition.maxAlternatives=1;
+  status.textContent='در حال شنیدن صدا…';
+  recognition.onresult=event=>{
+    const spoken=event.results?.[0]?.[0]?.transcript||'';
+    if(!spoken){status.textContent='گفتار قابل تشخیص نبود؛ دوباره تلاش کنید.';return}
+    input.value=spoken;
+    status.textContent='گفتار به متن تبدیل شد؛ در حال ترجمه…';
+    translateText(direction);
+  };
+  recognition.onerror=event=>{status.textContent=event.error==='not-allowed'?'اجازه میکروفون را در مرورگر فعال کنید.':'تشخیص گفتار انجام نشد؛ دوباره تلاش کنید.'};
+  recognition.onend=()=>{if(status.textContent==='در حال شنیدن صدا…')status.textContent='گفتاری دریافت نشد؛ دوباره تلاش کنید.'};
+  try{recognition.start()}catch(e){status.textContent='میکروفون در حال استفاده است؛ چند لحظه دیگر تلاش کنید.'}
+}
 const $=s=>document.querySelector(s); const fa=n=>n.toLocaleString('fa-IR');
 async function mergePDFs(){const files=[...$('#mergeFiles').files];if(!files.length)return $('#mergeStatus').textContent='حداقل یک فایل انتخاب کنید.';$('#mergeStatus').textContent='در حال پردازش...';const out=await PDFLib.PDFDocument.create();for(const f of files){const doc=await PDFLib.PDFDocument.load(await f.arrayBuffer());const pages=await out.copyPages(doc,doc.getPageIndices());pages.forEach(p=>out.addPage(p));}download(await out.save(),'amnayar-merged.pdf','application/pdf');$('#mergeStatus').textContent='فایل ادغام شد.'}
 function parsePages(s,max){const set=new Set();const normalized=String(s||'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٬،]/g,',').replace(/[–—−]/g,'-').replace(/\s+/g,'');for(const part of normalized.split(',').filter(Boolean)){if(part.includes('-')){const ab=part.split('-');if(ab.length!==2)continue;let[a,b]=ab.map(Number);if(!Number.isInteger(a)||!Number.isInteger(b))continue;a=Math.max(1,Math.min(max,a));b=Math.max(1,Math.min(max,b));if(a>b)[a,b]=[b,a];for(let i=a;i<=b;i++)set.add(i-1)}else{const n=Number(part);if(Number.isInteger(n)&&n>=1&&n<=max)set.add(n-1)}}return [...set].sort((a,b)=>a-b)}
@@ -149,22 +170,27 @@ async function compressPDF(){const f=$('#compressPdfFile').files[0],s=$('#compre
 async function compressVideo(){
   const f=$('#compressVideoFile').files[0],s=$('#compressVideoStatus');
   if(!f)return s.textContent='ویدئو را انتخاب کنید.';
-  if(f.size>100*1024*1024)return s.textContent='حداکثر حجم ویدئو ۱۰۰ مگابایت است.';
-  if(!window.MediaRecorder)return s.textContent='مرورگر شما فشرده‌سازی ویدئو را پشتیبانی نمی‌کند؛ لطفاً Chrome یا Edge را امتحان کنید.';
-  s.textContent='در حال کم‌حجم‌کردن ویدئو در مرورگر...';
-  const url=URL.createObjectURL(f),video=document.createElement('video');video.src=url;video.muted=false;video.volume=0;video.playsInline=true;video.preload='metadata';
-  try{
-    await new Promise((resolve,reject)=>{video.onloadedmetadata=resolve;video.onerror=reject});
-    const q=$('#videoQuality').value;const maxW=q==='small'?960:1280;const scale=Math.min(1,maxW/video.videoWidth);const w=Math.max(2,Math.round(video.videoWidth*scale/2)*2),h=Math.max(2,Math.round(video.videoHeight*scale/2)*2);
-    const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d');
-    const stream=canvas.captureStream(24);const sourceStream=video.captureStream?.();if(sourceStream){sourceStream.getAudioTracks().forEach(t=>stream.addTrack(t));}const mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp9')?'video/webm;codecs=vp9':MediaRecorder.isTypeSupported('video/webm;codecs=vp8')?'video/webm;codecs=vp8':'video/webm';
-    const bitrate=q==='small'?700000:q==='high'?1800000:1200000;const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:bitrate});const chunks=[];rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
-    const done=new Promise((resolve,reject)=>{rec.onstop=()=>resolve();rec.onerror=e=>reject(e.error||e)});let raf=0;
-    const draw=()=>{if(video.ended||video.paused)return;ctx.drawImage(video,0,0,w,h);raf=requestAnimationFrame(draw)};
-    rec.start(250);await video.play();draw();await new Promise(resolve=>video.onended=resolve);cancelAnimationFrame(raf);rec.stop();await done;stream.getTracks().forEach(t=>t.stop());sourceStream?.getTracks().forEach(t=>t.stop());
-    const blob=new Blob(chunks,{type:'video/webm'});downloadBlob(blob,'amnayar-compressed.webm');s.textContent=savingsText(f.size,blob.size)+' — خروجی WebM است.';
-  }catch(e){s.textContent='فشرده‌سازی ویدئو انجام نشد؛ Chrome یا Edge را امتحان کنید.';}
-  finally{URL.revokeObjectURL(url);}
+  const max=1024*1024*1024;
+  if(f.size>max)return s.textContent='حداکثر حجم هر ویدئو ۱ گیگابایت است.';
+  const q=$('#videoQuality').value;
+  s.textContent='در حال ارسال ویدئو برای فشرده‌سازی؛ برای فایل‌های حجیم این مرحله ممکن است زمان ببرد…';
+  const fd=new FormData();fd.append('file',f,f.name);fd.append('quality',q);
+  const xhr=new XMLHttpRequest();xhr.open('POST','/api/tools/compress-video');xhr.responseType='blob';xhr.timeout=60*60*1000;
+  xhr.upload.onprogress=e=>{if(e.lengthComputable)s.textContent='در حال ارسال ویدئو: '+Math.round(e.loaded/e.total*100)+'٪';};
+  xhr.onload=async()=>{
+    if(xhr.status<200||xhr.status>=300){
+      let message='فشرده‌سازی ویدئو انجام نشد؛ فایل یا فرمت را بررسی کنید.';
+      try{const data=JSON.parse(await xhr.response.text());if(data.error==='ffmpeg_unavailable')message='سرویس فشرده‌سازی ویدئو آماده نیست؛ استقرار سرور را بررسی کنید.';else if(data.error==='video_too_large')message='حجم ویدئو از حد مجاز یک گیگابایت بیشتر است.';}catch(e){}
+      s.textContent=message;return;
+    }
+    const blob=xhr.response,original=Number(xhr.getResponseHeader('X-Original-Size')||f.size),compressed=Number(xhr.getResponseHeader('X-Compressed-Size')||blob.size);
+    if(compressed>=original){s.textContent='این ویدئو از قبل کم‌حجم است؛ خروجی بزرگ‌تر دانلود نشد.';return}
+    downloadBlob(blob,'amnayar-compressed.mp4');s.textContent=savingsText(original,compressed)+' — خروجی MP4 آماده شد.';
+  };
+  xhr.onerror=()=>{s.textContent='ارتباط با سرویس فشرده‌سازی قطع شد؛ دوباره تلاش کنید.'};
+  xhr.ontimeout=()=>{s.textContent='پردازش ویدئوی حجیم بیش از زمان مجاز طول کشید؛ ویدئو را کوتاه‌تر یا با کیفیت کمتر امتحان کنید.'};
+  xhr.upload.onload=()=>{s.textContent='ارسال کامل شد؛ سرور در حال فشرده‌سازی ویدئو است…';};
+  xhr.send(fd);
 }
 
 
@@ -197,6 +223,15 @@ function clearImagePdf(){
   if(s)s.textContent='';
 }
 
+function moveImagePdfFile(index,delta){
+  const target=index+delta;
+  if(target<0||target>=imagePdfSelectedFiles.length)return;
+  const [file]=imagePdfSelectedFiles.splice(index,1);
+  imagePdfSelectedFiles.splice(target,0,file);
+  syncImagePdfInput();
+  imagePdfPreview();
+}
+
 function removeImagePdfFile(index){
   if(index<0||index>=imagePdfSelectedFiles.length)return;
   imagePdfSelectedFiles.splice(index,1);
@@ -225,13 +260,21 @@ function imagePdfPreview(){
     img.onload=()=>URL.revokeObjectURL(u);
     const name=document.createElement('small');
     name.textContent=(n+1)+'. '+f.name;
+    const order=document.createElement('div');
+    order.style.cssText='display:flex;gap:5px;margin-top:7px';
+    [['↑ بالا',-1],['↓ پایین',1]].forEach(([label,delta])=>{
+      const move=document.createElement('button');move.type='button';move.textContent=label;
+      move.disabled=(delta<0&&n===0)||(delta>0&&n===fs.length-1);
+      move.style.cssText='flex:1;border:0;background:#eaf2fa;color:#244c76;border-radius:8px;padding:6px 4px;cursor:pointer;font:inherit;font-size:10px;font-weight:800';
+      move.onclick=()=>moveImagePdfFile(n,delta);order.appendChild(move);
+    });
     const del=document.createElement('button');
     del.type='button';
     del.textContent='✕ حذف';
     del.setAttribute('aria-label','حذف '+f.name);
     del.style.cssText='border:0;background:#fff0f0;color:#b33a3a;border-radius:8px;padding:6px 9px;margin-top:7px;cursor:pointer;font:inherit;font-size:10px;font-weight:800;width:100%';
     del.onclick=()=>removeImagePdfFile(n);
-    item.append(img,name,del);
+    item.append(img,name,order,del);
     p.appendChild(item);
   });
   if(c)c.textContent='تعداد عکس‌های انتخاب‌شده: '+fa(fs.length);

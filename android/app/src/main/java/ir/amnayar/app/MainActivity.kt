@@ -110,8 +110,25 @@ class MainActivity : Activity() {
 
         web.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest) = false
+            override fun onPageFinished(view: WebView, url: String) {
+                super.onPageFinished(view, url)
+                // These removals apply only inside the Android app; normal website visitors still see site ads.
+                view.evaluateJavascript("""(function(){
+                  window.__AMNAYAR_ANDROID_APP__=true;
+                  var style=document.getElementById('amnayar-app-cleanup');
+                  if(!style){style=document.createElement('style');style.id='amnayar-app-cleanup';style.textContent='#topics,#support,.support,.ay-ad-showcase,.ad-grid,.ad-slot,.amnayar-free-ad,.monetization-section,[data-ad],iframe[src*="ad"]{display:none!important}';document.head.appendChild(style);}
+                  document.querySelectorAll('a,button,[role="button"]').forEach(function(el){
+                    var t=(el.innerText||el.textContent||'').replace(/\s+/g,' ').trim();
+                    if(/^(اشتراک.?گذاری|اشتراک گذاری|Share|Share this)$/i.test(t))el.remove();
+                  });
+                  document.querySelectorAll('a').forEach(function(el){
+                    var t=(el.innerText||el.textContent||'').trim();
+                    if(/اینستاگرام امنا یار|@amnayar\.2026/i.test(t))el.remove();
+                  });
+                })();""", null)
+            }
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
-                if (request.isForMainFrame) view.postDelayed({ view.loadUrl("https://amnayar.ir/") }, 500)
+                if (request.isForMainFrame) view.postDelayed({ view.loadUrl("https://amnayar.ir/?app=1") }, 500)
             }
         }
 
@@ -168,7 +185,7 @@ class MainActivity : Activity() {
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf("android.permission.POST_NOTIFICATIONS"), 7401)
         }
-        if (savedInstanceState == null) web.loadUrl("https://amnayar.ir/") else web.restoreState(savedInstanceState)
+        if (savedInstanceState == null) web.loadUrl("https://amnayar.ir/?app=1") else web.restoreState(savedInstanceState)
     }
 
     @Deprecated("Deprecated in Java")

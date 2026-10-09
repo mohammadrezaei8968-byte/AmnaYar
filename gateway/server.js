@@ -119,6 +119,53 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
   }
 });
 
+// Video processing is also handled here so the large upload stays off the API service.
+// Large video compression on the gateway using FFmpeg. Uploads are streamed to a temporary file.
+const videoUpload=multer({
+  dest:os.tmpdir(),
+  limits:{fileSize:1024*1024*1024},
+  fileFilter:(req,file,cb)=>{
+    const allowed=/\.(mp4|mov|m4v|mkv|webm|avi|3gp)$/i.test(file.originalname||"");
+    cb(null,String(file.mimetype||"").startsWith("video/")||allowed);
+  }
+});
+app.post("/api/tools/compress-video",videoUpload.single("file"),async(req,res)=>{
+  const input=req.file?.path;
+  if(!input)return res.status(400).json({error:"video_required"});
+  const quality=String(req.body?.quality||"balanced");
+  const crf=quality==="small"?30:quality==="high"?24:27;
+  const output=path.join(os.tmpdir(),"amnayar-video-"+crypto.randomUUID()+".mp4");
+  const cleanup=()=>Promise.allSettled([fs.promises.unlink(input),fs.promises.unlink(output)]);
+  try{
+    await execFileAsync("ffmpeg",[
+      "-hide_banner","-loglevel","error","-y","-i",input,
+      "-map","0:v:0","-map","0:a?","-vf","scale='min(1280,iw)':-2","-r","30",
+      "-c:v","libx264","-preset","veryfast","-crf",String(crf),
+      "-c:a","aac","-b:a","96k","-movflags","+faststart","-threads","2",output
+    ],{timeout:60*60*1000,maxBuffer:4*1024*1024});
+    const stat=await fs.promises.stat(output);
+    const useOriginal=stat.size>=req.file.size;
+    const filePath=useOriginal?input:output;
+    const finalSize=useOriginal?req.file.size:stat.size;
+    res.setHeader("Content-Type","video/mp4");
+    res.setHeader("Content-Disposition",'attachment; filename="amnayar-compressed.mp4"');
+    res.setHeader("X-Original-Size",String(req.file.size));
+    res.setHeader("X-Compressed-Size",String(finalSize));
+    res.setHeader("X-Compression-Applied",useOriginal?"no":"yes");
+    res.sendFile(filePath,err=>{
+      cleanup().catch(()=>{});
+      if(err&&!res.headersSent)res.status(500).json({error:"video_send_failed"});
+    });
+  }catch(e){
+    await cleanup();
+    const msg=String(e?.stderr||e?.message||"");
+    console.error("video_compress_failed",msg.slice(0,1200));
+    if(/ENOENT/i.test(msg))return res.status(503).json({error:"ffmpeg_unavailable"});
+    if(/LIMIT_FILE_SIZE|too large|File too large/i.test(msg))return res.status(413).json({error:"video_too_large"});
+    return res.status(422).json({error:"video_compress_failed"});
+  }
+});
+
 // Other API traffic continues to the backend.
 app.get("/health",(req,res)=>res.json({ok:true,service:"amnayar-gateway"}));
 
