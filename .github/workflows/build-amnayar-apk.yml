@@ -48,6 +48,7 @@ jobs:
       - name: Check JavaScript syntax
         run: |
           node --check web/tools.js
+          node --check web/app.js
           node --check gateway/server.js
           node --check backend/src/server.js
 
