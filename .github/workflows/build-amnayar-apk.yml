@@ -1,4 +1,5 @@
 name: Build AmnaYar Android APK
+# Rebuild on the latest source after the website publish step was made concurrency-safe.
 
 on:
   push:
