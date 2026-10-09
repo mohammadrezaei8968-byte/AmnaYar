@@ -6,6 +6,9 @@ on:
     branches: ["main"]
     paths:
       - "android/**"
+      - "web/tools.js"
+      - "web/tools.html"
+      - ".github/workflows/build-amnayar-apk.yml"
   workflow_dispatch:
 
 jobs:
@@ -51,7 +54,7 @@ jobs:
           node --check web/app.js
           node --check gateway/server.js
           node --check backend/src/server.js
-          grep -q 'tools.js?v=61016' web/tools.html
+          grep -q 'tools.js?v=61017' web/tools.html
           grep -q 'app.js?v=3958' web/index.html
           grep -q 'versionName = "1.0.7"' android/app/build.gradle.kts
           git diff --check
