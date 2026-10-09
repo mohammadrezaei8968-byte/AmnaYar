@@ -82,7 +82,7 @@ class MainActivity : Activity() {
                         else sendVoiceResult(spoken, direction, "")
                     }
                     override fun onError(error: Int) {
-                        val code = if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) "permission" else "recognition_failed"
+                        val code = when (error) { SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "permission"; SpeechRecognizer.ERROR_AUDIO -> "audio_source"; SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "busy"; else -> "recognition_failed" }
                         sendVoiceResult("", direction, code)
                     }
                 })
