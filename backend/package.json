@@ -5,7 +5,8 @@
   "description": "Backend MVP for Amna Yar",
   "scripts": {
     "start": "node -r ./src/extensions.js src/server.js",
-    "dev": "node --watch -r ./src/extensions.js src/server.js"
+    "dev": "node --watch -r ./src/extensions.js src/server.js",
+    "preinstall": "command -v gs >/dev/null 2>&1 || (apt-get update && apt-get install -y ghostscript)"
   },
   "dependencies": {
     "express": "^4.21.2",
