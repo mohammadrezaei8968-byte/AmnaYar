@@ -398,7 +398,7 @@ class MainActivity : Activity() {
                 // Check a public release manifest and show an in-app update prompt only for newer releases.
                 view.evaluateJavascript("""(function(){
                   if(window.__amnayarVersionCheckStarted)return;window.__amnayarVersionCheckStarted=true;
-                  var currentCode=${BuildConfig.VERSION_CODE};
+                  var currentCode=4;
                   fetch('https://amnayar.ir/app-version.json?ts='+Date.now(),{cache:'no-store'})
                     .then(function(r){if(!r.ok)throw Error('version_manifest');return r.json()})
                     .then(function(v){
