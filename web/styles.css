@@ -903,3 +903,27 @@ body{background:linear-gradient(180deg,#f8fafd 0,#f3f7fb 48%,#fff 100%);color:va
 .jalali-cal-grid button.selected{outline:2px solid #167b56;background:#d9f7e8;color:#075b3b;font-weight:900}
 .jalali-cal-foot{display:flex;justify-content:space-between;gap:8px;padding-top:8px}
 .amna-audio-controls audio{max-width:100%}
+
+
+/* AmnaYar: accessible, responsive Jalali calendar and clear action-history panel */
+.amnayar-jalali-calendar{position:absolute;z-index:99999;width:min(360px,calc(100vw - 20px));max-height:min(82vh,620px);overflow:auto;padding:14px;border:1px solid #d5e1ef;border-radius:18px;background:#fff;box-shadow:0 20px 60px rgba(7,32,67,.24);color:#10243d}
+.amnayar-jalali-calendar .jalali-cal-head{display:grid;grid-template-columns:34px 34px minmax(90px,1fr) minmax(75px,.8fr) 34px 34px;gap:5px;align-items:center;margin-bottom:12px}
+.amnayar-jalali-calendar .jalali-cal-head button,.amnayar-jalali-calendar .jalali-cal-grid button,.amnayar-jalali-calendar .jalali-cal-foot button{min-height:36px;border:1px solid #dbe5f1;border-radius:9px;background:#f5f8fc;color:#12345a;font-weight:700;cursor:pointer}
+.amnayar-jalali-calendar .jalali-cal-head select{width:100%;min-width:0;height:38px;border:1px solid #dbe5f1;border-radius:9px;background:white;color:#10243d;font:inherit;font-size:13px}
+.amnayar-jalali-calendar .jalali-cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.amnayar-jalali-calendar .jalali-cal-week{text-align:center;padding:5px 0;font-size:12px;font-weight:800;color:#65758b}
+.amnayar-jalali-calendar .jalali-cal-grid button{height:38px;padding:0}
+.amnayar-jalali-calendar .jalali-cal-grid button:hover,.amnayar-jalali-calendar .jalali-cal-head button:hover{background:#e7f0ff;border-color:#90b8f4}
+.amnayar-jalali-calendar .jalali-cal-grid button.selected{background:#0e4a91;color:#fff;border-color:#0e4a91}
+.amnayar-jalali-calendar .jalali-cal-foot{display:flex;gap:8px;justify-content:space-between;margin-top:12px}
+.amnayar-jalali-calendar .jalali-cal-foot button{padding:7px 14px}
+.amna-action-history{margin:22px 0;padding:0;border:1px solid #dce6f2;border-radius:16px;background:#fff;box-shadow:0 8px 24px rgba(13,43,79,.07);overflow:hidden}
+.amna-action-history>summary{cursor:pointer;list-style:none;padding:15px 18px;font-weight:800;color:#12345a;background:linear-gradient(120deg,#f3f8ff,#fff)}
+.amna-action-history>summary::-webkit-details-marker{display:none}
+.amna-action-history>summary span{display:inline-flex;align-items:center;justify-content:center;min-width:25px;height:25px;margin-inline-start:8px;border-radius:99px;background:#dceaff;color:#174a87;font-size:12px}
+.amna-action-history-body{padding:14px 18px}
+.amna-action-history-body ol{padding-inline-start:24px;margin:8px 0 14px}
+.amna-action-history-body li{padding:8px 0;border-bottom:1px solid #edf1f6;overflow-wrap:anywhere;font-size:13px;color:#334155}
+.amna-tagline{display:inline-block;margin-inline-start:12px;font-weight:800;color:inherit}
+.user-chip{white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:600px){.amnayar-jalali-calendar{position:fixed!important;left:10px!important;right:10px!important;top:50%!important;transform:translateY(-50%);width:auto;max-height:82vh}.amnayar-jalali-calendar .jalali-cal-head{grid-template-columns:30px 30px minmax(80px,1fr) minmax(70px,.8fr) 30px 30px;gap:3px}.amnayar-jalali-calendar .jalali-cal-grid{gap:4px}.amnayar-jalali-calendar .jalali-cal-grid button{height:36px}.amna-action-history-body{padding:12px}}
