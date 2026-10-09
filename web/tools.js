@@ -609,14 +609,14 @@ async function loadReferenceDocument(){
  }catch(e){console.error('document extraction',e);status.textContent='خواندن فایل انجام نشد: '+(e.message||'فرمت فایل را بررسی کنید.')}
  finally{if(ocrWorker)try{await ocrWorker.terminate()}catch(e){}}
 }
-async function askReferenceDocument(){
+async async function askReferenceDocument(){
  const q=String($('#docQaQuestion')?.value||'').trim(),out=$('#docQaAnswer'),status=$('#docQaStatus'),button=$('#docQaAsk');
  if(!amnaReferenceChunks.length){out.textContent='ابتدا فایل مرجع را بارگذاری و پردازش کنید.';return}
  if(!q){out.textContent='پرسش خود را وارد کنید یا با گفتار ثبت کنید.';return}
- const normalizeDoc=v=>String(v||'').toLocaleLowerCase('fa').replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[^\\p{L}\\p{N}]+/gu,' ').trim();
- const stop=new Set('از به با در را برای که این آن است بود شد می و یا اگر تا درباره طبق چیست چطور چگونه کدام چه آیا لطفا لطفاً من شما فایل متن مبلغ تاریخ شماره نام هست هستند شده شود می‌شود'.split(/\\s+/));
- const normalized=normalizeDoc(q),words=[...new Set(normalized.split(/\\s+/).filter(w=>w.length>1&&!stop.has(w)))];
- const ranked=amnaReferenceChunks.map(c=>{const t=normalizeDoc(c.text),tokens=new Set(t.split(/\\s+/));let hits=0,partial=0;for(const w of words){if(tokens.has(w))hits++;else if(w.length>=3&&t.includes(w))partial++}const phrase=normalized.length>4&&t.includes(normalized)?words.length*2:0;const coverage=words.length?(hits+partial*.35)/words.length:0;const numberHits=(normalized.match(/\\d+/g)||[]).filter(n=>t.includes(n)).length;return {...c,hits,coverage,score:hits+partial*.35+phrase+numberHits*1.5}}).sort((a,b)=>b.score-a.score).slice(0,6);
+ const normalizeDoc=v=>String(v||'').toLocaleLowerCase('fa').replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[^\p{L}\p{N}]+/gu,' ').trim();
+ const stop=new Set('از به با در را برای که این آن است بود شد می و یا اگر تا درباره طبق چیست چطور چگونه کدام چه آیا لطفا لطفاً من شما فایل متن مبلغ تاریخ شماره نام هست هستند شده شود می‌شود'.split(/\s+/));
+ const normalized=normalizeDoc(q),words=[...new Set(normalized.split(/\s+/).filter(w=>w.length>1&&!stop.has(w)))];
+ const ranked=amnaReferenceChunks.map(c=>{const t=normalizeDoc(c.text),tokens=new Set(t.split(/\s+/));let hits=0,partial=0;for(const w of words){if(tokens.has(w))hits++;else if(w.length>=3&&t.includes(w))partial++}const phrase=normalized.length>4&&t.includes(normalized)?words.length*2:0;const coverage=words.length?(hits+partial*.35)/words.length:0;const numberHits=(normalized.match(/\d+/g)||[]).filter(n=>t.includes(n)).length;return {...c,hits,coverage,score:hits+partial*.35+phrase+numberHits*1.5}}).sort((a,b)=>b.score-a.score).slice(0,6);
  if(!ranked.length){out.textContent='متن قابل استفاده‌ای از فایل استخراج نشد.';return}
  const oldLabel=button?.textContent;if(button){button.disabled=true;button.textContent='در حال پرسیدن از هوش مصنوعی…'}
  out.textContent='در حال تحلیل پرسش با هوش مصنوعی و بررسی متن فایل…';
