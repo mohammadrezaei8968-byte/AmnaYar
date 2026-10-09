@@ -31,7 +31,7 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
   const input=req.file?.path;
   if(!input)return res.status(400).json({error:"pdf_required"});
 
-  const quality=Math.max(25,Math.min(75,Number(req.body?.quality||55)));
+  const quality=Math.max(15,Math.min(75,Number(req.body?.quality||35)));
   const output=path.join(os.tmpdir(),"amnayar-compressed-"+crypto.randomUUID()+".pdf");
   const settings=quality<=45?"/screen":quality<=65?"/ebook":"/ebook";
 
@@ -41,8 +41,8 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
   ]);
 
   const runGs=async(out,level)=>{
-    const imageDpi=level<=20?45:level<=30?55:level<=45?72:level<=60?90:120;
-    const jpegQ=level<=20?20:level<=30?28:level<=45?40:level<=60?50:60;
+    const imageDpi=level<=15?36:level<=20?42:level<=30?50:level<=45?65:level<=60?85:110;
+    const jpegQ=level<=15?12:level<=20?16:level<=30?22:level<=45?32:level<=60?45:58;
     const preset=level<=45?"/screen":"/ebook";
     await execFileAsync("gs",[
       "-sDEVICE=pdfwrite",
@@ -52,6 +52,10 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
       "-dBATCH",
       "-dSAFER",
       "-dDetectDuplicateImages=true",
+      "-dOptimize=true",
+      "-dCompressPages=true",
+      "-dUseFlateCompression=true",
+      "-dNumRenderingThreads=2",
       "-dCompressFonts=true",
       "-dSubsetFonts=true",
       "-dAutoRotatePages=/None",
@@ -83,7 +87,7 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
   try{
     let stat;
     // Try progressively stronger image downsampling if the selected profile does not shrink the file.
-    const profiles=[...new Set([quality,30,20])];
+    const profiles=[...new Set([quality,30,20,15])];
     for(const profile of profiles){
       await fs.promises.unlink(output).catch(()=>{});
       await runGs(output,profile);
@@ -133,16 +137,16 @@ app.post("/api/tools/compress-video",videoUpload.single("file"),async(req,res)=>
   const input=req.file?.path;
   if(!input)return res.status(400).json({error:"video_required"});
   const quality=String(req.body?.quality||"balanced");
-  const crf=quality==="small"?35:quality==="high"?27:32;
+  const crf=quality==="small"?38:quality==="high"?27:34;
   const output=path.join(os.tmpdir(),"amnayar-video-"+crypto.randomUUID()+".mp4");
   const cleanup=()=>Promise.allSettled([fs.promises.unlink(input),fs.promises.unlink(output)]);
   try{
     if(!ffmpegPath)return res.status(503).json({error:"ffmpeg_unavailable"});
     await execFileAsync(ffmpegPath,[
       "-hide_banner","-loglevel","error","-y","-i",input,
-      "-map","0:v:0","-map","0:a?","-vf","scale='min(960,iw)':-2:flags=fast_bilinear",
+      "-map","0:v:0","-map","0:a?","-vf",`scale='min(${quality==="small"?480:quality==="high"?1080:720},iw)':-2:flags=fast_bilinear`,
       "-c:v","libx264","-preset","ultrafast","-crf",String(crf),
-      "-c:a","aac","-b:a","96k","-movflags","+faststart","-threads","0",output
+      "-c:a","aac","-b:a",quality==="small"?"64k":quality==="high"?"128k":"80k","-movflags","+faststart","-threads","0",output
     ],{timeout:2*60*60*1000,maxBuffer:4*1024*1024});
     const stat=await fs.promises.stat(output);
     const useOriginal=stat.size>=req.file.size;
