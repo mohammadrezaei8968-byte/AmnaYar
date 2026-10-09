@@ -106,8 +106,9 @@ const jalaliMonthNames=['فروردین','اردیبهشت','خرداد','تیر
 let jalaliCalendarTarget=null,jalaliCalendarYear=0,jalaliCalendarMonth=0;
 function openJalaliCalendar(pickerId,textId){jalaliCalendarTarget={pickerId,textId};const typed=parts($('#'+textId)?.value||$('#'+pickerId)?.value);if(validJalaliParts(typed)){jalaliCalendarYear=typed[0];jalaliCalendarMonth=typed[1]}else{const d=new Date();[jalaliCalendarYear,jalaliCalendarMonth]=g2j(d.getFullYear(),d.getMonth()+1,d.getDate()).slice(0,2)}renderJalaliCalendar()}
 function renderJalaliCalendar(){
- const pop=$('#amnayarJalaliCalendar');
- if(!pop||!jalaliCalendarTarget)return;
+ let pop=$('#amnayarJalaliCalendar');
+ if(!jalaliCalendarTarget)return;
+ if(!pop){pop=document.createElement('div');pop.id='amnayarJalaliCalendar';pop.className='amnayar-jalali-calendar';pop.setAttribute('role','dialog');pop.setAttribute('aria-label','تقویم شمسی');document.body.appendChild(pop);}
  let days=31;
  while(days>0&&!validJalaliParts([jalaliCalendarYear,jalaliCalendarMonth,days]))days--;
  const first=j2g(jalaliCalendarYear,jalaliCalendarMonth,1);
