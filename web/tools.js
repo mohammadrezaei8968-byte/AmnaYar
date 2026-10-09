@@ -1,9 +1,16 @@
 
+const voiceResultWaiters=Object.create(null),voiceStopPending=Object.create(null);
+function finishVoiceWait(direction){voiceStopPending[direction]=false;const resolve=voiceResultWaiters[direction];if(resolve){delete voiceResultWaiters[direction];resolve();}}
 async function translateText(direction){
   const input=direction==='fa-en'?$('#faToEnText'):$('#enToFaText');
   const result=direction==='fa-en'?$('#faToEnResult'):$('#enToFaResult');
   const status=direction==='fa-en'?$('#faToEnStatus'):$('#enToFaStatus');
-  const text=input.value.trim();
+  let text=input.value.trim();
+  if(!text&&voiceStopPending[direction]){
+    status.textContent='در حال آماده‌سازی گفتار برای ترجمه…';
+    await Promise.race([new Promise(resolve=>{voiceResultWaiters[direction]=resolve}),new Promise(resolve=>setTimeout(resolve,5000))]);
+    text=input.value.trim();finishVoiceWait(direction);
+  }
   if(!text){status.textContent='گفتار ضبط کنید یا متن را وارد کنید.';return}
   if(text.length>5000){status.textContent='حداکثر ۵۰۰۰ نویسه مجاز است.';return}
   status.textContent='در حال ترجمه...'; result.value='';
@@ -49,7 +56,7 @@ function setVoiceButtons(direction,recording){
 function startVoiceTranslation(direction){
   const status=$('#'+(direction==='fa-en'?'faVoiceStatus':'enVoiceStatus'));
   const input=direction==='fa-en'?$('#faToEnText'):$('#enToFaText');
-  input.value='';setVoiceButtons(direction,true);
+  input.value='';voiceStopPending[direction]=false;setVoiceButtons(direction,true);
   status.textContent='در حال ضبط؛ صحبت کنید و سپس «پایان ضبط» را بزنید.';
   if(window.AmnaYarSpeech&&typeof window.AmnaYarSpeech.startListening==='function'){
     try{window.AmnaYarSpeech.startListening(direction)}catch(e){setVoiceButtons(direction,false);status.textContent='شروع ضبط صدا ممکن نشد؛ دوباره تلاش کنید.'}
@@ -65,20 +72,21 @@ function startVoiceTranslation(direction){
     if(finalTranscript.trim())input.value=finalTranscript.trim();
   };
   recognition.onerror=event=>{setVoiceButtons(direction,false);status.textContent=event.error==='not-allowed'?'اجازه میکروفون را در مرورگر فعال کنید.':'ضبط گفتار انجام نشد؛ دوباره تلاش کنید.'};
-  recognition.onend=()=>{setVoiceButtons(direction,false);if(input.value.trim())status.textContent='گفتار ثبت شد؛ برای ترجمه دکمه ترجمه را بزنید.';else if(status.textContent.startsWith('در حال ضبط'))status.textContent='گفتاری ثبت نشد؛ دوباره شروع کنید.'};
+  recognition.onend=()=>{setVoiceButtons(direction,false);finishVoiceWait(direction);if(input.value.trim())status.textContent='گفتار ثبت شد؛ برای ترجمه دکمه ترجمه را بزنید.';else if(status.textContent.startsWith('در حال ضبط'))status.textContent='گفتاری ثبت نشد؛ دوباره شروع کنید.'};
   try{recognition.start()}catch(e){setVoiceButtons(direction,false);status.textContent='میکروفون در حال استفاده است؛ چند لحظه دیگر تلاش کنید.'}
 }
 function stopVoiceTranslation(direction){
   const status=$('#'+(direction==='fa-en'?'faVoiceStatus':'enVoiceStatus')),recognition=activeVoiceRecognizers[direction];
+  voiceStopPending[direction]=true;
   try{if(window.AmnaYarSpeech&&typeof window.AmnaYarSpeech.stopListening==='function')window.AmnaYarSpeech.stopListening();else if(recognition)recognition.stop();setVoiceButtons(direction,false);status.textContent='ضبط متوقف شد؛ برای ترجمه دکمه ترجمه را بزنید.';}
   catch(e){setVoiceButtons(direction,false);status.textContent='ضبط متوقف نشد؛ دوباره تلاش کنید.'}
 }
 window.amnayarVoiceResult=function(text,direction,error){
   const status=$('#'+(direction==='fa-en'?'faVoiceStatus':'enVoiceStatus')),input=direction==='fa-en'?$('#faToEnText'):$('#enToFaText');
   setVoiceButtons(direction,false);
-  if(error){status.textContent=error==='permission'?'اجازه دسترسی به میکروفون را فعال کنید.':error==='unsupported'?'سرویس تشخیص گفتار روی این دستگاه در دسترس نیست.':'گفتار تشخیص داده نشد؛ دوباره تلاش کنید.';return}
+  if(error){finishVoiceWait(direction);status.textContent=error==='permission'?'اجازه دسترسی به میکروفون را فعال کنید.':error==='unsupported'?'سرویس تشخیص گفتار روی این دستگاه در دسترس نیست.':'گفتار تشخیص داده نشد؛ دوباره تلاش کنید.';return}
   if(!text){status.textContent='گفتاری دریافت نشد؛ دوباره تلاش کنید.';return}
-  input.value=text;status.textContent='گفتار ثبت شد؛ برای ترجمه، دکمه ترجمه را بزنید.';
+  input.value=text;finishVoiceWait(direction);status.textContent='گفتار ثبت شد؛ برای ترجمه، دکمه ترجمه را بزنید.';
 }
 const $=s=>document.querySelector(s); const fa=n=>n.toLocaleString('fa-IR');
 async function mergePDFs(){const files=[...$('#mergeFiles').files];if(!files.length)return $('#mergeStatus').textContent='حداقل یک فایل انتخاب کنید.';$('#mergeStatus').textContent='در حال پردازش...';const out=await PDFLib.PDFDocument.create();for(const f of files){const doc=await PDFLib.PDFDocument.load(await f.arrayBuffer());const pages=await out.copyPages(doc,doc.getPageIndices());pages.forEach(p=>out.addPage(p));}download(await out.save(),'amnayar-merged.pdf','application/pdf');$('#mergeStatus').textContent='فایل ادغام شد.'}
