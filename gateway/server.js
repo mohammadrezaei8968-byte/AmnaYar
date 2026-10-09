@@ -33,7 +33,6 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
 
   const quality=Math.max(15,Math.min(75,Number(req.body?.quality||35)));
   const output=path.join(os.tmpdir(),"amnayar-compressed-"+crypto.randomUUID()+".pdf");
-  const settings=quality<=45?"/screen":quality<=65?"/ebook":"/ebook";
 
   const cleanup=async()=>Promise.allSettled([
     fs.promises.unlink(input),
@@ -87,7 +86,7 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
   try{
     let stat;
     // Try progressively stronger image downsampling if the selected profile does not shrink the file.
-    const profiles=[...new Set([quality,20])];
+    const profiles=[quality];
     for(const profile of profiles){
       await fs.promises.unlink(output).catch(()=>{});
       await runGs(output,profile);
