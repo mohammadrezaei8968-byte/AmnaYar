@@ -353,7 +353,7 @@ class MainActivity : Activity() {
                 // These removals apply only inside the Android app; normal website visitors still see site ads.
                 view.evaluateJavascript("""(function(){
                   window.__AMNAYAR_ANDROID_APP__=true;
-                  document.querySelectorAll('a[href]').forEach(function(a){try{var u=new URL(a.href,location.href);if(u.origin===location.origin){u.searchParams.set('app','1');a.href=u.toString();}}catch(e){}});
+                  document.querySelectorAll('a[href]').forEach(function(a){try{var u=new URL(a.href,location.href);if(u.origin===location.origin){u.searchParams.set('app','1');u.searchParams.set('appVersion',new URLSearchParams(location.search).get('appVersion')||'1.0.1');a.href=u.toString();}}catch(e){}});
                   document.querySelectorAll('a[target="_blank"]').forEach(function(a){try{if(new URL(a.href,location.href).origin!==location.origin)a.target='_self';}catch(e){}});
                   var style=document.getElementById('amnayar-app-cleanup');
                   if(!style){style=document.createElement('style');style.id='amnayar-app-cleanup';style.textContent='#topics,#support,.support,.ay-ad-showcase,.ad-grid,.ad-slot,.amnayar-free-ad,.monetization-section,.advertisement,.ad-container,[data-ad],iframe[src*="ad"],a[href="/advertising.html"],a[href^="/advertising.html"],a[href="#support"]{display:none!important}.nav .btn{white-space:nowrap!important;font-size:11px!important;padding:7px 8px!important}.brand span{white-space:nowrap!important}.tool-panel .tool-actions .btn{white-space:nowrap!important;overflow-wrap:normal!important;word-break:keep-all!important;font-size:12px!important}';document.head.appendChild(style);}
@@ -456,7 +456,7 @@ class MainActivity : Activity() {
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf("android.permission.POST_NOTIFICATIONS"), 7401)
         }
-        if (savedInstanceState == null) web.loadUrl("https://amnayar.ir/?app=1") else web.restoreState(savedInstanceState)
+        if (savedInstanceState == null) web.loadUrl("https://amnayar.ir/?app=1&appVersion=1.0.1") else web.restoreState(savedInstanceState)
     }
 
     @Deprecated("Deprecated in Java")
