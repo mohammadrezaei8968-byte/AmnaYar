@@ -51,6 +51,7 @@ jobs:
           node --check web/app.js
           node --check gateway/server.js
           node --check backend/src/server.js
+          git diff --check
 
       - name: Build installable APK
         working-directory: android
