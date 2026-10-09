@@ -700,3 +700,52 @@ document.addEventListener('DOMContentLoaded',()=>{
     });
   });
 });
+
+/* Load document parsers on demand if a CDN request failed on initial page load. */
+(function(){
+  const scriptPromises=Object.create(null);
+  function loadScriptOnce(url){
+    if(scriptPromises[url])return scriptPromises[url];
+    scriptPromises[url]=new Promise((resolve,reject)=>{
+      const existing=[...document.scripts].find(s=>s.src===url);
+      if(existing&&existing.dataset.amnaLoaded==='1'){resolve();return}
+      const s=document.createElement('script');s.src=url;s.async=true;
+      s.onload=()=>{s.dataset.amnaLoaded='1';resolve()};
+      s.onerror=()=>{s.remove();reject(new Error('بارگذاری کتابخانه فایل ناموفق بود: '+url)};
+      document.head.appendChild(s);
+    });
+    return scriptPromises[url];
+  }
+  async function ensureParser(ext){
+    if(ext==='pdf'&&!window.pdfjsLib){
+      let ok=false;
+      for(const url of ['https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js','https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js']){
+        try{await loadScriptOnce(url);if(window.pdfjsLib){ok=true;break}}catch(_){}
+      }
+      if(!ok)throw new Error('کتابخانه خواندن PDF بارگذاری نشد؛ اینترنت یا فیلترشکن را بررسی کنید.');
+    }
+    if(ext==='docx'&&!window.mammoth){
+      let ok=false;
+      for(const url of ['https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js','https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js']){
+        try{await loadScriptOnce(url);if(window.mammoth){ok=true;break}}catch(_){}
+      }
+      if(!ok)throw new Error('کتابخانه خواندن Word بارگذاری نشد؛ اتصال اینترنت را بررسی کنید.');
+    }
+    if(['xlsx','xls'].includes(ext)&&!window.XLSX){
+      let ok=false;
+      for(const url of ['https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js','https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js']){
+        try{await loadScriptOnce(url);if(window.XLSX){ok=true;break}}catch(_){}
+      }
+      if(!ok)throw new Error('کتابخانه خواندن Excel بارگذاری نشد؛ اتصال اینترنت را بررسی کنید.');
+    }
+  }
+  const oldLoad=window.loadReferenceDocument;
+  if(typeof oldLoad==='function')window.loadReferenceDocument=async function(){
+    const f=document.getElementById('docQaFile')?.files?.[0];
+    if(!f){const s=document.getElementById('docQaStatus');if(s)s.textContent='ابتدا فایل PDF، DOCX، XLS یا XLSX را انتخاب کنید.';return}
+    const ext=(f.name.split('.').pop()||'').toLowerCase();
+    if(ext==='doc'){const s=document.getElementById('docQaStatus');if(s)s.textContent='فایل Word قدیمی DOC پشتیبانی نمی‌شود؛ آن را با Word به DOCX یا PDF متنی تبدیل کنید.';return}
+    try{const s=document.getElementById('docQaStatus');if(s)s.textContent='در حال آماده‌سازی کتابخانه خواندن فایل…';await ensureParser(ext);return await oldLoad()}
+    catch(e){const s=document.getElementById('docQaStatus');if(s)s.textContent='فایل خوانده نشد: '+(e.message||'فرمت یا اتصال را بررسی کنید.')}
+  };
+})();
