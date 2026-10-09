@@ -67,6 +67,7 @@
    if(p&&t.description)p.textContent=t.description;
  });
 }catch(e){console.warn('public tools config',e)}finally{
+  const chooser=document.getElementById('toolChooser');if(chooser)chooser.dataset.built='';
   if(typeof window.showSelectedTool==='function') window.showSelectedTool();
 }})();
 </script></body></html>
