@@ -110,7 +110,7 @@ function selectJalaliToday(){const d=new Date(),j=g2j(d.getFullYear(),d.getMonth
 function shiftJalaliCalendar(delta){const index=(jalaliCalendarYear*12)+(jalaliCalendarMonth-1)+Number(delta||0);jalaliCalendarYear=Math.floor(index/12);jalaliCalendarMonth=((index%12)+12)%12+1;renderJalaliCalendar()}
 function selectJalaliCalendarDay(day){if(!jalaliCalendarTarget)return;const value=faDateDigits(datePartsText([jalaliCalendarYear,jalaliCalendarMonth,day]));const picker=$('#'+jalaliCalendarTarget.pickerId),text=$('#'+jalaliCalendarTarget.textId);if(picker)picker.value=value;if(text)text.value=value;$('#amnayarJalaliCalendar')?.remove();jalaliCalendarTarget=null}
 document.addEventListener('click',e=>{const pop=$('#amnayarJalaliCalendar');if(pop&&!pop.contains(e.target)&&!e.target.matches('[data-jalali-picker]'))pop.remove()});
-[['invDatePicker','invDate'],['dateDiffStartPicker','dateDiffStart'],['dateDiffEndPicker','dateDiffEnd']].forEach(([pickerId,textId])=>{const p=$('#'+pickerId);if(p){p.addEventListener('click',()=>openJalaliCalendar(pickerId,textId));p.addEventListener('focus',()=>openJalaliCalendar(pickerId,textId));}});
+[['invDatePicker','invDate'],['dateDiffStartPicker','dateDiffStart'],['dateDiffEndPicker','dateDiffEnd']].forEach(([pickerId,textId])=>{const p=$('#'+pickerId);if(p){p.addEventListener('click',()=>openJalaliCalendar(pickerId,textId));p.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openJalaliCalendar(pickerId,textId)}});}});
 function calculateDateDistance(){const a=parts($('#dateDiffStart').value),b=parts($('#dateDiffEnd').value),out=$('#dateDistanceResult');if(!validJalaliParts(a)||!validJalaliParts(b)){out.textContent='تاریخ شمسی معتبر را به شکل سال/ماه/روز وارد کنید یا از تقویم شمسی انتخاب کنید.';return}const ga=j2g(...a),gb=j2g(...b),msA=Date.UTC(ga[0],ga[1]-1,ga[2]),msB=Date.UTC(gb[0],gb[1]-1,gb[2]),days=Math.round(Math.abs(msB-msA)/86400000);out.textContent='فاصله دو تاریخ: '+fa(days)+' روز'+(days===0?' (یک روز یکسان)':'')}
 function discountCalc(){const p=+$('#price').value,x=+$('#percent').value;$('#discountResult').textContent=`مبلغ تخفیف: ${fa(Math.round(p*x/100))} — مبلغ نهایی: ${fa(Math.round(p*(1-x/100)))}`}function overtimeCalc(){const h=+$('#hourly').value,x=+$('#hours').value;$('#overtimeResult').textContent=`مبلغ اضافه‌کاری: ${fa(Math.round(h*x))}`}
 function textStats(){const t=$('#textInput').value;$('#textResult').textContent=`حروف: ${fa(t.replace(/\s/g,'').length)} — کلمات: ${fa(t.trim()?t.trim().split(/\s+/).length:0)} — کاراکتر: ${fa(t.length)}`}function faDigits(){let t=$('#textInput');t.value=t.value.replace(/[0-9]/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d])}function enDigits(){let t=$('#textInput');t.value=t.value.replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d))}function cleanText(){let t=$('#textInput');t.value=t.value.replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim()}
@@ -689,42 +689,50 @@ function copyTranslation(id){const el=document.getElementById(id);if(!el||!el.va
   };
 })();
 
-/* Better error messages and direct API fallback for PDF compression. */
+/* PDF compression: show upload progress and keep the server/local fallback paths. */
 async function compressPDF(){
   const f=$('#compressPdfFile')?.files?.[0],s=$('#compressPdfStatus');
   if(!f){if(s)s.textContent='ابتدا فایل PDF را انتخاب کنید.';return}
   if(!/\.pdf$/i.test(f.name)&&f.type!=='application/pdf'){s.textContent='فایل انتخاب‌شده PDF نیست.';return}
   if(f.size>500*1024*1024){s.textContent='حداکثر حجم PDF برابر ۵۰۰ مگابایت است.';return}
-  const level=Math.max(25,Math.min(75,Number($('#pdfQuality')?.value||35)));
+  const level=Math.max(15,Math.min(75,Number($('#pdfQuality')?.value||35)));
   const routes=['/api/tools/compress-pdf','https://api.amnayar.ir/api/tools/compress-pdf'];
-  s.textContent='در حال ارسال PDF؛ پس از آپلود، سرور فایل را فشرده می‌کند. لطفاً صفحه را باز نگه دارید.';
+  s.textContent='آماده‌سازی فایل PDF برای ارسال…';
   let lastError=null;
   for(let i=0;i<routes.length;i++){
-    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),45*60*1000);
     try{
       const fd=new FormData();fd.append('file',f,f.name);fd.append('quality',String(level));
-      const response=await fetch(routes[i],{method:'POST',body:fd,signal:controller.signal,cache:'no-store'});
-      if(!response.ok){
-        let data={};try{data=await response.json()}catch(_){}
-        const code=String(data.error||'');
-        if(response.status===404||response.status===502||response.status===503){lastError=new Error(code||('server_'+response.status));continue}
-        if(code==='pdf_already_optimized'){await compressPDFLocally(f,level,s);return}
-        if(code==='ghostscript_unavailable'){await compressPDFLocally(f,level,s);return}
-        if(code==='pdf_too_large'){s.textContent='حجم فایل از حد مجاز سرور بیشتر است.';return}
-        await compressPDFLocally(f,level,s);return;
-      }
-      const blob=await response.blob();
-      const original=Number(response.headers.get('X-Original-Size')||f.size),compressed=Number(response.headers.get('X-Compressed-Size')||blob.size);
-      if(!blob.size||blob.type.includes('json'))throw new Error('خروجی PDF معتبر دریافت نشد.');
-      if(compressed>=original){s.textContent='سرور فایل کوچک‌تری تولید نکرد؛ نسخه بزرگ‌تر دانلود نشد.';return}
-      downloadBlob(blob,'amnayar-compressed.pdf');
+      const blob=await new Promise((resolve,reject)=>{
+        const xhr=new XMLHttpRequest();xhr.open('POST',routes[i]);xhr.responseType='blob';xhr.timeout=45*60*1000;
+        xhr.upload.onprogress=e=>{if(e.lengthComputable){const pct=Math.round(e.loaded/e.total*100);s.textContent='ارسال PDF به سرور: '+pct.toLocaleString('fa-IR')+'٪ ('+(e.loaded/1048576).toFixed(1)+' از '+(e.total/1048576).toFixed(1)+' مگابایت)';}};
+        xhr.upload.onload=()=>{s.textContent='آپلود کامل شد؛ در حال فشرده‌سازی PDF روی سرور…'};
+        xhr.onload=async()=>{
+          if(xhr.status>=200&&xhr.status<300){resolve({blob:xhr.response,xhr});return}
+          let code='server_'+xhr.status;try{const data=JSON.parse(await xhr.response.text());code=String(data.error||code)}catch(_){}
+          const err=new Error(code);err.status=xhr.status;reject(err);
+        };
+        xhr.onerror=()=>reject(new Error('network_error'));
+        xhr.ontimeout=()=>reject(new Error('timeout'));
+        xhr.onabort=()=>reject(new Error('aborted'));
+        xhr.send(fd);
+      });
+      const out=blob.blob,resp=blob.xhr;
+      const original=Number(resp.getResponseHeader('X-Original-Size')||f.size),compressed=Number(resp.getResponseHeader('X-Compressed-Size')||out.size);
+      if(!out.size||out.type.includes('json'))throw new Error('خروجی PDF معتبر دریافت نشد.');
+      if(compressed>=original){s.textContent='سرور نتوانست حجم را کاهش دهد؛ تلاش برای فشرده‌سازی محلی…';await compressPDFLocally(f,level,s);return}
+      downloadBlob(out,'amnayar-compressed.pdf');
       s.textContent=savingsText(original,compressed)+' — فایل فشرده و دانلود شد.';
-      if(typeof logLocalToolAction==='function')logLocalToolAction('کم‌حجم‌کردن PDF با موفقیت','conversion');
+      if(typeof logLocalToolAction==='function')logLocalToolAction('فشرده‌سازی PDF با موفقیت','conversion');
       return;
-    }catch(e){lastError=e;if(e?.name==='AbortError'){s.textContent='پردازش PDF بیش از زمان مجاز طول کشید؛ فایل کوچک‌تر یا با کیفیت پایین‌تر امتحان کنید.';return}}
-    finally{clearTimeout(timer)}
+    }catch(e){
+      lastError=e;
+      if(e.status===404||e.status===502||e.status===503||e.message==='network_error')continue;
+      if(e.message==='ghostscript_unavailable'||e.message==='pdf_already_optimized'||e.status===422){s.textContent='فشرده‌سازی سرور کامل نشد؛ تلاش برای فشرده‌سازی محلی…';await compressPDFLocally(f,level,s);return}
+      if(e.message==='timeout'){s.textContent='پردازش PDF بیش از زمان مجاز طول کشید؛ فایل کوچک‌تر یا کیفیت پایین‌تر را امتحان کنید.';return}
+      console.warn('PDF compression route failed',e);
+    }
   }
-  console.error('AmnaYar PDF compression failed',lastError);
+  console.warn('AmnaYar PDF compression failed',lastError);
   await compressPDFLocally(f,level,s);
 }
 
