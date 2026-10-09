@@ -522,6 +522,7 @@ app.post("/api/translate",async(req,res)=>{
 
 // Document-grounded AI Q&A (OpenAI-compatible API).
 
+app.get("/api/ai/status",(req,res)=>res.json({configured:!!String(process.env.OPENAI_API_KEY||process.env.AI_API_KEY||"").trim(),model:String(process.env.OPENAI_MODEL||process.env.AI_MODEL||"gpt-4o-mini"),providerConfigured:!!String(process.env.OPENAI_BASE_URL||process.env.AI_BASE_URL||"").trim()}));
 const aiRequestWindow=new Map();
 app.post("/api/ai/document-question",async(req,res)=>{
  const nowMs=Date.now(),ip=String(req.ip||req.socket?.remoteAddress||"unknown"),recent=(aiRequestWindow.get(ip)||[]).filter(t=>nowMs-t<60000);
