@@ -42,6 +42,13 @@ class MainActivity : Activity() {
                 startSpeechRecognition(pendingSpeechDirection)
             }
         }
+
+        @JavascriptInterface
+        fun stopListening() {
+            runOnUiThread {
+                try { speechRecognizer?.stopListening() } catch (_: Exception) { }
+            }
+        }
     }
 
     private fun startSpeechRecognition(direction: String) {
