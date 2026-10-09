@@ -169,7 +169,40 @@ function resizeImage(){const f=$('#imgFile').files[0],w=+$('#imgW').value,h=+$('
 function fmtBytes(n){if(!Number.isFinite(n))return '';const u=['بایت','کیلوبایت','مگابایت','گیگابایت'];let i=0;let x=n;while(x>=1024&&i<u.length-1){x/=1024;i++;}return `${x.toLocaleString('fa-IR',{maximumFractionDigits:2})} ${u[i]}`}
 function savingsText(a,b){if(!a||!b)return '';const pct=(1-b/a)*100;if(pct<=0)return `حجم اولیه: ${fmtBytes(a)} — حجم خروجی: ${fmtBytes(b)} — این فایل از قبل بهینه است.`;return `حجم اولیه: ${fmtBytes(a)} — حجم جدید: ${fmtBytes(b)} — کاهش: ${pct.toLocaleString('fa-IR',{maximumFractionDigits:1})}%`}
 function showConversionNotice(text,ok=true){let n=document.getElementById('amnayarConversionNotice');if(!n){n=document.createElement('div');n.id='amnayarConversionNotice';n.style.cssText='position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:100000;max-width:92vw;padding:13px 18px;border-radius:14px;background:#0b7a4b;color:#fff;box-shadow:0 12px 35px rgba(0,0,0,.18);font-weight:800;text-align:center;direction:rtl';document.body.appendChild(n)}n.textContent=text;n.style.background=ok?'#0b7a4b':'#b42318';n.style.display='block';clearTimeout(n._t);n._t=setTimeout(()=>n.style.display='none',4500)}
-function downloadBlob(blob,name){if(window.AmnaYarDownloader&&blob&&blob.size<=50*1024*1024){const reader=new FileReader();reader.onload=()=>{try{window.AmnaYarDownloader.saveBase64(name||'download',blob.type||'application/octet-stream',String(reader.result).split(',')[1]||'')}catch(e){showConversionNotice('ذخیره دانلود انجام نشد.',false)}};reader.readAsDataURL(blob);return}const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);showConversionNotice('تبدیل با موفقیت انجام شد؛ دانلود فایل آغاز شد.')}window.addEventListener('amnayarDownloadCompleted',()=>showConversionNotice('تبدیل با موفقیت انجام شد؛ فایل دانلود شد.'));window.addEventListener('amnayarDownloadFailed',()=>showConversionNotice('تبدیل انجام شد اما ذخیره فایل ناموفق بود.',false));
+function downloadBlob(blob,name){
+  const bridge=window.AmnaYarDownloader;
+  if(bridge&&blob&&blob.size<=50*1024*1024){
+    const reader=new FileReader();
+    reader.onload=()=>{try{bridge.saveBase64(name||'download',blob.type||'application/octet-stream',String(reader.result).split(',')[1]||'')}catch(e){showConversionNotice('ذخیره دانلود انجام نشد.',false)}};
+    reader.onerror=()=>showConversionNotice('خواندن فایل برای دانلود ناموفق بود.',false);
+    reader.readAsDataURL(blob);return;
+  }
+  if(bridge&&blob&&typeof bridge.beginChunkedSave==='function'&&typeof bridge.appendBase64Chunk==='function'&&typeof bridge.finishChunkedSave==='function'){
+    try{
+      if(!bridge.beginChunkedSave(name||'download',blob.type||'application/octet-stream'))throw new Error('begin_save_failed');
+      const chunkSize=2*1024*1024;let offset=0;
+      const nextChunk=()=>{
+        const part=blob.slice(offset,Math.min(offset+chunkSize,blob.size)),reader=new FileReader();
+        reader.onload=()=>{
+          try{
+            const encoded=String(reader.result).split(',')[1]||'';
+            if(!bridge.appendBase64Chunk(encoded))throw new Error('append_chunk_failed');
+            offset+=part.size;
+            if(offset<blob.size){nextChunk();return}
+            if(!bridge.finishChunkedSave())throw new Error('finish_save_failed');
+          }catch(e){try{bridge.abortChunkedSave()}catch(_){}showConversionNotice('ذخیره فایل کامل نشد؛ فضای خالی گوشی را بررسی کنید.',false)}
+        };
+        reader.onerror=()=>{try{bridge.abortChunkedSave()}catch(_){}showConversionNotice('خواندن فایل برای ذخیره ناموفق بود.',false)};
+        reader.readAsDataURL(part);
+      };
+      showConversionNotice('در حال ذخیره فایل در پوشه دانلودها…');
+      nextChunk();return;
+    }catch(e){try{bridge.abortChunkedSave()}catch(_){}showConversionNotice('ذخیره فایل انجام نشد.',false);return}
+  }
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);showConversionNotice('تبدیل با موفقیت انجام شد؛ دانلود فایل آغاز شد.');
+}
+window.addEventListener('amnayarDownloadCompleted',()=>showConversionNotice('تبدیل با موفقیت انجام شد؛ فایل دانلود شد.'));
+window.addEventListener('amnayarDownloadFailed',()=>showConversionNotice('تبدیل انجام شد اما ذخیره فایل ناموفق بود.',false));
 $('#imageQuality')?.addEventListener('input',e=>$('#imageQualityValue').textContent=e.target.value);
 
 // فشرده‌سازی سمت کاربر: برای تصویر هیچ وابستگی به سرویس Render ندارد.
