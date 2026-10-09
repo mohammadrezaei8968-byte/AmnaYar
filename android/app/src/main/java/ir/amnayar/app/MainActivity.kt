@@ -130,7 +130,101 @@ class MainActivity : Activity() {
         }
     }
 
+    private var chunkedDownloadUri: Uri? = null
+    private var chunkedDownloadFile: java.io.File? = null
+    private var chunkedDownloadOutput: java.io.OutputStream? = null
+    private var chunkedDownloadName: String = "amnayar-download"
+    private var chunkedDownloadMime: String = "application/octet-stream"
+
     private inner class DownloadBridge {
+        @JavascriptInterface
+        @Synchronized
+        fun beginChunkedSave(name: String, mime: String): Boolean {
+            try {
+                abortChunkedSave()
+                chunkedDownloadName = name.substringAfterLast('/').ifBlank { "amnayar-download" }
+                chunkedDownloadMime = mime.ifBlank { "application/octet-stream" }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    val values = android.content.ContentValues().apply {
+                        put(android.provider.MediaStore.Downloads.DISPLAY_NAME, chunkedDownloadName)
+                        put(android.provider.MediaStore.Downloads.MIME_TYPE, chunkedDownloadMime)
+                        put(android.provider.MediaStore.Downloads.IS_PENDING, 1)
+                    }
+                    val uri = contentResolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                        ?: throw IllegalStateException("download_uri_failed")
+                    chunkedDownloadUri = uri
+                    chunkedDownloadOutput = contentResolver.openOutputStream(uri)
+                        ?: throw IllegalStateException("download_stream_failed")
+                } else {
+                    val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                    if (!dir.exists()) dir.mkdirs()
+                    val file = java.io.File(dir, chunkedDownloadName)
+                    chunkedDownloadFile = file
+                    chunkedDownloadUri = Uri.fromFile(file)
+                    chunkedDownloadOutput = java.io.FileOutputStream(file)
+                }
+                return true
+            } catch (_: Exception) {
+                abortChunkedSave()
+                return false
+            }
+        }
+
+        @JavascriptInterface
+        @Synchronized
+        fun appendBase64Chunk(base64: String): Boolean {
+            return try {
+                val output = chunkedDownloadOutput ?: return false
+                output.write(Base64.decode(base64, Base64.DEFAULT))
+                true
+            } catch (_: Exception) { false }
+        }
+
+        @JavascriptInterface
+        @Synchronized
+        fun finishChunkedSave(): Boolean {
+            return try {
+                val output = chunkedDownloadOutput ?: return false
+                output.flush()
+                output.close()
+                chunkedDownloadOutput = null
+                val uri = chunkedDownloadUri
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && uri != null) {
+                    val values = android.content.ContentValues().apply {
+                        put(android.provider.MediaStore.Downloads.IS_PENDING, 0)
+                    }
+                    contentResolver.update(uri, values, null, null)
+                } else if (uri != null) {
+                    sendBroadcast(Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, uri))
+                }
+                val name = chunkedDownloadName
+                val mime = chunkedDownloadMime
+                runOnUiThread {
+                    showDownloadNotification(name, uri, mime)
+                    web.evaluateJavascript("window.dispatchEvent(new CustomEvent('amnayarDownloadCompleted',{detail:{name:" + org.json.JSONObject.quote(name) + "}}))", null)
+                }
+                chunkedDownloadUri = null
+                chunkedDownloadFile = null
+                true
+            } catch (_: Exception) {
+                abortChunkedSave()
+                false
+            }
+        }
+
+        @JavascriptInterface
+        @Synchronized
+        fun abortChunkedSave() {
+            try { chunkedDownloadOutput?.close() } catch (_: Exception) { }
+            chunkedDownloadOutput = null
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) chunkedDownloadUri?.let { contentResolver.delete(it, null, null) }
+                else chunkedDownloadFile?.delete()
+            } catch (_: Exception) { }
+            chunkedDownloadUri = null
+            chunkedDownloadFile = null
+        }
+
         @JavascriptInterface
         fun saveBase64(name: String, mime: String, base64: String) {
             try {
