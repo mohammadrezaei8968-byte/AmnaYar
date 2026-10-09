@@ -530,26 +530,18 @@ document.addEventListener('click',e=>{const b=e.target.closest('.tool-list butto
 })();
 
 
-// AmnaYar tool usage analytics
+// AmnaYar tool usage analytics: log each action and avoid logging every keystroke.
 (function(){
   const endpoint='/api/analytics/event';
   const sid=sessionStorage.getItem('amna_analytics_session')||((crypto&&crypto.randomUUID)?crypto.randomUUID():String(Date.now())+'-'+Math.random());
   sessionStorage.setItem('amna_analytics_session',sid);
-  const sent=new Set();
+  const inputSent=new Set();
   function send(type,meta){try{fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},keepalive:true,body:JSON.stringify({event_type:type,path:location.pathname+location.search,session_id:sid,meta:meta||{}})}).catch(()=>{});}catch(e){}}
+  function record(panel){const title=(panel.querySelector('h2')||{}).textContent||panel.id;logLocalToolAction(title.trim(),panel.id);send('tool_use',{tool:panel.id,name:title.trim(),category:'tools'});}
   send('page_view',{referrer:document.referrer||''});
-  document.addEventListener('click',function(e){
-    const panel=e.target.closest&&e.target.closest('.tool-panel[id]'); if(!panel||sent.has(panel.id))return;
-    sent.add(panel.id); const title=(panel.querySelector('h2')||{}).textContent||panel.id;
-    logLocalToolAction(title.trim(),panel.id);send('tool_use',{tool:panel.id,name:title.trim(),category:'tools'});
-  },true);
-  document.addEventListener('input',function(e){
-    const panel=e.target.closest&&e.target.closest('.tool-panel[id]'); if(!panel||sent.has(panel.id))return;
-    sent.add(panel.id); const title=(panel.querySelector('h2')||{}).textContent||panel.id;
-    logLocalToolAction(title.trim(),panel.id);send('tool_use',{tool:panel.id,name:title.trim(),category:'tools'});
-  },true);
+  document.addEventListener('click',function(e){const panel=e.target.closest&&e.target.closest('.tool-panel[id]');if(panel)record(panel)},true);
+  document.addEventListener('input',function(e){const panel=e.target.closest&&e.target.closest('.tool-panel[id]');if(!panel||inputSent.has(panel.id))return;inputSent.add(panel.id);record(panel)},true);
 })();
-
 /* Document-grounded Q&A: extracts only the user's uploaded file and returns matching source passages. */
 let amnaReferenceChunks=[];
 async function loadReferenceDocument(){const f=$('#docQaFile')?.files?.[0],status=$('#docQaStatus');if(!f){status.textContent='ابتدا فایل PDF، Word یا Excel را انتخاب کنید.';return}if(f.size>100*1024*1024){status.textContent='برای پردازش سریع و امن، حجم فایل حداکثر ۱۰۰ مگابایت باشد.';return}status.textContent='در حال خواندن فایل…';amnaReferenceChunks=[];try{const ext=(f.name.split('.').pop()||'').toLowerCase();if(ext==='pdf'){if(!window.pdfjsLib)throw new Error('کتابخانه PDF بارگذاری نشده است؛ اتصال اینترنت را بررسی کنید.');if(pdfjsLib.GlobalWorkerOptions)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';const pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer(),useWorkerFetch:false,isEvalSupported:false}).promise;for(let p=1;p<=pdf.numPages;p++){const page=await pdf.getPage(p),content=await page.getTextContent(),txt=content.items.map(x=>x.str).join(' ').replace(/\s+/g,' ').trim();if(txt)amnaReferenceChunks.push({source:'صفحه '+fa(p),text:txt})}}else if(ext==='docx'){if(!window.mammoth)throw new Error('کتابخانه Word بارگذاری نشده است.');const r=await mammoth.extractRawText({arrayBuffer:await f.arrayBuffer()});r.value.split(/\n+/).map(x=>x.trim()).filter(Boolean).forEach((text,i)=>amnaReferenceChunks.push({source:'بخش '+fa(i+1),text}))}else if(ext==='xlsx'||ext==='xls'){if(!window.XLSX)throw new Error('کتابخانه Excel بارگذاری نشده است.');const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});for(const name of wb.SheetNames){const rows=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:false});for(let i=0;i<rows.length;i++){const text=rows[i].map(v=>String(v??'').trim()).filter(Boolean).join(' | ');if(text)amnaReferenceChunks.push({source:'برگه '+name+'، ردیف '+fa(i+1),text})}}}else throw new Error('فقط فایل PDF، DOCX، XLS یا XLSX پشتیبانی می‌شود.');if(!amnaReferenceChunks.length)throw new Error('متن قابل جست‌وجویی در فایل پیدا نشد؛ شاید فایل اسکن تصویری یا خالی باشد.');status.textContent='فایل خوانده شد: '+f.name+' — '+fa(amnaReferenceChunks.length)+' بخش قابل جست‌وجو. پرسش خود را بنویسید یا با صدا بگویید.';$('#docQaAsk').disabled=false}catch(e){console.error('document extraction',e);status.textContent='خواندن فایل انجام نشد: '+(e.message||'فرمت فایل را بررسی کنید.');}}
