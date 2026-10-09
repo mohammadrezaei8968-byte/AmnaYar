@@ -357,7 +357,7 @@ class MainActivity : Activity() {
                     function record(title,kind){try{var key='amnayar_action_history',rows=JSON.parse(localStorage.getItem(key)||'[]');rows.unshift({title:String(title||'اقدام در برنامه'),kind:String(kind||'app'),at:new Date().toISOString()});localStorage.setItem(key,JSON.stringify(rows.slice(0,100)))}catch(e){}}
                     document.addEventListener('click',function(e){
                       var el=e.target.closest('button,a,[role="button"]');if(!el||el.closest('.tool-panel'))return;
-                      var title=(el.innerText||el.textContent||el.getAttribute('aria-label')||'').replace(/\\s+/g,' ').trim();
+                      var title=(el.innerText||el.textContent||el.getAttribute('aria-label')||'').replace(/\s+/g,' ').trim();
                       if(!title||/^(خانه|بازگشت|بستن|بعداً|خروج)$/.test(title))return;
                       record((document.querySelector('h1')?.textContent||document.title)+' — '+title,'app');
                     },true);
