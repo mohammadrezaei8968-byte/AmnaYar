@@ -3,6 +3,7 @@ package ir.amnayar.app
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.PendingIntent
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.pm.PackageManager
@@ -129,16 +130,112 @@ class MainActivity : Activity() {
         }
     }
 
+    private var chunkedDownloadUri: Uri? = null
+    private var chunkedDownloadFile: java.io.File? = null
+    private var chunkedDownloadOutput: java.io.OutputStream? = null
+    private var chunkedDownloadName: String = "amnayar-download"
+    private var chunkedDownloadMime: String = "application/octet-stream"
+
     private inner class DownloadBridge {
+        @JavascriptInterface
+        @Synchronized
+        fun beginChunkedSave(name: String, mime: String): Boolean {
+            try {
+                abortChunkedSave()
+                chunkedDownloadName = name.substringAfterLast('/').ifBlank { "amnayar-download" }
+                chunkedDownloadMime = mime.ifBlank { "application/octet-stream" }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    val values = android.content.ContentValues().apply {
+                        put(android.provider.MediaStore.Downloads.DISPLAY_NAME, chunkedDownloadName)
+                        put(android.provider.MediaStore.Downloads.MIME_TYPE, chunkedDownloadMime)
+                        put(android.provider.MediaStore.Downloads.IS_PENDING, 1)
+                    }
+                    val uri = contentResolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                        ?: throw IllegalStateException("download_uri_failed")
+                    chunkedDownloadUri = uri
+                    chunkedDownloadOutput = contentResolver.openOutputStream(uri)
+                        ?: throw IllegalStateException("download_stream_failed")
+                } else {
+                    val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                    if (!dir.exists()) dir.mkdirs()
+                    val file = java.io.File(dir, chunkedDownloadName)
+                    chunkedDownloadFile = file
+                    chunkedDownloadUri = Uri.fromFile(file)
+                    chunkedDownloadOutput = java.io.FileOutputStream(file)
+                }
+                return true
+            } catch (_: Exception) {
+                abortChunkedSave()
+                return false
+            }
+        }
+
+        @JavascriptInterface
+        @Synchronized
+        fun appendBase64Chunk(base64: String): Boolean {
+            return try {
+                val output = chunkedDownloadOutput ?: return false
+                output.write(Base64.decode(base64, Base64.DEFAULT))
+                true
+            } catch (_: Exception) { false }
+        }
+
+        @JavascriptInterface
+        @Synchronized
+        fun finishChunkedSave(): Boolean {
+            return try {
+                val output = chunkedDownloadOutput ?: return false
+                output.flush()
+                output.close()
+                chunkedDownloadOutput = null
+                val uri = chunkedDownloadUri
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && uri != null) {
+                    val values = android.content.ContentValues().apply {
+                        put(android.provider.MediaStore.Downloads.IS_PENDING, 0)
+                    }
+                    contentResolver.update(uri, values, null, null)
+                } else if (uri != null) {
+                    sendBroadcast(Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, uri))
+                }
+                val name = chunkedDownloadName
+                val mime = chunkedDownloadMime
+                runOnUiThread {
+                    showDownloadNotification(name, uri, mime)
+                    web.evaluateJavascript("window.dispatchEvent(new CustomEvent('amnayarDownloadCompleted',{detail:{name:" + org.json.JSONObject.quote(name) + "}}))", null)
+                }
+                chunkedDownloadUri = null
+                chunkedDownloadFile = null
+                true
+            } catch (_: Exception) {
+                abortChunkedSave()
+                false
+            }
+        }
+
+        @JavascriptInterface
+        @Synchronized
+        fun abortChunkedSave() {
+            try { chunkedDownloadOutput?.close() } catch (_: Exception) { }
+            chunkedDownloadOutput = null
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) chunkedDownloadUri?.let { contentResolver.delete(it, null, null) }
+                else chunkedDownloadFile?.delete()
+            } catch (_: Exception) { }
+            chunkedDownloadUri = null
+            chunkedDownloadFile = null
+        }
+
         @JavascriptInterface
         fun saveBase64(name: String, mime: String, base64: String) {
             try {
                 val safeName = name.substringAfterLast('/').ifBlank { "amnayar-download" }
+                val safeMime = mime.ifBlank { "application/octet-stream" }
                 val bytes = Base64.decode(base64, Base64.DEFAULT)
+                var savedUri: Uri? = null
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     val values = android.content.ContentValues().apply {
                         put(android.provider.MediaStore.Downloads.DISPLAY_NAME, safeName)
-                        put(android.provider.MediaStore.Downloads.MIME_TYPE, mime.ifBlank { "application/octet-stream" })
+                        put(android.provider.MediaStore.Downloads.MIME_TYPE, safeMime)
                         put(android.provider.MediaStore.Downloads.IS_PENDING, 1)
                     }
                     val uri = contentResolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
@@ -147,14 +244,17 @@ class MainActivity : Activity() {
                     values.clear()
                     values.put(android.provider.MediaStore.Downloads.IS_PENDING, 0)
                     contentResolver.update(uri, values, null, null)
+                    savedUri = uri
                 } else {
                     val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
                     if (!dir.exists()) dir.mkdirs()
-                    java.io.File(dir, safeName).writeBytes(bytes)
-                    sendBroadcast(Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(java.io.File(dir, safeName))))
+                    val file = java.io.File(dir, safeName)
+                    file.writeBytes(bytes)
+                    savedUri = Uri.fromFile(file)
+                    sendBroadcast(Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, savedUri))
                 }
                 runOnUiThread {
-                    showDownloadNotification(safeName)
+                    showDownloadNotification(safeName, savedUri, safeMime)
                     web.evaluateJavascript("window.dispatchEvent(new CustomEvent('amnayarDownloadCompleted',{detail:{name:" + org.json.JSONObject.quote(safeName) + "}}))", null)
                 }
             } catch (_: Exception) {
@@ -163,18 +263,26 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun showDownloadNotification(name: String) {
+    private fun showDownloadNotification(name: String, fileUri: Uri?, mimeType: String) {
         val channelId = "amnayar_downloads"
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             manager.createNotificationChannel(NotificationChannel(channelId, "دانلودهای امنا یار", NotificationManager.IMPORTANCE_DEFAULT))
         }
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) return
+        val openIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && fileUri != null) {
+            Intent(Intent.ACTION_VIEW).setDataAndType(fileUri, mimeType).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        } else {
+            Intent(android.app.DownloadManager.ACTION_VIEW_DOWNLOADS)
+        }
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
+        val pending = PendingIntent.getActivity(this, (System.currentTimeMillis() % Int.MAX_VALUE).toInt(), openIntent, flags)
         val notification = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             android.app.Notification.Builder(this, channelId)
                 .setSmallIcon(android.R.drawable.stat_sys_download_done)
                 .setContentTitle("دانلود امنا یار انجام شد")
-                .setContentText(name)
+                .setContentText("برای بازکردن فایل بزنید: " + name)
+                .setContentIntent(pending)
                 .setAutoCancel(true)
                 .build()
         } else {
@@ -182,6 +290,7 @@ class MainActivity : Activity() {
                 .setSmallIcon(android.R.drawable.stat_sys_download_done)
                 .setContentTitle("دانلود امنا یار انجام شد")
                 .setContentText(name)
+                .setContentIntent(pending)
                 .setAutoCancel(true)
                 .build()
         }
@@ -238,6 +347,22 @@ class MainActivity : Activity() {
                   document.querySelectorAll('a[target="_blank"]').forEach(function(a){try{if(new URL(a.href,location.href).origin!==location.origin)a.target='_self';}catch(e){}});
                   var style=document.getElementById('amnayar-app-cleanup');
                   if(!style){style=document.createElement('style');style.id='amnayar-app-cleanup';style.textContent='#topics,#support,.support,.ay-ad-showcase,.ad-grid,.ad-slot,.amnayar-free-ad,.monetization-section,.advertisement,.ad-container,[data-ad],iframe[src*="ad"],a[href="/advertising.html"],a[href^="/advertising.html"],a[href="#support"]{display:none!important}';document.head.appendChild(style);}
+                  function amnayarAppLabels(){
+                    document.querySelectorAll('a,button,[role="button"],h2').forEach(function(el){
+                      var t=(el.innerText||el.textContent||'').replace(/\s+/g,' ').trim();
+                      if(/ثبت.?نام رایگان/.test(t))el.textContent='ثبت‌نام برای دسترسی کامل';
+                      if(t==='ساخت حساب رایگان'){
+                        el.textContent='ورود به‌عنوان مهمان';
+                        el.onclick=function(e){if(e)e.preventDefault();location.href='/tools.html?app=1';};
+                      }
+                      if(t==='ساخت حساب')el.textContent='ثبت‌نام برای دسترسی کامل';
+                    });
+                  }
+                  amnayarAppLabels();
+                  if(!window.__amnayarAppLabelObserver){
+                    window.__amnayarAppLabelObserver=new MutationObserver(amnayarAppLabels);
+                    window.__amnayarAppLabelObserver.observe(document.body,{childList:true,subtree:true});
+                  }
                   document.querySelectorAll('a,button,[role="button"]').forEach(function(el){
                     var t=(el.innerText||el.textContent||'').replace(/\s+/g,' ').trim();
                     if(/اشتراک.?گذاری|share/i.test(t))el.remove();
