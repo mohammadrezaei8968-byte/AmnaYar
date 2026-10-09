@@ -171,6 +171,17 @@ app.post("/api/tools/compress-video",videoUpload.single("file"),async(req,res)=>
   }
 });
 
+// Convert oversized multipart uploads into predictable JSON responses for the web client.
+app.use((err,req,res,next)=>{
+  if(err instanceof multer.MulterError){
+    const video=String(req.originalUrl||"").includes("compress-video");
+    if(err.code==="LIMIT_FILE_SIZE")return res.status(413).json({error:video?"video_too_large":"pdf_too_large"});
+    return res.status(400).json({error:"upload_invalid"});
+  }
+  console.error("gateway_request_error",String(err?.message||err).slice(0,500));
+  return res.status(500).json({error:"gateway_request_failed"});
+});
+
 // Other API traffic continues to the backend.
 app.get("/health",(req,res)=>res.json({ok:true,service:"amnayar-gateway"}));
 
@@ -181,7 +192,16 @@ app.use("/api",createProxyMiddleware({
   pathRewrite:(p)=>"/api"+p
 }));
 
-// Long-cache static assets; HTML is revalidated frequently so deployments appear promptly.\napp.use(express.static(WEB_DIR,{maxAge:"30d",etag:true,lastModified:true,setHeaders:(res,file)=>{\n  if(/\\.(html?)$/i.test(file)) res.setHeader("Cache-Control","public,max-age=300,must-revalidate");\n  else if(/\\.(css|js|png|jpg|jpeg|webp|svg|ico|woff2?)$/i.test(file)) res.setHeader("Cache-Control","public,max-age=2592000,stale-while-revalidate=86400");\n}}));
+// Long-cache static assets; HTML is revalidated frequently so deployments appear promptly.
+app.use(express.static(WEB_DIR,{
+  maxAge:"30d",
+  etag:true,
+  lastModified:true,
+  setHeaders:(res,file)=>{
+    if(/\.(html?)$/i.test(file)) res.setHeader("Cache-Control","public,max-age=300,must-revalidate");
+    else if(/\.(css|js|png|jpg|jpeg|webp|svg|ico|woff2?)$/i.test(file)) res.setHeader("Cache-Control","public,max-age=2592000,stale-while-revalidate=86400");
+  }
+}));
 
 app.get("/admin",(req,res)=>res.redirect(302,"/owner"));
 
