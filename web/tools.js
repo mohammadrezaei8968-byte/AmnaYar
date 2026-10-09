@@ -609,28 +609,26 @@ async function loadReferenceDocument(){
  }catch(e){console.error('document extraction',e);status.textContent='خواندن فایل انجام نشد: '+(e.message||'فرمت فایل را بررسی کنید.')}
  finally{if(ocrWorker)try{await ocrWorker.terminate()}catch(e){}}
 }
-function askReferenceDocument(){
- const q=String($('#docQaQuestion')?.value||'').trim(),out=$('#docQaAnswer');
+async function askReferenceDocument(){
+ const q=String($('#docQaQuestion')?.value||'').trim(),out=$('#docQaAnswer'),status=$('#docQaStatus'),button=$('#docQaAsk');
  if(!amnaReferenceChunks.length){out.textContent='ابتدا فایل مرجع را بارگذاری و پردازش کنید.';return}
  if(!q){out.textContent='پرسش خود را وارد کنید یا با گفتار ثبت کنید.';return}
- const normalizeDoc=v=>String(v||'').toLocaleLowerCase('fa').replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[^\p{L}\p{N}]+/gu,' ').trim();
- const stop=new Set('از به با در را برای که این آن است بود شد می و یا اگر تا درباره طبق چیست چطور چگونه کدام چه آیا لطفا لطفاً من شما فایل متن مبلغ تاریخ شماره نام هست هستند شده شود می‌شود'.split(/\s+/));
- const normalized=normalizeDoc(q),words=[...new Set(normalized.split(/\s+/).filter(w=>w.length>1&&!stop.has(w)))];
- if(!words.length){out.textContent='برای جست‌وجوی دقیق‌تر، یک نام، عدد، تاریخ یا عبارت مشخص از فایل را در سؤال بیاورید.';return}
- const ranked=amnaReferenceChunks.map(c=>{
-  const t=normalizeDoc(c.text),tokens=new Set(t.split(/\s+/));
-  let hits=0,partial=0;
-  for(const w of words){if(tokens.has(w))hits++;else if(w.length>=3&&t.includes(w))partial++}
-  const phrase=normalized.length>4&&t.includes(normalized)?words.length*2:0;
-  const coverage=(hits+partial*.35)/words.length;
-  const numberHits=(normalized.match(/\d+/g)||[]).filter(n=>t.includes(n)).length;
-  return {...c,hits,coverage,score:hits+partial*.35+phrase+numberHits*1.5};
- }).filter(x=>x.hits>0||x.coverage>=.3).sort((a,b)=>b.score-a.score).slice(0,5);
- const best=ranked[0];
- if(!best||best.score<=0||best.coverage<.2){out.textContent='در متن استخراج‌شده از فایل، مدرک کافی برای پاسخ این سؤال پیدا نشد. اگر فایل اسکن‌شده است، کیفیت تصویر را بررسی و دوباره بارگذاری کنید؛ یا سؤال را با واژه‌های دقیق‌تر بنویسید.';return}
- const answer=best.text.length>1400?best.text.slice(0,1400)+'…':best.text;
- out.innerHTML='<p><b>پاسخ مستند از فایل</b></p><p>'+escapeDocQa(answer)+'</p><p class="muted">منبع: '+escapeDocQa(best.source)+' — '+fa(best.hits)+' واژه از '+fa(words.length)+' واژهٔ اصلی سؤال تطبیق داشت.</p>'+(ranked.length>1?'<details><summary>بخش‌های مرتبط دیگر</summary>'+ranked.slice(1).map((x,i)=>'<article class="docqa-source"><b>منبع '+fa(i+2)+' — '+escapeDocQa(x.source)+'</b><p>'+escapeDocQa(x.text.slice(0,900))+(x.text.length>900?'…':'')+'</p></article>').join('')+'</details>':'')+'<p class="muted">پاسخ فقط بر اساس متن استخراج‌شده از فایل است؛ این ابزار فعلاً مدل هوش مصنوعی مولد برای استنتاج و تحلیل آزاد ندارد.</p>';
-}function escapeDocQa(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+ const normalizeDoc=v=>String(v||'').toLocaleLowerCase('fa').replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[^\\p{L}\\p{N}]+/gu,' ').trim();
+ const stop=new Set('از به با در را برای که این آن است بود شد می و یا اگر تا درباره طبق چیست چطور چگونه کدام چه آیا لطفا لطفاً من شما فایل متن مبلغ تاریخ شماره نام هست هستند شده شود می‌شود'.split(/\\s+/));
+ const normalized=normalizeDoc(q),words=[...new Set(normalized.split(/\\s+/).filter(w=>w.length>1&&!stop.has(w)))];
+ const ranked=amnaReferenceChunks.map(c=>{const t=normalizeDoc(c.text),tokens=new Set(t.split(/\\s+/));let hits=0,partial=0;for(const w of words){if(tokens.has(w))hits++;else if(w.length>=3&&t.includes(w))partial++}const phrase=normalized.length>4&&t.includes(normalized)?words.length*2:0;const coverage=words.length?(hits+partial*.35)/words.length:0;const numberHits=(normalized.match(/\\d+/g)||[]).filter(n=>t.includes(n)).length;return {...c,hits,coverage,score:hits+partial*.35+phrase+numberHits*1.5}}).sort((a,b)=>b.score-a.score).slice(0,6);
+ if(!ranked.length){out.textContent='متن قابل استفاده‌ای از فایل استخراج نشد.';return}
+ const oldLabel=button?.textContent;if(button){button.disabled=true;button.textContent='در حال پرسیدن از هوش مصنوعی…'}
+ out.textContent='در حال تحلیل پرسش با هوش مصنوعی و بررسی متن فایل…';
+ try{
+  const response=await fetch('/api/ai/document-question',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,sources:ranked.map(x=>({source:x.source,text:x.text}))}),cache:'no-store'});
+  const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||'سرویس هوش مصنوعی در دسترس نیست.');
+  out.innerHTML='<p><b>پاسخ هوش مصنوعی بر اساس فایل</b></p><p>'+escapeDocQa(data.answer||'پاسخی دریافت نشد.')+'</p><p class="muted">منابع بررسی‌شده: '+ranked.map(x=>escapeDocQa(x.source)).join('، ')+'</p>';
+  if(status)status.textContent='پرسش با هوش مصنوعی پردازش شد.';
+ }catch(e){out.textContent=e.message||'پرسش‌وپاسخ هوشمند انجام نشد.';if(status)status.textContent='برای پاسخ هوشمند، سرویس AI سمت سرور باید فعال و کلید آن تنظیم شده باشد.'}
+ finally{if(button){button.disabled=false;button.textContent=oldLabel||'یافتن پاسخ در فایل'}}
+}
+function escapeDocQa(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function startDocumentQuestionVoice(){const status=$('#docQaStatus');if(window.AmnaYarSpeech?.startListening){try{window.AmnaYarSpeech.startListening('doc-qa');status.textContent='صحبت کنید؛ پس از پایان گفتار، پرسش در کادر قرار می‌گیرد.';return}catch(e){}}const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R){status.textContent='تشخیص گفتار در این مرورگر فعال نیست؛ از نسخه اندروید یا مرورگر سازگار استفاده کنید.';return}const r=new R();r.lang='fa-IR';r.interimResults=false;r.maxAlternatives=1;r.onresult=e=>{const text=e.results?.[0]?.[0]?.transcript||'';if(text){$('#docQaQuestion').value=text;status.textContent='پرسش صوتی ثبت شد؛ برای جست‌وجو دکمه پاسخ را بزنید.'}else status.textContent='گفتاری تشخیص داده نشد؛ دوباره تلاش کنید.'};r.onerror=e=>status.textContent=e.error==='not-allowed'?'اجازه میکروفون را در مرورگر فعال کنید.':'گفتار ثبت نشد؛ اتصال اینترنت و میکروفون را بررسی کنید.';try{r.start()}catch(e){status.textContent='شروع میکروفون ممکن نشد؛ دوباره تلاش کنید.'}}
 window.amnayarDocumentQuestionResult=function(text,direction,error){const status=$('#docQaStatus');if(error||!text){status.textContent='گفتار پرسش ثبت نشد؛ دوباره تلاش کنید.';return}$('#docQaQuestion').value=text;status.textContent='پرسش صوتی ثبت شد؛ برای یافتن پاسخ از فایل، دکمه پاسخ را بزنید.'};
 
@@ -676,10 +674,18 @@ function stopTranslationVoice(direction){
  }catch(e){status.textContent='توقف گفتار انجام نشد؛ دوباره تلاش کنید.'}
 }
 window.amnayarTranslationInputVoiceResult=function(text,direction,error){
- const faToEn=direction==='translate-fa-en',input=document.getElementById(faToEn?'plainFaText':'plainEnText'),status=document.getElementById(faToEn?'plainFaStatus':'plainEnStatus');
- if(error||!text){status.textContent=error==='permission'?'اجازه میکروفون را فعال کنید.':'گفتار ثبت نشد؛ دوباره تلاش کنید.';return}
- input.value=text;status.textContent='گفتار تشخیص داده شد؛ ترجمه آنلاین در حال انجام است…';translateStandalone(faToEn?'fa-en':'en-fa');
-};
+ const faToEn=direction==='translate-fa-en',key=faToEn?'fa-en':'en-fa',input=document.getElementById(faToEn?'plainFaText':'plainEnText'),status=document.getElementById(faToEn?'plainFaStatus':'plainEnStatus');
+ if(!error&&String(text||'').trim()){input.value=String(text).trim();status.textContent='گفتار ثبت شد؛ ترجمه آنلاین در حال انجام است…';window.__amnaTranslationVoiceDirection=null;translateStandalone(key);return}
+ const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!Recognition){status.textContent=error==='permission'?'اجازه میکروفون را فعال کنید.':'تشخیص گفتار در این دستگاه در دسترس نیست؛ سرویس گفتار اندروید/مرورگر را بررسی کنید.';return}
+ try{
+  const rec=new Recognition();activeTranslationRecognizers[key]=rec;rec.lang=faToEn?'fa-IR':'en-US';rec.interimResults=true;rec.continuous=false;rec.maxAlternatives=1;let finalText='';
+  rec.onresult=e=>{let interim='';for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0]?.transcript||'';if(e.results[i].isFinal)finalText+=t+' ';else interim+=t}input.value=(finalText+interim).trim()};
+  rec.onerror=e=>{status.textContent=e.error==='not-allowed'?'اجازه میکروفون را در تنظیمات مرورگر فعال کنید.':'تشخیص گفتار ناموفق بود؛ اتصال اینترنت و سرویس گفتار دستگاه را بررسی کنید.';delete activeTranslationRecognizers[key]};
+  rec.onend=()=>{delete activeTranslationRecognizers[key];window.__amnaTranslationVoiceDirection=null;if(input.value.trim()){status.textContent='گفتار ثبت شد؛ ترجمه آنلاین در حال انجام است…';translateStandalone(key)}else status.textContent='گفتاری ثبت نشد؛ دوباره تلاش کنید.'};
+  rec.start();status.textContent='سرویس داخلی پاسخ نداد؛ تشخیص گفتار مرورگر در حال اجراست.';
+ }catch(_){status.textContent='شروع میکروفون ناموفق بود؛ اجازه دسترسی را بررسی کنید.'}
+}
 function copyTranslation(id){const el=document.getElementById(id);if(!el||!el.value){return}if(navigator.clipboard?.writeText)navigator.clipboard.writeText(el.value).then(()=>{const s=document.getElementById(id==='plainEnResult'?'plainFaStatus':'plainEnStatus');if(s)s.textContent='ترجمه کپی شد.'}).catch(()=>{el.focus();el.select();document.execCommand('copy')});else{el.focus();el.select();document.execCommand('copy')}}
 (function checkAmnaAppUpdate(){if(new URLSearchParams(location.search).get('app')!=='1')return;fetch('/app-version.json?ts='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{if(!v||!v.latestVersion)return;const current=new URLSearchParams(location.search).get('appVersion')||'1.0.0';const parts=x=>String(x).split('.').map(n=>parseInt(n,10)||0);const newer=(a,b)=>{a=parts(a);b=parts(b);for(let i=0;i<Math.max(a.length,b.length);i++){if((a[i]||0)!==(b[i]||0))return(a[i]||0)>(b[i]||0)}return false};if(!newer(v.latestVersion,current))return;const bar=document.createElement('div');bar.style.cssText='position:fixed;z-index:100000;top:8px;left:8px;right:8px;background:#0c6b48;color:#fff;padding:14px;border-radius:14px;box-shadow:0 8px 30px #0003;display:flex;gap:10px;align-items:center;justify-content:space-between;direction:rtl';bar.innerHTML='<span>نسخه جدید امنا یار ('+String(v.latestVersion).replace(/[&<>"]/g,'')+') منتشر شده است.</span><button type="button" style="border:0;border-radius:9px;padding:9px 12px;font-weight:bold" id="amnaUpdateNow">به‌روزرسانی</button><button type="button" aria-label="بستن" id="amnaUpdateClose" style="border:0;background:transparent;color:white;font-size:20px">×</button>';document.body.appendChild(bar);document.getElementById('amnaUpdateNow').onclick=()=>{const url=String(v.bazaarUrl||'https://cafebazaar.ir/app/ir.amnayar.app');location.href=url};document.getElementById('amnaUpdateClose').onclick=()=>bar.remove()}).catch(()=>{})})();
 
