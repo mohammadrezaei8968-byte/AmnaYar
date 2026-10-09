@@ -243,7 +243,32 @@ async function compressImage(){
 }
 
 // PDF بدون ارسال فایل به سرور دوباره ذخیره می‌شود و ساختار فایل بهینه می‌شود.
-async function compressPDF(){const f=$('#compressPdfFile').files[0],s=$('#compressPdfStatus');if(!f)return s.textContent='فایل PDF را انتخاب کنید.';const MAX=500*1024*1024;if(f.size>MAX)return s.textContent='حداکثر حجم PDF برابر ۵۰۰ مگابایت است.';const level=Math.max(25,Math.min(75,Number($('#pdfQuality').value||55)));s.textContent='در حال فشرده‌سازی PDF حجیم... لطفاً صفحه را نبندید.';try{const fd=new FormData();fd.append('file',f,f.name);fd.append('quality',String(level));const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),45*60*1000);try{const r=await fetch('/api/tools/compress-pdf',{method:'POST',body:fd,signal:controller.signal});if(!r.ok){let d={};try{d=await r.json()}catch{}throw new Error(d.error||('server_compress_'+r.status))}const blob=await r.blob(),original=Number(r.headers.get('X-Original-Size')||f.size),compressed=Number(r.headers.get('X-Compressed-Size')||blob.size);if(compressed>=original){s.textContent='این PDF از قبل کم‌حجم است؛ خروجی بزرگ‌تر دانلود نشد.';showConversionNotice('فایل از قبل کم‌حجم است؛ خروجی بزرگ‌تر دانلود نشد.',false);return}downloadBlob(blob,'amnayar-compressed.pdf');s.textContent=savingsText(original,compressed)+' — فشرده‌سازی انجام شد.'}finally{clearTimeout(timer)}}catch(e){console.error('PDF compression',e);const reason=String(e?.message||'');s.textContent=e?.name==='AbortError'?'پردازش فایل حجیم بیش از زمان مجاز طول کشید.':reason.includes('ghostscript_unavailable')?'سرویس فشرده‌سازی PDF روی سرور فعال نیست؛ مدیر سایت باید نصب Ghostscript را بررسی کند.':reason.includes('pdf_compress_failed')?'این PDF رمزدار، آسیب‌دیده یا برای فشرده‌سازی ناسازگار است.':'فشرده‌سازی PDF انجام نشد؛ اتصال سرور و سلامت فایل را بررسی کنید.';showConversionNotice(s.textContent,false)}}
+async function compressPDF(){
+  const f=$('#compressPdfFile').files[0],s=$('#compressPdfStatus');
+  if(!f)return s.textContent='فایل PDF را انتخاب کنید.';
+  const MAX=500*1024*1024;
+  if(f.size>MAX)return s.textContent='حداکثر حجم PDF برابر ۵۰۰ مگابایت است.';
+  const level=Math.max(25,Math.min(75,Number($('#pdfQuality').value||55)));
+  const fd=new FormData();fd.append('file',f,f.name);fd.append('quality',String(level));
+  const xhr=new XMLHttpRequest();xhr.open('POST','/api/tools/compress-pdf');xhr.responseType='blob';xhr.timeout=45*60*1000;
+  const started=Date.now();s.textContent='در حال آماده‌سازی آپلود PDF…';
+  xhr.upload.onprogress=e=>{if(e.lengthComputable){const pct=Math.round(e.loaded/e.total*100),elapsed=Math.max(.25,(Date.now()-started)/1000),rate=(e.loaded/1048576)/elapsed;s.textContent='آپلود PDF: '+pct.toLocaleString('fa-IR')+'٪ — '+(e.loaded/1048576).toFixed(1)+' از '+(e.total/1048576).toFixed(1)+' مگابایت؛ '+rate.toFixed(1)+' مگابایت/ثانیه'}};
+  xhr.upload.onload=()=>{s.textContent='آپلود کامل شد؛ سرور در حال فشرده‌سازی PDF است…'};
+  xhr.onload=async()=>{
+   if(xhr.status<200||xhr.status>=300){
+    let code='',message='فشرده‌سازی PDF انجام نشد؛ اتصال سرور و سلامت فایل را بررسی کنید.';
+    try{const d=JSON.parse(await xhr.response.text());code=String(d.error||'');if(code==='ghostscript_unavailable')message='سرویس فشرده‌سازی PDF روی سرور فعال نیست.';else if(code==='pdf_already_optimized')message='این PDF از قبل بهینه است و نسخه کوچک‌تری ساخته نشد.';else if(code==='pdf_too_large')message='حجم PDF از حد مجاز بیشتر است.';else if(code==='pdf_compress_failed')message='سرور نتوانست این PDF را پردازش کند؛ ممکن است فایل رمزدار یا آسیب‌دیده باشد.'}catch(_){}
+    s.textContent=message;showConversionNotice(message,false);return;
+   }
+   const blob=xhr.response,original=Number(xhr.getResponseHeader('X-Original-Size')||f.size),compressed=Number(xhr.getResponseHeader('X-Compressed-Size')||blob.size);
+   if(!blob||!blob.size){s.textContent='سرور خروجی خالی برگرداند؛ دوباره تلاش کنید.';return}
+   if(compressed>=original){s.textContent='این PDF از قبل کم‌حجم است؛ خروجی بزرگ‌تر دانلود نشد.';showConversionNotice(s.textContent,false);return}
+   downloadBlob(blob,'amnayar-compressed.pdf');s.textContent=savingsText(original,compressed)+' — فشرده‌سازی انجام شد.';
+  };
+  xhr.onerror=()=>{s.textContent='ارتباط با سرور فشرده‌سازی قطع شد؛ اتصال اینترنت را بررسی کنید.'};
+  xhr.ontimeout=()=>{s.textContent='پردازش PDF بیش از زمان مجاز طول کشید؛ فایل کوچک‌تری را امتحان کنید.'};
+  xhr.send(fd);
+}
 
 // ویدئو در خود مرورگر با MediaRecorder به WebM فشرده می‌شود؛ فایل به سرور ارسال نمی‌شود.
 async function compressVideo(){
@@ -388,7 +413,7 @@ async function buildImagePdfAtSettings(files,maxDim,quality){
   return await doc.save({useObjectStreams:true});
 }
 async function imagesToPDF(){
-  const input=$('#imagePdfFiles'),s=$('#imagePdfStatus'),fs=input?[...input.files]:[];
+  const input=$('#imagePdfFiles'),s=$('#imagePdfStatus'),fs=imagePdfSelectedFiles.length?[...imagePdfSelectedFiles]:(input?[...input.files]:[]);
   if(!fs.length){if(s)s.textContent='حداقل یک عکس انتخاب کنید.';return}
   if(!window.PDFLib){if(s)s.textContent='کتابخانه PDF آماده نیست؛ صفحه را یک بار تازه‌سازی کنید.';return}
   let target=Number($('#imagePdfTargetMB')?.value||0);if($('#imagePdfTargetMB')?.value==='custom')target=Number($('#imagePdfCustomMB')?.value||0);
@@ -586,22 +611,32 @@ document.addEventListener('DOMContentLoaded',()=>{ensureAmnaAudioControls();addA
 
 async function translateStandalone(direction){const input=document.getElementById(direction==='fa-en'?'plainFaText':'plainEnText'),out=document.getElementById(direction==='fa-en'?'plainEnResult':'plainFaResult'),status=document.getElementById(direction==='fa-en'?'plainFaStatus':'plainEnStatus');const text=String(input?.value||'').trim();if(!text){status.textContent='متن را وارد کنید.';return}if(text.length>5000){status.textContent='حداکثر ۵۰۰۰ نویسه مجاز است.';return}status.textContent='در حال ترجمه…';out.value='';try{const [sl,tl]=direction==='fa-en'?['fa','en']:['en','fa'];let translated='';try{const r=await fetch('https://translate.googleapis.com/translate_a/single?client=gtx&sl='+sl+'&tl='+tl+'&dt=t&q='+encodeURIComponent(text));if(!r.ok)throw Error('google');const d=await r.json();translated=(d[0]||[]).map(x=>x[0]||'').join('')}catch(_){const r=await fetch('/api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,direction})});const d=await r.json();if(!r.ok)throw Error(d.error||'ترجمه در دسترس نیست');translated=String(d.translatedText||'')}if(!translated)throw Error('ترجمه خالی دریافت شد');out.value=translated;status.textContent='ترجمه آماده شد؛ می‌توانید متن را کپی کنید.'}catch(e){status.textContent='ترجمه انجام نشد: '+(e.message||'اتصال سرویس ترجمه را بررسی کنید.')}} 
 
+const activeTranslationRecognizers=Object.create(null);
 function startTranslationVoice(direction){
  const input=document.getElementById(direction==='fa-en'?'plainFaText':'plainEnText'),status=document.getElementById(direction==='fa-en'?'plainFaStatus':'plainEnStatus');
  window.__amnaTranslationVoiceDirection=direction;
- if(window.AmnaYarSpeech&&typeof window.AmnaYarSpeech.startListening==='function'){try{window.AmnaYarSpeech.startListening(direction);status.textContent='صحبت کنید؛ تشخیص گفتار در حال اجراست.';return}catch(e){}}
+ if(activeTranslationRecognizers[direction]){status.textContent='تشخیص گفتار همین زبان در حال اجراست.';return}
+ if(window.AmnaYarSpeech&&typeof window.AmnaYarSpeech.startListening==='function'){
+   try{window.AmnaYarSpeech.startListening(direction);status.textContent='صحبت کنید؛ تشخیص گفتار در حال اجراست.';return}catch(e){}
+ }
  const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
- if(!Recognition){status.textContent='تشخیص گفتار در این مرورگر در دسترس نیست؛ در Chrome به‌روز یا اپلیکیشن امنایار امتحان کنید.';return}
+ if(!Recognition){status.textContent='تشخیص گفتار در این مرورگر در دسترس نیست؛ در Chrome به‌روز یا اپلیکیشن امنا یار امتحان کنید.';return}
  try{
-  const rec=new Recognition();window.__amnaTranslationRecognition=rec;
+  const rec=new Recognition();activeTranslationRecognizers[direction]=rec;
   rec.lang=direction==='fa-en'?'fa-IR':'en-US';rec.interimResults=true;rec.continuous=true;rec.maxAlternatives=1;let finalText='';
   rec.onresult=e=>{let interim='';for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)finalText+=t+' ';else interim+=t}input.value=(finalText+interim).trim();status.textContent='در حال تشخیص گفتار؛ متن را می‌توانید ویرایش کنید.'};
   rec.onerror=e=>{status.textContent=e.error==='not-allowed'?'اجازه میکروفون را در تنظیمات مرورگر فعال کنید.':'تشخیص گفتار ناموفق بود؛ اتصال اینترنت و میکروفون را بررسی کنید.'};
-  rec.onend=()=>{if(input.value.trim())status.textContent='گفتار به متن تبدیل شد. برای ترجمه دکمه ترجمه را بزنید.'};
+  rec.onend=()=>{if(activeTranslationRecognizers[direction]===rec)delete activeTranslationRecognizers[direction];if(input.value.trim())status.textContent='گفتار به متن تبدیل شد. برای ترجمه دکمه ترجمه را بزنید.'};
   rec.start();status.textContent='صحبت کنید؛ برای پایان، «پایان صحبت» را بزنید.';
- }catch(e){status.textContent='شروع میکروفون ناموفق بود؛ اجازه دسترسی را بررسی کنید.'}
+ }catch(e){delete activeTranslationRecognizers[direction];status.textContent='شروع میکروفون ناموفق بود؛ اجازه دسترسی را بررسی کنید.'}
 }
-function stopTranslationVoice(direction){try{if(window.AmnaYarSpeech&&typeof window.AmnaYarSpeech.stopListening==='function')window.AmnaYarSpeech.stopListening();else window.__amnaTranslationRecognition?.stop()}catch(e){}}
+function stopTranslationVoice(direction){
+ const status=document.getElementById(direction==='fa-en'?'plainFaStatus':'plainEnStatus');
+ try{
+   if(window.AmnaYarSpeech&&typeof window.AmnaYarSpeech.stopListening==='function'){window.AmnaYarSpeech.stopListening(direction);return}
+   const rec=activeTranslationRecognizers[direction];if(rec)rec.stop();else status.textContent='ضبط گفتار این زبان فعال نیست.';
+ }catch(e){status.textContent='توقف گفتار انجام نشد؛ دوباره تلاش کنید.'}
+}
 function copyTranslation(id){const el=document.getElementById(id);if(!el||!el.value){return}if(navigator.clipboard?.writeText)navigator.clipboard.writeText(el.value).then(()=>{const s=document.getElementById(id==='plainEnResult'?'plainFaStatus':'plainEnStatus');if(s)s.textContent='ترجمه کپی شد.'}).catch(()=>{el.focus();el.select();document.execCommand('copy')});else{el.focus();el.select();document.execCommand('copy')}}
 (function checkAmnaAppUpdate(){if(new URLSearchParams(location.search).get('app')!=='1')return;fetch('/app-version.json?ts='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{if(!v||!v.latestVersion)return;const current=new URLSearchParams(location.search).get('appVersion')||'1.0.0';const parts=x=>String(x).split('.').map(n=>parseInt(n,10)||0);const newer=(a,b)=>{a=parts(a);b=parts(b);for(let i=0;i<Math.max(a.length,b.length);i++){if((a[i]||0)!==(b[i]||0))return(a[i]||0)>(b[i]||0)}return false};if(!newer(v.latestVersion,current))return;const bar=document.createElement('div');bar.style.cssText='position:fixed;z-index:100000;top:8px;left:8px;right:8px;background:#0c6b48;color:#fff;padding:14px;border-radius:14px;box-shadow:0 8px 30px #0003;display:flex;gap:10px;align-items:center;justify-content:space-between;direction:rtl';bar.innerHTML='<span>نسخه جدید امنا یار ('+String(v.latestVersion).replace(/[&<>"]/g,'')+') منتشر شده است.</span><button type="button" style="border:0;border-radius:9px;padding:9px 12px;font-weight:bold" id="amnaUpdateNow">به‌روزرسانی</button><button type="button" aria-label="بستن" id="amnaUpdateClose" style="border:0;background:transparent;color:white;font-size:20px">×</button>';document.body.appendChild(bar);document.getElementById('amnaUpdateNow').onclick=()=>{const url=String(v.bazaarUrl||'https://cafebazaar.ir/app/ir.amnayar.app');location.href=url};document.getElementById('amnaUpdateClose').onclick=()=>bar.remove()}).catch(()=>{})})();
 
