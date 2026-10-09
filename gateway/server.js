@@ -5,6 +5,7 @@ const fs=require("fs");
 const os=require("os");
 const util=require("util");
 const {execFile}=require("child_process");
+const ffmpegPath=require("ffmpeg-static");
 const multer=require("multer");
 const compression=require("compression");
 const {createProxyMiddleware}=require("http-proxy-middleware");
@@ -137,7 +138,8 @@ app.post("/api/tools/compress-video",videoUpload.single("file"),async(req,res)=>
   const output=path.join(os.tmpdir(),"amnayar-video-"+crypto.randomUUID()+".mp4");
   const cleanup=()=>Promise.allSettled([fs.promises.unlink(input),fs.promises.unlink(output)]);
   try{
-    await execFileAsync("ffmpeg",[
+    if(!ffmpegPath)return res.status(503).json({error:"ffmpeg_unavailable"});
+    await execFileAsync(ffmpegPath,[
       "-hide_banner","-loglevel","error","-y","-i",input,
       "-map","0:v:0","-map","0:a?","-vf","scale='min(1280,iw)':-2","-r","30",
       "-c:v","libx264","-preset","veryfast","-crf",String(crf),
