@@ -45,6 +45,12 @@ jobs:
           curl -fsSL "https://raw.githubusercontent.com/mohammadrezaei8968-byte/AmnaYar/main/web/assets/logo-amnayar.png" -o android/app/src/main/res/drawable/logo.png
           test -s android/app/src/main/res/drawable/logo.png
 
+      - name: Check JavaScript syntax
+        run: |
+          node --check web/tools.js
+          node --check gateway/server.js
+          node --check backend/src/server.js
+
       - name: Build installable APK
         working-directory: android
         run: gradle --no-daemon :app:assembleDebug
