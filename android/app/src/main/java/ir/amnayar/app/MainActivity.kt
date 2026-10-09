@@ -1,5 +1,6 @@
 package ir.amnayar.app
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.NotificationChannel
@@ -14,6 +15,9 @@ import android.util.Base64
 import android.webkit.JavascriptInterface
 import android.provider.MediaStore
 import android.provider.Settings
+import android.speech.RecognitionListener
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
 import android.view.View
 import android.webkit.CookieManager
 import android.webkit.ValueCallback
@@ -26,6 +30,84 @@ import android.webkit.WebViewClient
 
 // AmnaYar Android shell: the live website receives conversion/compression updates automatically.
 class MainActivity : Activity() {
+    private inner class SpeechBridge {
+        @JavascriptInterface
+        fun startListening(direction: String) {
+            runOnUiThread {
+                pendingSpeechDirection = if (direction == "en-fa") "en-fa" else "fa-en"
+                if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                    requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), speechPermissionRequestCode)
+                    return@runOnUiThread
+                }
+                startSpeechRecognition(pendingSpeechDirection)
+            }
+        }
+    }
+
+    private fun startSpeechRecognition(direction: String) {
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            sendVoiceResult("", direction, "unsupported")
+            return
+        }
+        try {
+            speechRecognizer?.cancel()
+            speechRecognizer?.destroy()
+            speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
+                setRecognitionListener(object : RecognitionListener {
+                    override fun onReadyForSpeech(params: Bundle?) {}
+                    override fun onBeginningOfSpeech() {}
+                    override fun onRmsChanged(rmsdB: Float) {}
+                    override fun onBufferReceived(buffer: ByteArray?) {}
+                    override fun onEndOfSpeech() {}
+                    override fun onEvent(eventType: Int, params: Bundle?) {}
+                    override fun onPartialResults(partialResults: Bundle?) {}
+                    override fun onResults(results: Bundle?) {
+                        val spoken = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
+                        if (spoken.isBlank()) sendVoiceResult("", direction, "no_speech")
+                        else sendVoiceResult(spoken, direction, "")
+                    }
+                    override fun onError(error: Int) {
+                        val code = if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) "permission" else "recognition_failed"
+                        sendVoiceResult("", direction, code)
+                    }
+                })
+            }
+            val language = if (direction == "en-fa") "en-US" else "fa-IR"
+            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, language)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, language)
+                putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
+                putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+            }
+            speechRecognizer?.startListening(intent)
+        } catch (e: Exception) {
+            sendVoiceResult("", direction, "recognition_failed")
+        }
+    }
+
+    private fun sendVoiceResult(text: String, direction: String, error: String) {
+        val safeText = org.json.JSONObject.quote(text)
+        val safeDirection = org.json.JSONObject.quote(direction)
+        val safeError = org.json.JSONObject.quote(error)
+        if (::web.isInitialized) {
+            web.post {
+                web.evaluateJavascript("window.amnayarVoiceResult && window.amnayarVoiceResult($safeText,$safeDirection,$safeError)", null)
+            }
+        }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != speechPermissionRequestCode) return
+        if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            startSpeechRecognition(pendingSpeechDirection)
+        } else {
+            sendVoiceResult("", pendingSpeechDirection, "permission")
+        }
+    }
+
     private inner class DeviceBridge {
         @JavascriptInterface
         fun getDeviceKey(): String {
@@ -100,6 +182,9 @@ class MainActivity : Activity() {
     }
 
     private lateinit var web: WebView
+    private var speechRecognizer: SpeechRecognizer? = null
+    private var pendingSpeechDirection: String = "fa-en"
+    private val speechPermissionRequestCode = 301
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
     private val fileChooserRequestCode = 4101
 
@@ -149,6 +234,7 @@ class MainActivity : Activity() {
 
         web.addJavascriptInterface(DownloadBridge(), "AmnaYarDownloader")
         web.addJavascriptInterface(DeviceBridge(), "AmnaYarDevice")
+        web.addJavascriptInterface(SpeechBridge(), "AmnaYarSpeech")
 
         web.setDownloadListener { url, userAgent, contentDisposition, mimeType, _ ->
             try {
@@ -241,6 +327,9 @@ class MainActivity : Activity() {
     override fun onDestroy() {
         filePathCallback?.onReceiveValue(null)
         filePathCallback = null
+        speechRecognizer?.cancel()
+        speechRecognizer?.destroy()
+        speechRecognizer = null
         web.stopLoading()
         web.destroy()
         super.onDestroy()
