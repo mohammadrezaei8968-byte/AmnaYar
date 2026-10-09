@@ -788,3 +788,21 @@ async function compressPDFLocally(file,quality,status){
     status.textContent='فشرده‌سازی محلی انجام نشد: '+(e.message||'فایل رمزدار، آسیب‌دیده یا ناسازگار است.')+'؛ فایل اصلی تغییری نکرد.';
   }finally{if(canvas){canvas.width=1;canvas.height=1}}
 }
+
+/* Voice-question fallback for document Q&A when Android's recognizer reports an error. */
+(function(){
+  const previous=window.amnayarDocumentQuestionResult;
+  window.amnayarDocumentQuestionResult=function(text,direction,error){
+    if(previous)previous(text,direction,error);
+    if(!error&&String(text||'').trim())return;
+    const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!Recognition)return;
+    const status=document.getElementById('docQaStatus'),question=document.getElementById('docQaQuestion');
+    try{
+      const rec=new Recognition();rec.lang='fa-IR';rec.interimResults=false;rec.continuous=false;rec.maxAlternatives=1;
+      rec.onresult=function(e){const value=String(e.results?.[0]?.[0]?.transcript||'').trim();if(value){question.value=value;status.textContent='پرسش صوتی ثبت شد؛ اکنون «یافتن پاسخ در فایل» را بزنید.'}};
+      rec.onerror=function(){status.textContent='پرسش صوتی کار نکرد؛ دسترسی میکروفون و سرویس تشخیص گفتار دستگاه را بررسی کنید.'};
+      rec.start();status.textContent='تشخیص گفتار داخلی پاسخ نداد؛ در حال تلاش با مرورگر…';
+    }catch(_){status.textContent='شروع پرسش صوتی ممکن نشد؛ مجوز میکروفون را بررسی کنید.'}
+  };
+})();
