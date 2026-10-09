@@ -87,7 +87,7 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
   try{
     let stat;
     // Try progressively stronger image downsampling if the selected profile does not shrink the file.
-    const profiles=[...new Set([quality,30,20,15])];
+    const profiles=[...new Set([quality,20])];
     for(const profile of profiles){
       await fs.promises.unlink(output).catch(()=>{});
       await runGs(output,profile);
