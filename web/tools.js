@@ -333,7 +333,7 @@ function imagePdfPreview(){
     item.className='image-pdf-preview-item';
     item.style.position='relative';
     const img=document.createElement('img');
-    img.alt=f.name;
+    img.alt='شماره '+(n+1)+' — '+f.name;img.title='شماره '+(n+1)+'؛ برای انتقال این عکس به ابتدای ترتیب، روی آن بزنید';img.style.cursor='pointer';img.addEventListener('click',()=>{if(n===0)return;moveImagePdfFile(n,-n)});
     const u=URL.createObjectURL(f);
     img.src=u;
     img.onload=()=>URL.revokeObjectURL(u);
@@ -357,7 +357,7 @@ function imagePdfPreview(){
     p.appendChild(item);
   });
   if(c)c.textContent='تعداد عکس‌های انتخاب‌شده: '+fa(fs.length);
-  if(s)s.textContent=fa(fs.length)+' عکس انتخاب شده است. برای حذف هر عکس، دکمه «✕ حذف» همان عکس را بزنید.';
+  if(s)s.textContent=fa(fs.length)+' عکس انتخاب شده است؛ شماره روی هر عکس ترتیب صفحات PDF را مشخص می‌کند. برای تغییر ترتیب، عکس را بزنید تا به ابتدای فهرست منتقل شود یا از دکمه‌های بالا/پایین استفاده کنید.';
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
@@ -565,6 +565,21 @@ document.addEventListener('DOMContentLoaded',()=>{ensureAmnaAudioControls();addA
 
 async function translateStandalone(direction){const input=document.getElementById(direction==='fa-en'?'plainFaText':'plainEnText'),out=document.getElementById(direction==='fa-en'?'plainEnResult':'plainFaResult'),status=document.getElementById(direction==='fa-en'?'plainFaStatus':'plainEnStatus');const text=String(input?.value||'').trim();if(!text){status.textContent='متن را وارد کنید.';return}if(text.length>5000){status.textContent='حداکثر ۵۰۰۰ نویسه مجاز است.';return}status.textContent='در حال ترجمه…';out.value='';try{const [sl,tl]=direction==='fa-en'?['fa','en']:['en','fa'];let translated='';try{const r=await fetch('https://translate.googleapis.com/translate_a/single?client=gtx&sl='+sl+'&tl='+tl+'&dt=t&q='+encodeURIComponent(text));if(!r.ok)throw Error('google');const d=await r.json();translated=(d[0]||[]).map(x=>x[0]||'').join('')}catch(_){const r=await fetch('/api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,direction})});const d=await r.json();if(!r.ok)throw Error(d.error||'ترجمه در دسترس نیست');translated=String(d.translatedText||'')}if(!translated)throw Error('ترجمه خالی دریافت شد');out.value=translated;status.textContent='ترجمه آماده شد؛ می‌توانید متن را کپی کنید.'}catch(e){status.textContent='ترجمه انجام نشد: '+(e.message||'اتصال سرویس ترجمه را بررسی کنید.')}} 
 
+function startTranslationVoice(direction){
+ const input=document.getElementById(direction==='fa-en'?'plainFaText':'plainEnText'),status=document.getElementById(direction==='fa-en'?'plainFaStatus':'plainEnStatus');
+ const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!Recognition){status.textContent='تشخیص گفتار در این مرورگر در دسترس نیست؛ در Chrome به‌روز یا اپلیکیشن امنایار امتحان کنید.';return}
+ try{
+  const rec=new Recognition();window.__amnaTranslationRecognition=rec;
+  rec.lang=direction==='fa-en'?'fa-IR':'en-US';rec.interimResults=true;rec.continuous=true;rec.maxAlternatives=1;
+  let finalText='';
+  rec.onresult=e=>{let interim='';for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)finalText+=t+' ';else interim+=t}input.value=(finalText+interim).trim();status.textContent='در حال تشخیص گفتار؛ متن را می‌توانید ویرایش کنید.'};
+  rec.onerror=e=>{status.textContent=e.error==='not-allowed'?'اجازه میکروفون را در تنظیمات مرورگر فعال کنید.':'تشخیص گفتار ناموفق بود؛ اتصال اینترنت و میکروفون را بررسی کنید.'};
+  rec.onend=()=>{if(input.value.trim())status.textContent='گفتار به متن تبدیل شد. برای ترجمه دکمه ترجمه را بزنید.'};
+  rec.start();status.textContent='صحبت کنید؛ برای پایان، «پایان صحبت» را بزنید.';
+ }catch(e){status.textContent='شروع میکروفون ناموفق بود؛ اجازه دسترسی را بررسی کنید.'}
+}
+function stopTranslationVoice(){try{window.__amnaTranslationRecognition?.stop()}catch(e){}}
 function copyTranslation(id){const el=document.getElementById(id);if(!el||!el.value){return}if(navigator.clipboard?.writeText)navigator.clipboard.writeText(el.value).then(()=>{const s=document.getElementById(id==='plainEnResult'?'plainFaStatus':'plainEnStatus');if(s)s.textContent='ترجمه کپی شد.'}).catch(()=>{el.focus();el.select();document.execCommand('copy')});else{el.focus();el.select();document.execCommand('copy')}}
 (function checkAmnaAppUpdate(){if(new URLSearchParams(location.search).get('app')!=='1')return;fetch('/app-version.json?ts='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{if(!v||!v.latestVersion)return;const current=new URLSearchParams(location.search).get('appVersion')||'1.0.0';const parts=x=>String(x).split('.').map(n=>parseInt(n,10)||0);const newer=(a,b)=>{a=parts(a);b=parts(b);for(let i=0;i<Math.max(a.length,b.length);i++){if((a[i]||0)!==(b[i]||0))return(a[i]||0)>(b[i]||0)}return false};if(!newer(v.latestVersion,current))return;const bar=document.createElement('div');bar.style.cssText='position:fixed;z-index:100000;top:8px;left:8px;right:8px;background:#0c6b48;color:#fff;padding:14px;border-radius:14px;box-shadow:0 8px 30px #0003;display:flex;gap:10px;align-items:center;justify-content:space-between;direction:rtl';bar.innerHTML='<span>نسخه جدید امنا یار ('+String(v.latestVersion).replace(/[&<>"]/g,'')+') منتشر شده است.</span><button type="button" style="border:0;border-radius:9px;padding:9px 12px;font-weight:bold" id="amnaUpdateNow">به‌روزرسانی</button><button type="button" aria-label="بستن" id="amnaUpdateClose" style="border:0;background:transparent;color:white;font-size:20px">×</button>';document.body.appendChild(bar);document.getElementById('amnaUpdateNow').onclick=()=>{const url=String(v.bazaarUrl||'https://cafebazaar.ir/app/ir.amnayar.app');location.href=url};document.getElementById('amnaUpdateClose').onclick=()=>bar.remove()}).catch(()=>{})})();
 
