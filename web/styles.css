@@ -893,3 +893,13 @@ body{background:linear-gradient(180deg,#f8fafd 0,#f3f7fb 48%,#fff 100%);color:va
  .tool-panel .two-col{grid-template-columns:minmax(0,1fr)!important}
  .tool-panel .invoice-row{grid-template-columns:minmax(0,1fr)!important}
 }
+
+/* Accessible AmnaYar update notice and richer Jalali calendar controls */
+.amna-update-banner{position:fixed;z-index:100000;top:10px;left:10px;right:10px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:14px 18px;border-radius:14px;background:#0c6b48;color:#fff;box-shadow:0 10px 32px #061b2c44;direction:rtl;font-weight:800}
+.amna-update-banner a{display:inline-flex;align-items:center;padding:8px 14px;border-radius:9px;background:#fff;color:#0c6b48;text-decoration:none;white-space:nowrap}
+.jalali-cal-head{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:5px}
+.jalali-cal-head select{min-width:90px;max-width:140px;padding:8px 6px;border:1px solid #d8e2ef;border-radius:9px;background:#fff;color:#18324d;font:inherit;font-weight:700}
+.jalali-cal-head button{min-width:32px}
+.jalali-cal-grid button.selected{outline:2px solid #167b56;background:#d9f7e8;color:#075b3b;font-weight:900}
+.jalali-cal-foot{display:flex;justify-content:space-between;gap:8px;padding-top:8px}
+.amna-audio-controls audio{max-width:100%}
