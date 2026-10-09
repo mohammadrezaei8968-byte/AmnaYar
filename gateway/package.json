@@ -1,11 +1,15 @@
 {
-  "name":"amnayar-gateway",
-  "private":true,
-  "version":"1.0.0",
-  "scripts":{"start":"node server.js"},
-  "dependencies":{
-    "express":"^4.21.2",
-    "http-proxy-middleware":"^3.0.3",
-    "multer":"^2.0.2","compression":"^1.8.1"
+  "name": "amnayar-gateway",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "http-proxy-middleware": "^3.0.3",
+    "multer": "^2.0.2",
+    "compression": "^1.8.1",
+    "ffmpeg-static": "^5.2.0"
   }
 }
