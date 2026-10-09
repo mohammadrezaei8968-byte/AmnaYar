@@ -54,7 +54,7 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
       "-dOptimize=true",
       "-dCompressPages=true",
       "-dUseFlateCompression=true",
-      "-dNumRenderingThreads=2",
+      "-dNumRenderingThreads="+Math.max(2,Math.min(8,typeof os.availableParallelism==="function"?os.availableParallelism():os.cpus().length)),
       "-dCompressFonts=true",
       "-dSubsetFonts=true",
       "-dAutoRotatePages=/None",
