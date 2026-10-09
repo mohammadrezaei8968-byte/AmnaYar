@@ -1,10 +1,10 @@
 {
-  "currentVersion": "1.0.6",
-  "latestVersion": "1.0.6",
+  "currentVersion": "1.0.7",
+  "latestVersion": "1.0.7",
   "minimumVersion": "1.0.3",
-  "versionCode": 7,
-  "versionName": "1.0.6",
-  "releaseNotes": "اصلاح ترتیب عکس‌ها هنگام تبدیل به PDF، نمایش پیشرفت آپلود PDF، جداسازی کنترل گفتار ترجمه و به‌روزرسانی سازگاری نسخه اندروید.",
+  "versionCode": 8,
+  "versionName": "1.0.7",
+  "releaseNotes": "بهبود پرسش‌وپاسخ فایل و OCR صفحات اسکن‌شده، اصلاح ارسال نتیجه گفتار در ترجمه، بهبود خطاهای فشرده‌سازی و اصلاح بارگذاری فایل‌های سایت.",
   "bazaarUrl": "https://cafebazaar.ir/app/ir.amnayar.app",
   "message": "نسخه جدید امنا یار منتشر شده است."
 }
