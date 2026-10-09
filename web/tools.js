@@ -711,7 +711,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       if(existing&&existing.dataset.amnaLoaded==='1'){resolve();return}
       const s=document.createElement('script');s.src=url;s.async=true;
       s.onload=()=>{s.dataset.amnaLoaded='1';resolve()};
-      s.onerror=()=>{s.remove();reject(new Error('بارگذاری کتابخانه فایل ناموفق بود: '+url)};
+      s.onerror=()=>{s.remove();reject(new Error('بارگذاری کتابخانه فایل ناموفق بود: '+url))};
       document.head.appendChild(s);
     });
     return scriptPromises[url];
