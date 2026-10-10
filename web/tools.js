@@ -290,7 +290,7 @@ function compressVideo(){
   xhr.onload=async()=>{
     if(xhr.status<200||xhr.status>=300){
       let message='فشرده‌سازی ویدئو انجام نشد؛ فایل یا فرمت را بررسی کنید.';
-      try{const data=JSON.parse(await xhr.response.text());if(data.error==='ffmpeg_unavailable')message='سرویس فشرده‌سازی ویدئو آماده نیست؛ استقرار سرور را بررسی کنید.';else if(data.error==='video_too_large')message='حجم فیلم از حد مجاز ۲ گیگابایت بیشتر است.';else if(data.error==='video_compress_failed')message='سرور نتوانست این ویدئو را پردازش کند؛ فایل آسیب‌دیده یا کدک ناسازگار ممکن است علت باشد.';else if(data.error==='video_required')message='فایل ویدئویی معتبر انتخاب کنید.';}catch(e){}
+      try{const data=JSON.parse(await xhr.response.text());if(data.error==='ffmpeg_unavailable')message='سرویس فشرده‌سازی ویدئو آماده نیست؛ استقرار سرور را بررسی کنید.';else if(data.error==='video_too_large')message='حجم فیلم از حد مجاز ۲ گیگابایت بیشتر است.';else if(data.error==='video_compress_failed')message='سرور نتوانست ویدئو را پردازش کند.';else if(data.error==='video_required')message='فایل ویدئویی معتبر انتخاب کنید.';if(data.detail)message+=' جزئیات فنی: '+String(data.detail).slice(0,240);}catch(e){}
       s.textContent=message;return;
     }
     const blob=xhr.response,original=Number(xhr.getResponseHeader('X-Original-Size')||f.size),compressed=Number(xhr.getResponseHeader('X-Compressed-Size')||blob.size);
