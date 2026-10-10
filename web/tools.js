@@ -672,7 +672,10 @@ async function amnaLoadScript(urls, test, label){
   try{
    await new Promise((resolve,reject)=>{
     const existing=[...document.scripts].find(s=>s.src===url);
-    if(existing){if(test())return resolve();existing.addEventListener('load',resolve,{once:true});existing.addEventListener('error',()=>reject(new Error(label+' بارگذاری نشد.')),{once:true});return}
+    if(existing&&test())return resolve();
+    // A failed deferred script may remain in the DOM after its error event;
+    // remove it and make a fresh request instead of waiting for an event that already fired.
+    if(existing)existing.remove();
     const script=document.createElement('script');script.src=url;script.async=true;script.onload=resolve;script.onerror=()=>{script.remove();reject(new Error(label+' بارگذاری نشد.'))};document.head.appendChild(script);
    });
    if(test())return;
