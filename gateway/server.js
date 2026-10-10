@@ -30,95 +30,60 @@ const pdfUpload=multer({
 app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
   const input=req.file?.path;
   if(!input)return res.status(400).json({error:"pdf_required"});
-
   const quality=Math.max(15,Math.min(75,Number(req.body?.quality||35)));
   const output=path.join(os.tmpdir(),"amnayar-compressed-"+crypto.randomUUID()+".pdf");
-
-  const cleanup=async()=>Promise.allSettled([
-    fs.promises.unlink(input),
-    fs.promises.unlink(output)
-  ]);
-
+  const cleanup=()=>Promise.allSettled([fs.promises.unlink(input),fs.promises.unlink(output)]);
   const runGs=async(out,level)=>{
     const imageDpi=level<=15?36:level<=20?42:level<=30?50:level<=45?65:level<=60?85:110;
     const jpegQ=level<=15?12:level<=20?16:level<=30?22:level<=45?32:level<=60?45:58;
     const preset=level<=45?"/screen":"/ebook";
     await execFileAsync("gs",[
-      "-sDEVICE=pdfwrite",
-      "-dCompatibilityLevel=1.4",
-      "-dNOPAUSE",
-      "-dQUIET",
-      "-dBATCH",
-      "-dSAFER",
-      "-dDetectDuplicateImages=true",
-      "-dOptimize=true",
-      "-dCompressPages=true",
-      "-dUseFlateCompression=true",
-      "-dNumRenderingThreads="+Math.max(2,Math.min(8,typeof os.availableParallelism==="function"?os.availableParallelism():os.cpus().length)),
-      "-dCompressFonts=true",
-      "-dSubsetFonts=true",
-      "-dAutoRotatePages=/None",
-      "-dDownsampleColorImages=true",
-      "-dDownsampleGrayImages=true",
-      "-dDownsampleMonoImages=true",
-      "-dColorImageDownsampleType=/Average",
-      "-dGrayImageDownsampleType=/Average",
-      "-dMonoImageDownsampleType=/Subsample",
-      "-dColorImageResolution="+imageDpi,
-      "-dGrayImageResolution="+imageDpi,
-      "-dMonoImageResolution="+Math.max(150,imageDpi*2),
-      "-dColorImageDownsampleThreshold=1.0",
-      "-dGrayImageDownsampleThreshold=1.0",
-      "-dMonoImageDownsampleThreshold=1.0",
-      "-dAutoFilterColorImages=false",
-      "-dAutoFilterGrayImages=false",
-      "-dColorImageFilter=/DCTEncode",
-      "-dGrayImageFilter=/DCTEncode",
-      "-dPassThroughJPEGImages=false",
-      "-dPassThroughJPXImages=false",
-      "-dJPEGQ="+jpegQ,
-      "-dPDFSETTINGS="+preset,
-      "-sOutputFile="+out,
-      input
+      "-sDEVICE=pdfwrite","-dCompatibilityLevel=1.4","-dNOPAUSE","-dQUIET","-dBATCH","-dSAFER",
+      "-dDetectDuplicateImages=true","-dOptimize=true","-dCompressPages=true","-dUseFlateCompression=true",
+      "-dCompressFonts=true","-dSubsetFonts=true","-dAutoRotatePages=/None",
+      "-dDownsampleColorImages=true","-dDownsampleGrayImages=true","-dDownsampleMonoImages=true",
+      "-dColorImageDownsampleType=/Average","-dGrayImageDownsampleType=/Average","-dMonoImageDownsampleType=/Subsample",
+      "-dColorImageResolution="+imageDpi,"-dGrayImageResolution="+imageDpi,"-dMonoImageResolution="+Math.max(150,imageDpi*2),
+      "-dAutoFilterColorImages=false","-dAutoFilterGrayImages=false","-dColorImageFilter=/DCTEncode","-dGrayImageFilter=/DCTEncode",
+      "-dPassThroughJPEGImages=false","-dPassThroughJPXImages=false","-dJPEGQ="+jpegQ,"-dPDFSETTINGS="+preset,
+      "-sOutputFile="+out,input
     ],{timeout:45*60*1000,maxBuffer:4*1024*1024});
   };
-
+  const runGsFallback=async(out)=>{
+    await execFileAsync("gs",[
+      "-sDEVICE=pdfwrite","-dCompatibilityLevel=1.4","-dNOPAUSE","-dQUIET","-dBATCH","-dSAFER",
+      "-dDetectDuplicateImages=true","-dCompressFonts=true","-dSubsetFonts=true","-dAutoRotatePages=/None",
+      "-dPDFSETTINGS=/screen","-dColorImageFilter=/DCTEncode","-dGrayImageFilter=/DCTEncode","-dJPEGQ=45",
+      "-sOutputFile="+out,input
+    ],{timeout:45*60*1000,maxBuffer:4*1024*1024});
+  };
   try{
-    let stat;
-    // Try progressively stronger image downsampling if the selected profile does not shrink the file.
-    const profiles=[quality];
-    for(const profile of profiles){
+    try{await runGs(output,quality)}
+    catch(firstError){
       await fs.promises.unlink(output).catch(()=>{});
-      await runGs(output,profile);
-      stat=await fs.promises.stat(output);
-      if(stat.size<req.file.size)break;
+      console.warn("pdf_downsample_retry",String(firstError?.stderr||firstError?.message||"").replace(/\s+/g," ").slice(0,400));
+      await runGsFallback(output);
     }
-
+    const stat=await fs.promises.stat(output);
     const useOriginal=stat.size>=req.file.size;
     const filePath=useOriginal?input:output;
     const finalSize=useOriginal?req.file.size:stat.size;
-
     res.setHeader("Content-Type","application/pdf");
     res.setHeader("Content-Disposition",'attachment; filename="amnayar-compressed.pdf"');
     res.setHeader("X-Original-Size",String(req.file.size));
     res.setHeader("X-Compressed-Size",String(finalSize));
     res.setHeader("X-Compression-Applied",useOriginal?"no":"yes");
-
     res.sendFile(filePath,err=>{
-      Promise.allSettled([
-        fs.promises.unlink(input),
-        fs.promises.unlink(output)
-      ]).catch(()=>{});
+      cleanup().catch(()=>{});
       if(err&&!res.headersSent)res.status(500).json({error:"pdf_send_failed"});
     });
   }catch(e){
     await cleanup();
     const msg=String(e?.stderr||e?.message||"");
-    console.error("pdf_compress_failed",msg.slice(0,1500));
+    console.error("pdf_compress_failed",msg.replace(/\s+/g," ").slice(0,1500));
     if(/ENOENT/i.test(msg))return res.status(503).json({error:"ghostscript_unavailable"});
     if(/LIMIT_FILE_SIZE|too large|File too large/i.test(msg))return res.status(413).json({error:"pdf_too_large"});
-    if(/password|encrypted|invalid|syntax|error/i.test(msg))return res.status(422).json({error:"pdf_compress_failed"});
-    return res.status(422).json({error:"pdf_compress_failed"});
+    return res.status(422).json({error:"pdf_compress_failed",detail:msg.replace(/\s+/g," ").slice(0,500)||"pdf_processing_failed"});
   }
 });
 
@@ -143,14 +108,16 @@ app.post("/api/tools/compress-video",videoUpload.single("file"),async(req,res)=>
   try{
     if(!ffmpegPath)return res.status(503).json({error:"ffmpeg_unavailable"});
     // Force an even width and height: H.264/yuv420p rejects some phone videos with odd dimensions.
-    await execFileAsync(ffmpegPath,[
-      "-hide_banner","-loglevel","error","-y","-fflags","+genpts","-i",input,
-      "-map","0:v:0","-map","0:a?",
-      "-vf",`scale=w='trunc(min(${targetWidth},iw)/2)*2':h=-2:flags=fast_bilinear`,
-      "-c:v","libx264","-preset","veryfast","-crf",String(crf),"-pix_fmt","yuv420p",
-      "-c:a","aac","-b:a",quality==="small"?"64k":quality==="high"?"128k":"80k",
-      "-movflags","+faststart","-threads","0","-f","mp4",output
-    ],{timeout:2*60*60*1000,maxBuffer:8*1024*1024});
+    const audioBitrate=quality==="small"?"64k":quality==="high"?"128k":"80k";
+    const commonArgs=["-hide_banner","-loglevel","error","-y","-fflags","+genpts","-i",input,"-map","0:v:0","-map","0:a?"];
+    const encodeArgs=["-c:v","libx264","-preset","veryfast","-crf",String(crf),"-pix_fmt","yuv420p","-c:a","aac","-b:a",audioBitrate,"-movflags","+faststart","-threads","0","-f","mp4",output];
+    try{
+      await execFileAsync(ffmpegPath,[...commonArgs,"-vf",`scale=${targetWidth}:${targetWidth}:force_original_aspect_ratio=decrease:force_divisible_by=2`,...encodeArgs],{timeout:2*60*60*1000,maxBuffer:8*1024*1024});
+    }catch(firstError){
+      await fs.promises.unlink(output).catch(()=>{});
+      console.warn("video_scale_retry",String(firstError?.stderr||firstError?.message||"").replace(/\s+/g," ").slice(0,400));
+      await execFileAsync(ffmpegPath,[...commonArgs,"-vf","scale=trunc(iw/2)*2:trunc(ih/2)*2",...encodeArgs],{timeout:2*60*60*1000,maxBuffer:8*1024*1024});
+    }
     const stat=await fs.promises.stat(output);
     const useOriginal=stat.size>=req.file.size;
     const filePath=useOriginal?input:output;
