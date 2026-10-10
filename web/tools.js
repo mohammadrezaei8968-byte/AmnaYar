@@ -667,6 +667,7 @@ async function translateStandalone(direction){const input=document.getElementByI
 const activeTranslationRecognizers=Object.create(null);
 function startTranslationVoice(direction){
  const input=document.getElementById(direction==='fa-en'?'plainFaText':'plainEnText'),status=document.getElementById(direction==='fa-en'?'plainFaStatus':'plainEnStatus');
+ stopAllAmnaAudioRecorders();
  window.__amnaTranslationVoiceDirection=direction;
  if(activeTranslationRecognizers[direction]){status.textContent='تشخیص گفتار همین زبان در حال اجراست.';return}
  if(window.AmnaYarSpeech&&typeof window.AmnaYarSpeech.startListening==='function'){
@@ -702,7 +703,8 @@ window.amnayarTranslationInputVoiceResult=function(text,direction,error){
   rec.onresult=e=>{let interim='';for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0]?.transcript||'';if(e.results[i].isFinal)finalText+=t+' ';else interim+=t}input.value=(finalText+interim).trim()};
   rec.onerror=e=>{status.textContent=e.error==='not-allowed'?'اجازه میکروفون را در تنظیمات مرورگر فعال کنید.':'تشخیص گفتار ناموفق بود؛ اتصال اینترنت و سرویس گفتار دستگاه را بررسی کنید.';delete activeTranslationRecognizers[key]};
   rec.onend=()=>{delete activeTranslationRecognizers[key];window.__amnaTranslationVoiceDirection=null;if(input.value.trim()){status.textContent='گفتار ثبت شد؛ ترجمه آنلاین در حال انجام است…';translateStandalone(key)}else status.textContent='گفتاری ثبت نشد؛ دوباره تلاش کنید.'};
-  rec.start();status.textContent='سرویس داخلی پاسخ نداد؛ تشخیص گفتار مرورگر در حال اجراست.';
+  window.__amnaBrowserSpeechRecognizers=window.__amnaBrowserSpeechRecognizers||{};window.__amnaBrowserSpeechRecognizers['translate-'+key]=rec;
+  setTimeout(()=>{try{rec.start();status.textContent='سرویس داخلی پاسخ نداد؛ تشخیص گفتار مرورگر در حال اجراست.'}catch(_){status.textContent='میکروفون آزاد نشد؛ برنامه‌های استفاده‌کننده از میکروفون را ببندید و دوباره تلاش کنید.'}},800);
  }catch(_){status.textContent='شروع میکروفون ناموفق بود؛ اجازه دسترسی را بررسی کنید.'}
 };
 function copyTranslation(id){const el=document.getElementById(id);if(!el||!el.value){return}if(navigator.clipboard?.writeText)navigator.clipboard.writeText(el.value).then(()=>{const s=document.getElementById(id==='plainEnResult'?'plainFaStatus':'plainEnStatus');if(s)s.textContent='ترجمه کپی شد.'}).catch(()=>{el.focus();el.select();document.execCommand('copy')});else{el.focus();el.select();document.execCommand('copy')}}
@@ -770,7 +772,7 @@ function copyTranslation(id){const el=document.getElementById(id);if(!el||!el.va
   window.amnayarVoiceResult=function(text,direction,error){
     if(!error && text){if(previousResult)previousResult(text,direction,error);return}
     if(previousResult)previousResult(text,direction,error);
-    if(!['recognition_failed','unsupported','no_speech'].includes(error))return;
+    if(!['recognition_failed','unsupported','no_speech','audio_source','busy'].includes(error))return;
     const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(!Recognition)return;
     const status=document.getElementById(direction==='fa-en'?'faVoiceStatus':'enVoiceStatus');
@@ -781,8 +783,8 @@ function copyTranslation(id){const el=document.getElementById(id);if(!el||!el.va
       rec.onresult=ev=>{let text='';for(let i=0;i<ev.results.length;i++)text+=ev.results[i][0].transcript+' ';input.value=text.trim()};
       rec.onerror=()=>{if(status)status.textContent='تشخیص گفتار انجام نشد؛ اجازه میکروفون و اتصال اینترنت یا سرویس گفتار دستگاه را بررسی کنید.';setVoiceButtons(direction,false);delete browserFallback[direction]};
       rec.onend=()=>{if(input?.value.trim()&&status)status.textContent='متن گفتار ثبت شد؛ آن را بازبینی یا اصلاح کنید.';setVoiceButtons(direction,false);delete browserFallback[direction]};
-      rec.start();setVoiceButtons(direction,true);
-      if(status)status.textContent='سرویس داخلی پاسخ نداد؛ تشخیص گفتار مرورگر در حال اجراست.';
+      window.__amnaBrowserSpeechRecognizers=window.__amnaBrowserSpeechRecognizers||{};window.__amnaBrowserSpeechRecognizers['speech-'+direction]=rec;
+      setTimeout(()=>{try{rec.start();setVoiceButtons(direction,true);if(status)status.textContent='سرویس داخلی پاسخ نداد؛ تشخیص گفتار مرورگر در حال اجراست.'}catch(_){if(status)status.textContent='میکروفون آزاد نشد؛ برنامه‌های استفاده‌کننده از میکروفون را ببندید و دوباره تلاش کنید.'}},800);
     }catch(_){if(status)status.textContent='شروع تشخیص گفتار ممکن نشد؛ دسترسی میکروفون و اتصال را بررسی کنید.'}
   };
   if(typeof previousStop==='function')window.stopVoiceTranslation=function(direction){
