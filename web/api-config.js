@@ -56,7 +56,7 @@
               credentials: init?.credentials || 'include',
               cache: init?.cache || 'no-store'
             }, 7000)
-          : await fetchWithTimeout(target, init || {}, 15000);
+          : await fetchWithTimeout(target, init || {}, rawUrl.startsWith('/api/ai/transcribe') ? 120000 : 15000);
         lastResponse = response;
         if (response.status < 500 && response.status !== 404) return response;
       } catch (err) {
