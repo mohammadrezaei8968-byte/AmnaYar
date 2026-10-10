@@ -665,33 +665,127 @@ document.addEventListener('DOMContentLoaded',()=>{addAmnaUserChip();});
 async function translateStandalone(direction){const input=document.getElementById(direction==='fa-en'?'plainFaText':'plainEnText'),out=document.getElementById(direction==='fa-en'?'plainEnResult':'plainFaResult'),status=document.getElementById(direction==='fa-en'?'plainFaStatus':'plainEnStatus');const text=String(input?.value||'').trim();if(!text){status.textContent='متن را وارد کنید.';return}if(text.length>5000){status.textContent='حداکثر ۵۰۰۰ نویسه مجاز است.';return}status.textContent='در حال ترجمه…';out.value='';try{const [sl,tl]=direction==='fa-en'?['fa','en']:['en','fa'];let translated='';try{const r=await fetch('https://translate.googleapis.com/translate_a/single?client=gtx&sl='+sl+'&tl='+tl+'&dt=t&q='+encodeURIComponent(text));if(!r.ok)throw Error('google');const d=await r.json();translated=(d[0]||[]).map(x=>x[0]||'').join('')}catch(_){const r=await fetch('/api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,direction})});const d=await r.json();if(!r.ok)throw Error(d.error||'ترجمه در دسترس نیست');translated=String(d.translatedText||'')}if(!translated)throw Error('ترجمه خالی دریافت شد');out.value=translated;status.textContent='ترجمه آماده شد؛ می‌توانید متن را کپی کنید.'}catch(e){status.textContent='ترجمه انجام نشد: '+(e.message||'اتصال سرویس ترجمه را بررسی کنید.')}} 
 
 
+async function amnaLoadScript(urls, test, label){
+ if(test())return;
+ let lastError;
+ for(const url of urls){
+  try{
+   await new Promise((resolve,reject)=>{
+    const existing=[...document.scripts].find(s=>s.src===url);
+    if(existing){if(test())return resolve();existing.addEventListener('load',resolve,{once:true});existing.addEventListener('error',()=>reject(new Error(label+' بارگذاری نشد.')),{once:true});return}
+    const script=document.createElement('script');script.src=url;script.async=true;script.onload=resolve;script.onerror=()=>{script.remove();reject(new Error(label+' بارگذاری نشد.'))};document.head.appendChild(script);
+   });
+   if(test())return;
+  }catch(e){lastError=e}
+ }
+ throw lastError||new Error(label+' در دسترس نیست؛ اتصال اینترنت را بررسی کنید.');
+}
+async function amnaEnsurePdfJs(){
+ await amnaLoadScript([
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+  'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js'
+ ],()=>!!window.pdfjsLib,'کتابخانه خواندن PDF');
+ if(!pdfjsLib.GlobalWorkerOptions.workerSrc)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+async function amnaEnsureMammoth(){
+ await amnaLoadScript([
+  'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js',
+  'https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js'
+ ],()=>!!window.mammoth,'کتابخانه Word');
+}
+async function amnaEnsureTesseract(){
+ await amnaLoadScript([
+  'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js',
+  'https://unpkg.com/tesseract.js@5/dist/tesseract.min.js'
+ ],()=>!!window.Tesseract,'کتابخانه تشخیص متن تصویر');
+}
+async function amnaOcr(source,onProgress){
+ await amnaEnsureTesseract();
+ const worker=await Tesseract.createWorker('fas+eng',1,{logger:m=>{if(m.status==='recognizing text'&&onProgress)onProgress(Math.round((m.progress||0)*100))}});
+ try{const result=await worker.recognize(source);return String(result.data?.text||'').trim()}
+ finally{await worker.terminate()}
+}
+async function amnaTranslateChunk(text,direction){
+ const [sl,tl]=direction==='fa-en'?['fa','en']:['en','fa'];
+ let lastError=null;
+ // Prefer the server proxy (avoids browser CORS restrictions); use the public endpoint as fallback.
+ try{
+  const r=await fetch('/api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,direction})});
+  const data=await r.json().catch(()=>({}));
+  if(r.ok&&String(data.translatedText||'').trim())return String(data.translatedText).trim();
+  lastError=new Error(data.error||'سرویس ترجمه سرور پاسخ معتبر نداد.');
+ }catch(e){lastError=e}
+ try{
+  const r=await fetch('https://translate.googleapis.com/translate_a/single?client=gtx&sl='+sl+'&tl='+tl+'&dt=t&q='+encodeURIComponent(text));
+  if(!r.ok)throw new Error('سرویس ترجمه آنلاین پاسخ نداد.');
+  const data=await r.json(),translated=(data[0]||[]).map(x=>x[0]||'').join('').trim();
+  if(translated)return translated;
+  throw new Error('ترجمه خالی دریافت شد.');
+ }catch(e){throw new Error((e.message||'ترجمه ناموفق بود')+(lastError?'؛ اتصال سرویس ترجمه سرور نیز ناموفق بود.':''))}
+}
+async function amnaTranslateLongText(text,direction,onProgress){
+ const chunks=[];let remaining=String(text||'').trim();
+ // Split at paragraph/sentence boundaries so neither API nor URL length limits truncate the translation.
+ while(remaining.length){
+  if(remaining.length<=3500){chunks.push(remaining);break}
+  let cut=remaining.lastIndexOf('\n',3500);
+  if(cut<1200)cut=remaining.lastIndexOf('. ',3500);
+  if(cut<1200)cut=remaining.lastIndexOf(' ',3500);
+  if(cut<1200)cut=3500;
+  chunks.push(remaining.slice(0,cut).trim());remaining=remaining.slice(cut).trim();
+ }
+ const results=[];
+ for(let i=0;i<chunks.length;i++){
+  if(onProgress)onProgress(i+1,chunks.length);
+  results.push(await amnaTranslateChunk(chunks[i],direction));
+ }
+ return results.join('\n\n');
+}
 async function translateUploadedFile(){
  const fileInput=document.getElementById('translationFile'),direction=document.getElementById('translationDirection'),status=document.getElementById('translationFileStatus'),output=document.getElementById('translationFileResult');
- const file=fileInput?.files?.[0]; if(!file){status.textContent='ابتدا تصویر، PDF یا فایل Word با فرمت DOCX را انتخاب کنید.';return}
- output.value='';status.textContent='در حال خواندن فایل…';
+ const file=fileInput?.files?.[0];if(!file){status.textContent='ابتدا تصویر، PDF یا فایل Word را انتخاب کنید.';return}
+ output.value='';status.textContent='در حال آماده‌سازی ابزار خواندن فایل…';
  try{
   const name=file.name||'file',ext=(name.split('.').pop()||'').toLowerCase();let extracted='';
   if(file.type.startsWith('image/')||['png','jpg','jpeg','webp','bmp','tif','tiff'].includes(ext)){
-   if(!window.Tesseract)await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.onload=resolve;s.onerror=()=>reject(new Error('کتابخانه خواندن متن تصویر بارگذاری نشد؛ اینترنت را بررسی کنید.'));document.head.appendChild(s)});
-   if(!window.Tesseract)throw new Error('ابزار خواندن متن تصویر در دسترس نیست.');
-   status.textContent='در حال استخراج نوشته‌های تصویر (OCR)…';
-   const worker=await Tesseract.createWorker('fas+eng',1,{logger:m=>{if(m.status==='recognizing text')status.textContent='خواندن نوشته‌های تصویر: '+Math.round((m.progress||0)*100)+'٪'}});
-   try{const result=await worker.recognize(file);extracted=String(result.data?.text||'').trim()}finally{await worker.terminate()}
+   status.textContent='در حال استخراج نوشته‌های تصویر؛ لطفاً صبر کنید…';
+   extracted=await amnaOcr(file,p=>status.textContent='خواندن تصویر: '+p+'٪');
   }else if(ext==='pdf'||file.type==='application/pdf'){
-   if(!window.pdfjsLib)throw new Error('کتابخانه PDF بارگذاری نشده است؛ صفحه را تازه‌سازی کنید.');
+   await amnaEnsurePdfJs();
    const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer(),useWorkerFetch:false,isEvalSupported:false}).promise;const parts=[];
-   for(let p=1;p<=pdf.numPages;p++){status.textContent='خواندن صفحه '+p+' از '+pdf.numPages+'…';const page=await pdf.getPage(p),content=await page.getTextContent(),txt=content.items.map(x=>x.str).join(' ').replace(/\\s+/g,' ').trim();if(txt)parts.push(txt);else{if(!window.Tesseract)await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.onload=resolve;s.onerror=()=>reject(new Error('کتابخانه OCR بارگذاری نشد.'));document.head.appendChild(s)});const worker=await Tesseract.createWorker('fas+eng',1);try{const viewport=page.getViewport({scale:1.5}),canvas=document.createElement('canvas');canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;const ocr=await worker.recognize(canvas);if(ocr.data?.text)parts.push(ocr.data.text);canvas.width=1;canvas.height=1}finally{await worker.terminate()}}}
-   extracted=parts.join('\n');
+   if(pdf.numPages>100)throw new Error('این ابزار در هر بار حداکثر ۱۰۰ صفحه PDF را پردازش می‌کند.');
+   for(let p=1;p<=pdf.numPages;p++){
+    status.textContent='خواندن صفحه '+p+' از '+pdf.numPages+'…';
+    const page=await pdf.getPage(p),content=await page.getTextContent();
+    const txt=content.items.map(x=>x.str||'').join(' ').replace(/\s+/g,' ').trim();
+    // Scanned PDFs often have no text layer. OCR pages with no/very little selectable text.
+    if(txt.length<80){
+     try{
+      const viewport=page.getViewport({scale:1.6}),canvas=document.createElement('canvas');
+      canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);
+      await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
+      const ocr=await amnaOcr(canvas,pct=>status.textContent='OCR صفحه '+p+' از '+pdf.numPages+': '+pct+'٪');
+      parts.push(ocr.length>txt.length?ocr:txt);
+      canvas.width=1;canvas.height=1;
+     }catch(ocrError){if(txt)parts.push(txt);else throw ocrError}
+    }else parts.push(txt);
+   }
+   extracted=parts.filter(Boolean).join('\n\n');
   }else if(ext==='docx'||file.type==='application/vnd.openxmlformats-officedocument.wordprocessingml.document'){
-   if(!window.mammoth)throw new Error('کتابخانه Word بارگذاری نشده است؛ صفحه را تازه‌سازی کنید.');
+   await amnaEnsureMammoth();
    const result=await mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()});extracted=String(result.value||'').trim();
-  }else throw new Error('فرمت پشتیبانی‌شده: تصویر، PDF و Word با پسوند DOCX. فایل Word قدیمی DOC را ابتدا به DOCX تبدیل کنید.');
-  if(!extracted.trim())throw new Error('متنی از فایل استخراج نشد؛ ممکن است فایل خالی یا ناخوانا باشد.');
-  if(extracted.length>5000)extracted=extracted.slice(0,5000);
-  status.textContent='متن استخراج شد؛ در حال ترجمه…';
-  const dir=direction.value, [sl,tl]=dir==='fa-en'?['fa','en']:['en','fa'];let translated='';
-  try{const r=await fetch('https://translate.googleapis.com/translate_a/single?client=gtx&sl='+sl+'&tl='+tl+'&dt=t&q='+encodeURIComponent(extracted));if(!r.ok)throw Error('ترجمه آنلاین در دسترس نیست');const data=await r.json();translated=(data[0]||[]).map(x=>x[0]||'').join('')}catch(_){const r=await fetch('/api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:extracted,direction:dir})});const data=await r.json();if(!r.ok)throw Error(data.error||'سرویس ترجمه در دسترس نیست');translated=String(data.translatedText||'')}
-  if(!translated.trim())throw new Error('ترجمه‌ای دریافت نشد.');output.value=translated;status.textContent='ترجمه فایل «'+name+'» آماده شد. '+(extracted.length>=5000?'به‌دلیل محدودیت سرویس، فقط ۵۰۰۰ نویسه اول ترجمه شد.':'');
+  }else if(ext==='doc'){
+   throw new Error('فایل Word قدیمی با پسوند DOC پشتیبانی نمی‌شود. آن را در Word با فرمت DOCX ذخیره کنید و دوباره بارگذاری کنید.');
+  }else throw new Error('فرمت پشتیبانی‌شده: عکس، PDF و فایل Word با پسوند DOCX.');
+  extracted=String(extracted||'').replace(/\u0000/g,'').trim();
+  if(!extracted)throw new Error('متنی از فایل استخراج نشد. اگر فایل اسکن‌شده است، وضوح تصویر را بررسی کنید.');
+  const originalLength=extracted.length,limit=30000;
+  if(extracted.length>limit)extracted=extracted.slice(0,limit);
+  status.textContent='متن استخراج شد ('+Math.min(originalLength,limit).toLocaleString('fa-IR')+' نویسه)؛ ترجمه در حال انجام است…';
+  const translated=await amnaTranslateLongText(extracted,direction.value,(n,total)=>status.textContent='در حال ترجمه بخش '+n+' از '+total+'…');
+  if(!translated.trim())throw new Error('ترجمه‌ای دریافت نشد.');
+  output.value=translated;
+  status.textContent='ترجمه فایل «'+name+'» آماده شد.'+(originalLength>limit?' فقط '+limit.toLocaleString('fa-IR')+' نویسه اول پردازش شد.':'');
  }catch(e){console.error('file translation',e);status.textContent='ترجمه فایل انجام نشد: '+(e.message||'فایل یا اتصال ترجمه را بررسی کنید.')}
 }
 
