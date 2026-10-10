@@ -56,6 +56,8 @@ function setVoiceButtons(direction,recording){
 function stopAllAmnaAudioRecorders(){
   const active=window.__amnaAudioRecorders||{};
   Object.keys(active).forEach(id=>{const item=active[id];try{if(item?.rec&&item.rec.state!=='inactive')item.rec.stop()}catch(_){}try{item?.stream?.getTracks?.().forEach(track=>track.stop())}catch(_){}delete active[id]});
+  const recognizers=window.__amnaBrowserSpeechRecognizers||{};
+  Object.keys(recognizers).forEach(id=>{try{recognizers[id]?.abort?.()}catch(_){}try{recognizers[id]?.stop?.()}catch(_){}delete recognizers[id]});
 }
 function startVoiceTranslation(direction){
   stopAllAmnaAudioRecorders();
@@ -64,20 +66,22 @@ function startVoiceTranslation(direction){
   input.value='';voiceStopPending[direction]=false;setVoiceButtons(direction,true);
   status.textContent='در حال ضبط؛ صحبت کنید و سپس «پایان ضبط» را بزنید.';
   if(window.AmnaYarSpeech&&typeof window.AmnaYarSpeech.startListening==='function'){
-    try{window.AmnaYarSpeech.startListening(direction)}catch(e){setVoiceButtons(direction,false);status.textContent='شروع ضبط صدا ممکن نشد؛ دوباره تلاش کنید.'}
+    status.textContent='در حال آماده‌سازی میکروفون…';
+    setTimeout(()=>{try{window.AmnaYarSpeech.startListening(direction)}catch(e){setVoiceButtons(direction,false);status.textContent='شروع ضبط صدا ممکن نشد؛ اجازه میکروفون را بررسی کنید.'}},600);
     return;
   }
   const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!Recognition){setVoiceButtons(direction,false);status.textContent='تشخیص گفتار در این مرورگر پشتیبانی نمی‌شود؛ از Chrome یا Edge به‌روز استفاده کنید.';return}
   const recognition=new Recognition();activeVoiceRecognizers[direction]=recognition;
+  window.__amnaBrowserSpeechRecognizers=window.__amnaBrowserSpeechRecognizers||{};window.__amnaBrowserSpeechRecognizers['speech-'+direction]=recognition;
   recognition.lang=direction==='fa-en'?'fa-IR':'en-US';recognition.interimResults=true;recognition.continuous=true;recognition.maxAlternatives=1;
   let finalTranscript='';
   recognition.onresult=event=>{
     for(let i=event.resultIndex;i<event.results.length;i++){const item=event.results[i];if(item.isFinal)finalTranscript+=item[0].transcript+' ';}
     if(finalTranscript.trim())input.value=finalTranscript.trim();
   };
-  recognition.onerror=event=>{setVoiceButtons(direction,false);finishVoiceWait(direction);status.textContent=event.error==='not-allowed'?'اجازه میکروفون را در مرورگر فعال کنید.':event.error==='audio-capture'?'میکروفون در دسترس نیست یا توسط ضبط دیگری اشغال شده؛ ضبط فعال را متوقف و دوباره تلاش کنید.':event.error==='network'?'سرویس تشخیص گفتار آنلاین در دسترس نیست؛ اتصال اینترنت را بررسی کنید.':'ضبط گفتار انجام نشد؛ مجوز میکروفون و اتصال اینترنت را بررسی و دوباره تلاش کنید.'};
-  recognition.onend=()=>{setVoiceButtons(direction,false);finishVoiceWait(direction);if(input.value.trim())status.textContent='گفتار به متن تبدیل شد؛ متن را بازبینی یا اصلاح کنید.';else if(status.textContent.startsWith('در حال ضبط'))status.textContent='گفتاری ثبت نشد؛ دوباره شروع کنید.'};
+  recognition.onerror=event=>{delete window.__amnaBrowserSpeechRecognizers?.['speech-'+direction];setVoiceButtons(direction,false);finishVoiceWait(direction);status.textContent=event.error==='not-allowed'?'اجازه میکروفون را در مرورگر فعال کنید.':event.error==='audio-capture'?'Could not start audio source: میکروفون در دسترس نیست یا برنامه دیگری از آن استفاده می‌کند؛ ضبط‌های دیگر را ببندید و دوباره تلاش کنید.':event.error==='network'?'سرویس تشخیص گفتار آنلاین در دسترس نیست؛ اتصال اینترنت را بررسی کنید.':'ضبط گفتار انجام نشد؛ مجوز میکروفون و اتصال اینترنت را بررسی و دوباره تلاش کنید.'};
+  recognition.onend=()=>{delete window.__amnaBrowserSpeechRecognizers?.['speech-'+direction];setVoiceButtons(direction,false);finishVoiceWait(direction);if(input.value.trim())status.textContent='گفتار به متن تبدیل شد؛ متن را بازبینی یا اصلاح کنید.';else if(status.textContent.startsWith('در حال ضبط'))status.textContent='گفتاری ثبت نشد؛ دوباره شروع کنید.'};
   try{recognition.start()}catch(e){setVoiceButtons(direction,false);status.textContent='میکروفون در حال استفاده است؛ چند لحظه دیگر تلاش کنید.'}
 }
 function stopVoiceTranslation(direction){
@@ -290,7 +294,8 @@ function compressVideo(){
       s.textContent=message;return;
     }
     const blob=xhr.response,original=Number(xhr.getResponseHeader('X-Original-Size')||f.size),compressed=Number(xhr.getResponseHeader('X-Compressed-Size')||blob.size);
-    if(compressed>=original){s.textContent='این ویدئو از قبل کم‌حجم است؛ خروجی بزرگ‌تر دانلود نشد.';return}
+    if(!blob||!blob.size||blob.type.includes('json')){s.textContent='سرور فایل MP4 معتبر برنگرداند؛ دوباره تلاش کنید.';return}
+    if(compressed>=original){downloadBlob(blob,'amnayar-video.mp4');s.textContent='حجم ویدئو کاهش نیافت؛ نسخه MP4 قابل دریافت آماده شد. برای کاهش بیشتر، گزینه کیفیت پایین‌تر را انتخاب کنید.';return}
     downloadBlob(blob,'amnayar-compressed.mp4');s.textContent=savingsText(original,compressed)+' — خروجی MP4 آماده شد.';
   };
   xhr.onerror=()=>{s.textContent='ارتباط با سرویس فشرده‌سازی قطع شد؛ دوباره تلاش کنید.'};
@@ -641,7 +646,7 @@ async function askReferenceDocument(){
  finally{if(button){button.disabled=false;button.textContent=oldLabel||'یافتن پاسخ در فایل'}}
 }
 function escapeDocQa(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
-function startDocumentQuestionVoice(){stopAllAmnaAudioRecorders();const status=$('#docQaStatus');if(window.AmnaYarSpeech?.startListening){try{window.AmnaYarSpeech.startListening('doc-qa');status.textContent='صحبت کنید؛ پس از پایان گفتار، پرسش در کادر قرار می‌گیرد.';return}catch(e){}}const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R){status.textContent='تشخیص گفتار در این مرورگر فعال نیست؛ از نسخه اندروید یا مرورگر سازگار استفاده کنید.';return}const r=new R();r.lang='fa-IR';r.interimResults=false;r.maxAlternatives=1;r.onresult=e=>{const text=e.results?.[0]?.[0]?.transcript||'';if(text){$('#docQaQuestion').value=text;status.textContent='پرسش صوتی ثبت شد؛ برای جست‌وجو دکمه پاسخ را بزنید.'}else status.textContent='گفتاری تشخیص داده نشد؛ دوباره تلاش کنید.'};r.onerror=e=>status.textContent=e.error==='not-allowed'?'اجازه میکروفون را در مرورگر فعال کنید.':e.error==='audio-capture'?'میکروفون در دسترس نیست یا ضبط دیگری آن را اشغال کرده است؛ ضبط فعال را متوقف کنید.':e.error==='network'?'تشخیص گفتار آنلاین در دسترس نیست؛ اینترنت را بررسی کنید.':'گفتار ثبت نشد؛ مجوز میکروفون و اتصال اینترنت را بررسی کنید.';try{r.start()}catch(e){status.textContent='شروع میکروفون ممکن نشد؛ دوباره تلاش کنید.'}}
+function startDocumentQuestionVoice(){stopAllAmnaAudioRecorders();const status=$('#docQaStatus');if(window.AmnaYarSpeech?.startListening){status.textContent='در حال آماده‌سازی میکروفون…';setTimeout(()=>{try{window.AmnaYarSpeech.startListening('doc-qa')}catch(e){status.textContent='شروع پرسش صوتی ممکن نشد؛ مجوز میکروفون را بررسی کنید.'}},600);return}const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R){status.textContent='تشخیص گفتار در این مرورگر فعال نیست؛ از نسخه اندروید یا مرورگر سازگار استفاده کنید.';return}const r=new R();window.__amnaBrowserSpeechRecognizers=window.__amnaBrowserSpeechRecognizers||{};window.__amnaBrowserSpeechRecognizers.docqa=r;r.lang='fa-IR';r.interimResults=false;r.continuous=false;r.maxAlternatives=1;r.onresult=e=>{const text=e.results?.[0]?.[0]?.transcript||'';if(text){$('#docQaQuestion').value=text;status.textContent='پرسش صوتی ثبت شد؛ برای جست‌وجو دکمه پاسخ را بزنید.'}else status.textContent='گفتاری تشخیص داده نشد؛ دوباره تلاش کنید.'};r.onerror=e=>{delete window.__amnaBrowserSpeechRecognizers?.docqa;status.textContent=e.error==='not-allowed'?'اجازه میکروفون را در مرورگر فعال کنید.':e.error==='audio-capture'?'میکروفون در دسترس نیست یا ضبط دیگری آن را اشغال کرده است؛ ضبط فعال را متوقف کنید.':e.error==='network'?'تشخیص گفتار آنلاین در دسترس نیست؛ اینترنت را بررسی کنید.':'گفتار ثبت نشد؛ مجوز میکروفون و اتصال اینترنت را بررسی کنید.'};r.onend=()=>{delete window.__amnaBrowserSpeechRecognizers?.docqa};setTimeout(()=>{try{r.start()}catch(e){status.textContent='شروع میکروفون ممکن نشد؛ دوباره تلاش کنید.'}},400)}
 window.amnayarDocumentQuestionResult=function(text,direction,error){const status=$('#docQaStatus');if(error||!text){status.textContent='گفتار پرسش ثبت نشد؛ دوباره تلاش کنید.';return}$('#docQaQuestion').value=text;status.textContent='پرسش صوتی ثبت شد؛ برای یافتن پاسخ از فایل، دکمه پاسخ را بزنید.'};
 
 // Professional calendar helpers and local audio recorder for speech tools.
@@ -669,12 +674,14 @@ function startTranslationVoice(direction){
  }
  const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
  if(!Recognition){status.textContent='تشخیص گفتار در این مرورگر در دسترس نیست؛ در Chrome به‌روز یا اپلیکیشن امنا یار امتحان کنید.';return}
+ stopAllAmnaAudioRecorders();
  try{
   const rec=new Recognition();activeTranslationRecognizers[direction]=rec;
+  window.__amnaBrowserSpeechRecognizers=window.__amnaBrowserSpeechRecognizers||{};window.__amnaBrowserSpeechRecognizers['translate-'+direction]=rec;
   rec.lang=direction==='fa-en'?'fa-IR':'en-US';rec.interimResults=true;rec.continuous=true;rec.maxAlternatives=1;let finalText='';
   rec.onresult=e=>{let interim='';for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)finalText+=t+' ';else interim+=t}input.value=(finalText+interim).trim();status.textContent='در حال تشخیص گفتار؛ متن را می‌توانید ویرایش کنید.'};
-  rec.onerror=e=>{status.textContent=e.error==='not-allowed'?'اجازه میکروفون را در تنظیمات مرورگر فعال کنید.':'تشخیص گفتار ناموفق بود؛ اتصال اینترنت و میکروفون را بررسی کنید.'};
-  rec.onend=()=>{if(activeTranslationRecognizers[direction]===rec)delete activeTranslationRecognizers[direction];if(input.value.trim()){status.textContent='گفتار تشخیص داده شد؛ ترجمه آنلاین در حال انجام است…';translateStandalone(direction)}};
+  rec.onerror=e=>{status.textContent=e.error==='not-allowed'?'اجازه میکروفون را در تنظیمات مرورگر فعال کنید.':e.error==='audio-capture'?'میکروفون در دسترس نیست یا ضبط دیگری آن را اشغال کرده است؛ ضبط‌های دیگر را ببندید.':'تشخیص گفتار ناموفق بود؛ اتصال اینترنت و میکروفون را بررسی کنید.'};
+  rec.onend=()=>{delete window.__amnaBrowserSpeechRecognizers?.['translate-'+direction];if(activeTranslationRecognizers[direction]===rec)delete activeTranslationRecognizers[direction];if(input.value.trim()){status.textContent='گفتار تشخیص داده شد؛ ترجمه آنلاین در حال انجام است…';translateStandalone(direction)}};
   rec.start();status.textContent='صحبت کنید؛ برای پایان، «پایان صحبت» را بزنید.';
  }catch(e){delete activeTranslationRecognizers[direction];status.textContent='شروع میکروفون ناموفق بود؛ اجازه دسترسی را بررسی کنید.'}
 }
@@ -894,8 +901,8 @@ document.addEventListener('DOMContentLoaded',()=>{
 /* Offline fallback: rasterizes PDF pages and rebuilds a smaller PDF when server Ghostscript is unavailable.
    This is intentionally limited because selectable text and annotations are flattened in this mode. */
 async function compressPDFLocally(file,quality,status){
-  if(file.size>40*1024*1024){status.textContent='فشرده‌سازی سرور در دسترس نیست و این فایل از حد امن فشرده‌سازی محلی (۴۰ مگابایت) بزرگ‌تر است. سرویس سرور باید فعال شود.';return}
-  if(!window.pdfjsLib||!window.PDFLib){status.textContent='فشرده‌سازی سرور در دسترس نیست و کتابخانه فشرده‌سازی محلی هم بارگذاری نشده؛ اتصال اینترنت را بررسی کنید.';return}
+  if(file.size>40*1024*1024){downloadBlob(new Blob([await file.arrayBuffer()],{type:'application/pdf'}),'amnayar-pdf.pdf');status.textContent='سرویس فشرده‌سازی سرور در دسترس نیست و فایل برای فشرده‌سازی محلی بزرگ است؛ نسخه PDF اصلی برای دریافت آماده شد.';return}
+  if(!window.pdfjsLib||!window.PDFLib){downloadBlob(new Blob([await file.arrayBuffer()],{type:'application/pdf'}),'amnayar-pdf.pdf');status.textContent='کتابخانه فشرده‌سازی محلی بارگذاری نشد؛ نسخه PDF اصلی برای دریافت آماده شد. اتصال سرویس سرور باید بررسی شود.';return}
   status.textContent='سرور در دسترس نیست؛ فشرده‌سازی محلی شروع شد. در این روش صفحات به تصویر تبدیل می‌شوند و متن PDF قابل انتخاب نخواهد بود.';
   let canvas=null;
   try{
@@ -920,7 +927,7 @@ async function compressPDFLocally(file,quality,status){
     }
     const bytes=await out.save({useObjectStreams:true,addDefaultPage:false});
     const blob=new Blob([bytes],{type:'application/pdf'});
-    if(blob.size>=file.size){status.textContent='نسخه محلی کوچک‌تر از فایل اصلی نشد؛ لطفاً سرویس فشرده‌سازی سرور فعال شود.';return}
+    if(blob.size>=file.size){downloadBlob(new Blob([await file.arrayBuffer()],{type:'application/pdf'}),'amnayar-pdf.pdf');status.textContent='حجم فایل کاهش نیافت؛ نسخه PDF معتبر برای دریافت آماده شد. سرویس فشرده‌سازی سرور باید بررسی شود.';return}
     downloadBlob(blob,'amnayar-compressed-local.pdf');
     status.textContent=savingsText(file.size,blob.size)+' — فشرده‌سازی محلی انجام شد. توجه: متن صفحات به تصویر تبدیل شده است.';
     if(typeof logLocalToolAction==='function')logLocalToolAction('فشرده‌سازی محلی PDF با موفقیت','conversion');
@@ -940,10 +947,11 @@ async function compressPDFLocally(file,quality,status){
     if(!Recognition)return;
     const status=document.getElementById('docQaStatus'),question=document.getElementById('docQaQuestion');
     try{
-      const rec=new Recognition();rec.lang='fa-IR';rec.interimResults=false;rec.continuous=false;rec.maxAlternatives=1;
+      const rec=new Recognition();window.__amnaBrowserSpeechRecognizers=window.__amnaBrowserSpeechRecognizers||{};window.__amnaBrowserSpeechRecognizers.docqa=rec;rec.lang='fa-IR';rec.interimResults=false;rec.continuous=false;rec.maxAlternatives=1;
       rec.onresult=function(e){const value=String(e.results?.[0]?.[0]?.transcript||'').trim();if(value){question.value=value;status.textContent='پرسش صوتی ثبت شد؛ اکنون «یافتن پاسخ در فایل» را بزنید.'}};
-      rec.onerror=function(){status.textContent='پرسش صوتی کار نکرد؛ دسترسی میکروفون و سرویس تشخیص گفتار دستگاه را بررسی کنید.'};
-      rec.start();status.textContent='تشخیص گفتار داخلی پاسخ نداد؛ در حال تلاش با مرورگر…';
+      rec.onerror=function(){delete window.__amnaBrowserSpeechRecognizers?.docqa;status.textContent='پرسش صوتی کار نکرد؛ دسترسی میکروفون و سرویس تشخیص گفتار دستگاه را بررسی کنید.'};
+      rec.onend=function(){delete window.__amnaBrowserSpeechRecognizers?.docqa};
+      setTimeout(()=>{try{rec.start();status.textContent='تشخیص گفتار داخلی پاسخ نداد؛ در حال تلاش با مرورگر…'}catch(_){status.textContent='شروع پرسش صوتی ممکن نشد؛ مجوز میکروفون را بررسی کنید.'}},700);
     }catch(_){status.textContent='شروع پرسش صوتی ممکن نشد؛ مجوز میکروفون را بررسی کنید.'}
   };
 })();
