@@ -671,7 +671,9 @@ function startTranslationVoice(direction){
  window.__amnaTranslationVoiceDirection=direction;
  if(activeTranslationRecognizers[direction]){status.textContent='تشخیص گفتار همین زبان در حال اجراست.';return}
  if(window.AmnaYarSpeech&&typeof window.AmnaYarSpeech.startListening==='function'){
-   try{window.AmnaYarSpeech.startListening(direction==='fa-en'?'translate-fa-en':'translate-en-fa');status.textContent='صحبت کنید؛ تشخیص گفتار در حال اجراست.';return}catch(e){}
+   status.textContent='در حال آماده‌سازی میکروفون…';
+   setTimeout(()=>{try{window.AmnaYarSpeech.startListening(direction==='fa-en'?'translate-fa-en':'translate-en-fa');status.textContent='صحبت کنید؛ تشخیص گفتار در حال اجراست.'}catch(e){status.textContent='شروع میکروفون ممکن نشد؛ مجوز میکروفون را بررسی کنید.'}},600);
+   return;
  }
  const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
  if(!Recognition){status.textContent='تشخیص گفتار در این مرورگر در دسترس نیست؛ در Chrome به‌روز یا اپلیکیشن امنا یار امتحان کنید.';return}
