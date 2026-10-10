@@ -614,7 +614,7 @@ async function loadReferenceDocument(){
    for(const name of wb.SheetNames){const rows=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:false});for(let i=0;i<rows.length;i++){const row=rows[i].map(v=>String(v??'').trim()).filter(Boolean).join(' | ');if(row)addText('برگه '+name+'، ردیف '+fa(i+1),row)}}
   }else throw new Error('فرمت پشتیبانی‌شده: PDF، DOCX، XLSX، XLS، TXT و تصویر. فایل Word قدیمی DOC را ابتدا به DOCX تبدیل کنید.');
   if(!amnaReferenceChunks.length)throw new Error('متن قابل استخراج پیدا نشد؛ فایل خالی، رمزدار یا ناخوانا است.');
-  status.textContent='فایل خوانده شد: '+f.name+' — '+fa(amnaReferenceChunks.length)+' بخش قابل جست‌وجو آماده است. سؤال را بنویسید یا با گفتار بگویید.';
+  status.textContent='فایل خوانده شد: '+f.name+' — '+fa(amnaReferenceChunks.length)+' بخش قابل جست‌وجو آماده است. سؤال را بنویسید.';
   if(ask)ask.disabled=false;
  }catch(e){console.error('document extraction',e);status.textContent='خواندن فایل انجام نشد: '+(e.message||'فرمت فایل را بررسی کنید.')}
  finally{if(ocrWorker)try{await ocrWorker.terminate()}catch(e){}}
@@ -622,7 +622,7 @@ async function loadReferenceDocument(){
 async function askReferenceDocument(){
  const q=String($('#docQaQuestion')?.value||'').trim(),out=$('#docQaAnswer'),status=$('#docQaStatus'),button=$('#docQaAsk');
  if(!amnaReferenceChunks.length){out.textContent='ابتدا فایل مرجع را بارگذاری و پردازش کنید.';return}
- if(!q){out.textContent='پرسش خود را وارد کنید یا با گفتار ثبت کنید.';return}
+ if(!q){out.textContent='پرسش خود را وارد کنید.';return}
  const normalizeDoc=v=>String(v||'').toLocaleLowerCase('fa').replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[^\p{L}\p{N}]+/gu,' ').trim();
  const stop=new Set('از به با در را برای که این آن است بود شد می و یا اگر تا درباره طبق چیست چطور چگونه کدام چه آیا لطفا لطفاً من شما فایل متن مبلغ تاریخ شماره نام هست هستند شده شود می‌شود'.split(/\s+/));
  const normalized=normalizeDoc(q),words=[...new Set(normalized.split(/\s+/).filter(w=>w.length>1&&!stop.has(w)))];
@@ -658,11 +658,42 @@ function ensureAmnaAudioControls(){
 }
 function addAmnaUserChip(){const nav=document.querySelector('.nav nav,.nav-actions,.nav');if(!nav||document.getElementById('amnaToolsUser')||document.getElementById('amnayarAppUserChip'))return;const token=['amnayar_auth_token','amnayar_token','amnayar_access_token','auth_token'].some(k=>{try{return !!localStorage.getItem(k)}catch(e){return false}});if(!token)return;fetch('/api/me',{headers:{Authorization:'Bearer '+(localStorage.getItem('amnayar_auth_token')||localStorage.getItem('amnayar_token')||localStorage.getItem('amnayar_access_token')||localStorage.getItem('auth_token')||'')},cache:'no-store'}).then(r=>r.ok?r.json():null).then(d=>{const u=d&&(d.user||d);if(!u)return;const chip=document.createElement('span');chip.id='amnaToolsUser';chip.className='user-chip';chip.textContent='کاربر: '+String(u.display_name||u.username||'');nav.appendChild(chip)}).catch(()=>{});}
 function logLocalToolAction(title,kind){try{const key='amnayar_action_history',old=JSON.parse(localStorage.getItem(key)||'[]');old.unshift({title:String(title||kind||'ابزار'),kind:String(kind||'tool'),at:new Date().toISOString()});localStorage.setItem(key,JSON.stringify(old.slice(0,100)))}catch(e){}}
-document.addEventListener('DOMContentLoaded',()=>{ensureAmnaAudioControls();addAmnaUserChip();});
+document.addEventListener('DOMContentLoaded',()=>{addAmnaUserChip();});
 
 ;
 
 async function translateStandalone(direction){const input=document.getElementById(direction==='fa-en'?'plainFaText':'plainEnText'),out=document.getElementById(direction==='fa-en'?'plainEnResult':'plainFaResult'),status=document.getElementById(direction==='fa-en'?'plainFaStatus':'plainEnStatus');const text=String(input?.value||'').trim();if(!text){status.textContent='متن را وارد کنید.';return}if(text.length>5000){status.textContent='حداکثر ۵۰۰۰ نویسه مجاز است.';return}status.textContent='در حال ترجمه…';out.value='';try{const [sl,tl]=direction==='fa-en'?['fa','en']:['en','fa'];let translated='';try{const r=await fetch('https://translate.googleapis.com/translate_a/single?client=gtx&sl='+sl+'&tl='+tl+'&dt=t&q='+encodeURIComponent(text));if(!r.ok)throw Error('google');const d=await r.json();translated=(d[0]||[]).map(x=>x[0]||'').join('')}catch(_){const r=await fetch('/api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,direction})});const d=await r.json();if(!r.ok)throw Error(d.error||'ترجمه در دسترس نیست');translated=String(d.translatedText||'')}if(!translated)throw Error('ترجمه خالی دریافت شد');out.value=translated;status.textContent='ترجمه آماده شد؛ می‌توانید متن را کپی کنید.'}catch(e){status.textContent='ترجمه انجام نشد: '+(e.message||'اتصال سرویس ترجمه را بررسی کنید.')}} 
+
+
+async function translateUploadedFile(){
+ const fileInput=document.getElementById('translationFile'),direction=document.getElementById('translationDirection'),status=document.getElementById('translationFileStatus'),output=document.getElementById('translationFileResult');
+ const file=fileInput?.files?.[0]; if(!file){status.textContent='ابتدا تصویر، PDF یا فایل Word با فرمت DOCX را انتخاب کنید.';return}
+ output.value='';status.textContent='در حال خواندن فایل…';
+ try{
+  const name=file.name||'file',ext=(name.split('.').pop()||'').toLowerCase();let extracted='';
+  if(file.type.startsWith('image/')||['png','jpg','jpeg','webp','bmp','tif','tiff'].includes(ext)){
+   if(!window.Tesseract)await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.onload=resolve;s.onerror=()=>reject(new Error('کتابخانه خواندن متن تصویر بارگذاری نشد؛ اینترنت را بررسی کنید.'));document.head.appendChild(s)});
+   if(!window.Tesseract)throw new Error('ابزار خواندن متن تصویر در دسترس نیست.');
+   status.textContent='در حال استخراج نوشته‌های تصویر (OCR)…';
+   const worker=await Tesseract.createWorker('fas+eng',1,{logger:m=>{if(m.status==='recognizing text')status.textContent='خواندن نوشته‌های تصویر: '+Math.round((m.progress||0)*100)+'٪'}});
+   try{const result=await worker.recognize(file);extracted=String(result.data?.text||'').trim()}finally{await worker.terminate()}
+  }else if(ext==='pdf'||file.type==='application/pdf'){
+   if(!window.pdfjsLib)throw new Error('کتابخانه PDF بارگذاری نشده است؛ صفحه را تازه‌سازی کنید.');
+   const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer(),useWorkerFetch:false,isEvalSupported:false}).promise;const parts=[];
+   for(let p=1;p<=pdf.numPages;p++){status.textContent='خواندن صفحه '+p+' از '+pdf.numPages+'…';const page=await pdf.getPage(p),content=await page.getTextContent(),txt=content.items.map(x=>x.str).join(' ').replace(/\\s+/g,' ').trim();if(txt)parts.push(txt);else{if(!window.Tesseract)await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.onload=resolve;s.onerror=()=>reject(new Error('کتابخانه OCR بارگذاری نشد.'));document.head.appendChild(s)});const worker=await Tesseract.createWorker('fas+eng',1);try{const viewport=page.getViewport({scale:1.5}),canvas=document.createElement('canvas');canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;const ocr=await worker.recognize(canvas);if(ocr.data?.text)parts.push(ocr.data.text);canvas.width=1;canvas.height=1}finally{await worker.terminate()}}}
+   extracted=parts.join('\n');
+  }else if(ext==='docx'||file.type==='application/vnd.openxmlformats-officedocument.wordprocessingml.document'){
+   if(!window.mammoth)throw new Error('کتابخانه Word بارگذاری نشده است؛ صفحه را تازه‌سازی کنید.');
+   const result=await mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()});extracted=String(result.value||'').trim();
+  }else throw new Error('فرمت پشتیبانی‌شده: تصویر، PDF و Word با پسوند DOCX. فایل Word قدیمی DOC را ابتدا به DOCX تبدیل کنید.');
+  if(!extracted.trim())throw new Error('متنی از فایل استخراج نشد؛ ممکن است فایل خالی یا ناخوانا باشد.');
+  if(extracted.length>5000)extracted=extracted.slice(0,5000);
+  status.textContent='متن استخراج شد؛ در حال ترجمه…';
+  const dir=direction.value, [sl,tl]=dir==='fa-en'?['fa','en']:['en','fa'];let translated='';
+  try{const r=await fetch('https://translate.googleapis.com/translate_a/single?client=gtx&sl='+sl+'&tl='+tl+'&dt=t&q='+encodeURIComponent(extracted));if(!r.ok)throw Error('ترجمه آنلاین در دسترس نیست');const data=await r.json();translated=(data[0]||[]).map(x=>x[0]||'').join('')}catch(_){const r=await fetch('/api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:extracted,direction:dir})});const data=await r.json();if(!r.ok)throw Error(data.error||'سرویس ترجمه در دسترس نیست');translated=String(data.translatedText||'')}
+  if(!translated.trim())throw new Error('ترجمه‌ای دریافت نشد.');output.value=translated;status.textContent='ترجمه فایل «'+name+'» آماده شد. '+(extracted.length>=5000?'به‌دلیل محدودیت سرویس، فقط ۵۰۰۰ نویسه اول ترجمه شد.':'');
+ }catch(e){console.error('file translation',e);status.textContent='ترجمه فایل انجام نشد: '+(e.message||'فایل یا اتصال ترجمه را بررسی کنید.')}
+}
 
 const activeTranslationRecognizers=Object.create(null);
 function startTranslationVoice(direction){
