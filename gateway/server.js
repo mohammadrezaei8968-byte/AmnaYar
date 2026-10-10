@@ -136,17 +136,21 @@ app.post("/api/tools/compress-video",videoUpload.single("file"),async(req,res)=>
   const input=req.file?.path;
   if(!input)return res.status(400).json({error:"video_required"});
   const quality=String(req.body?.quality||"balanced");
+  const targetWidth=quality==="small"?480:quality==="high"?1080:720;
   const crf=quality==="small"?38:quality==="high"?27:34;
   const output=path.join(os.tmpdir(),"amnayar-video-"+crypto.randomUUID()+".mp4");
   const cleanup=()=>Promise.allSettled([fs.promises.unlink(input),fs.promises.unlink(output)]);
   try{
     if(!ffmpegPath)return res.status(503).json({error:"ffmpeg_unavailable"});
+    // Force an even width and height: H.264/yuv420p rejects some phone videos with odd dimensions.
     await execFileAsync(ffmpegPath,[
-      "-hide_banner","-loglevel","error","-y","-i",input,
-      "-map","0:v:0","-map","0:a?","-vf",`scale='min(${quality==="small"?480:quality==="high"?1080:720},iw)':-2:flags=fast_bilinear`,
-      "-c:v","libx264","-preset","ultrafast","-crf",String(crf),
-      "-c:a","aac","-b:a",quality==="small"?"64k":quality==="high"?"128k":"80k","-movflags","+faststart","-threads","0",output
-    ],{timeout:2*60*60*1000,maxBuffer:4*1024*1024});
+      "-hide_banner","-loglevel","error","-y","-fflags","+genpts","-i",input,
+      "-map","0:v:0","-map","0:a?",
+      "-vf",`scale=w='trunc(min(${targetWidth},iw)/2)*2':h=-2:flags=fast_bilinear`,
+      "-c:v","libx264","-preset","veryfast","-crf",String(crf),"-pix_fmt","yuv420p",
+      "-c:a","aac","-b:a",quality==="small"?"64k":quality==="high"?"128k":"80k",
+      "-movflags","+faststart","-threads","0","-f","mp4",output
+    ],{timeout:2*60*60*1000,maxBuffer:8*1024*1024});
     const stat=await fs.promises.stat(output);
     const useOriginal=stat.size>=req.file.size;
     const filePath=useOriginal?input:output;
@@ -163,10 +167,10 @@ app.post("/api/tools/compress-video",videoUpload.single("file"),async(req,res)=>
   }catch(e){
     await cleanup();
     const msg=String(e?.stderr||e?.message||"");
-    console.error("video_compress_failed",msg.slice(0,1200));
+    console.error("video_compress_failed",msg.slice(0,2000));
     if(/ENOENT/i.test(msg))return res.status(503).json({error:"ffmpeg_unavailable"});
     if(/LIMIT_FILE_SIZE|too large|File too large/i.test(msg))return res.status(413).json({error:"video_too_large"});
-    return res.status(422).json({error:"video_compress_failed"});
+    return res.status(422).json({error:"video_compress_failed",detail:msg.replace(/\s+/g," ").slice(0,500)||"unsupported_video"});
   }
 });
 
