@@ -523,6 +523,38 @@ app.post("/api/translate",async(req,res)=>{
 // Document-grounded AI Q&A (OpenAI-compatible API).
 
 app.get("/api/ai/status",(req,res)=>res.json({configured:!!String(process.env.OPENAI_API_KEY||process.env.AI_API_KEY||"").trim(),model:String(process.env.OPENAI_MODEL||process.env.AI_MODEL||"gpt-4o-mini"),providerConfigured:!!String(process.env.OPENAI_BASE_URL||process.env.AI_BASE_URL||"").trim()}));
+
+// Online speech-to-text for supported browsers; uses the same server-side AI credentials as document Q&A.
+const speechUpload=multer({
+  dest:os.tmpdir(),
+  limits:{fileSize:25*1024*1024},
+  fileFilter:(req,file,cb)=>cb(null,String(file.mimetype||'').startsWith('audio/')||/\.(webm|mp4|m4a|wav|mp3|ogg|mpeg|mpga)$/i.test(file.originalname||''))
+});
+app.post("/api/ai/transcribe",speechUpload.single("file"),async(req,res)=>{
+  const input=req.file?.path;
+  if(!input)return res.status(400).json({error:"لطفاً صدای ضبط‌شده را ارسال کنید."});
+  const apiKey=String(process.env.OPENAI_API_KEY||process.env.AI_API_KEY||"").trim();
+  if(!apiKey){await fs.promises.unlink(input).catch(()=>{});return res.status(503).json({error:"تبدیل گفتار آنلاین به کلید OPENAI_API_KEY نیاز دارد که باید در متغیرهای محیطی سرویس API تنظیم شود."});}
+  const base=String(process.env.OPENAI_BASE_URL||process.env.AI_BASE_URL||"https://api.openai.com/v1").replace(/\/+$/,"");
+  const model=String(process.env.OPENAI_TRANSCRIPTION_MODEL||"whisper-1").trim();
+  const language=String(req.body?.language||"fa").toLowerCase().startsWith("en")?"en":"fa";
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),90000);
+  try{
+    const bytes=await fs.promises.readFile(input);
+    const form=new FormData();
+    form.append("file",new Blob([bytes],{type:req.file.mimetype||"audio/webm"}),path.basename(req.file.originalname||"recording.webm"));
+    form.append("model",model);form.append("language",language);form.append("response_format","json");
+    const response=await fetch(base+"/audio/transcriptions",{method:"POST",headers:{Authorization:"Bearer "+apiKey},body:form,signal:controller.signal});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok){console.error("speech_transcription_provider",response.status,String(data?.error?.message||"").slice(0,300));return res.status(502).json({error:"سرویس تبدیل گفتار پاسخ نداد؛ تنظیمات کلید، مدل و اعتبار سرویس را بررسی کنید."});}
+    const text=String(data?.text||"").trim();
+    if(!text)return res.status(422).json({error:"صدای قابل‌تشخیصی در فایل پیدا نشد؛ واضح‌تر و نزدیک‌تر به میکروفون صحبت کنید."});
+    return res.json({ok:true,text,language,model});
+  }catch(e){
+    console.error("speech_transcription_error",String(e?.message||e).slice(0,300));
+    return res.status(502).json({error:e?.name==="AbortError"?"تبدیل گفتار بیش از حد طول کشید؛ صدای کوتاه‌تری ضبط کنید.":"ارتباط با سرویس تبدیل گفتار برقرار نشد."});
+  }finally{clearTimeout(timer);await fs.promises.unlink(input).catch(()=>{});}
+});
 const aiRequestWindow=new Map();
 app.post("/api/ai/document-question",async(req,res)=>{
  const nowMs=Date.now(),ip=String(req.ip||req.socket?.remoteAddress||"unknown"),recent=(aiRequestWindow.get(ip)||[]).filter(t=>nowMs-t<60000);
@@ -1149,41 +1181,46 @@ app.post('/api/tools/compress-pdf',pdfUpload.single('file'),async(req,res)=>{
       '-dDownsampleColorImages=true','-dDownsampleGrayImages=true','-dDownsampleMonoImages=true',
       '-dColorImageDownsampleType=/Average','-dGrayImageDownsampleType=/Average','-dMonoImageDownsampleType=/Subsample',
       '-dColorImageResolution='+imageDpi,'-dGrayImageResolution='+imageDpi,'-dMonoImageResolution='+Math.max(120,imageDpi*2),
-      '-dColorImageDownsampleThreshold=1.0','-dGrayImageDownsampleThreshold=1.0','-dMonoImageDownsampleThreshold=1.0',
       '-dAutoFilterColorImages=false','-dAutoFilterGrayImages=false','-dColorImageFilter=/DCTEncode','-dGrayImageFilter=/DCTEncode',
       '-dPassThroughJPEGImages=false','-dPassThroughJPXImages=false','-dJPEGQ='+jpegQ,'-dPDFSETTINGS='+preset,
       '-sOutputFile='+out,input
     ],{timeout:8*60*1000,maxBuffer:4*1024*1024});
   };
+  const runGsFallback=async(out)=>{
+    await execFileAsync('gs',[
+      '-sDEVICE=pdfwrite','-dCompatibilityLevel=1.4','-dNOPAUSE','-dQUIET','-dBATCH','-dSAFER',
+      '-dDetectDuplicateImages=true','-dCompressFonts=true','-dSubsetFonts=true','-dAutoRotatePages=/None',
+      '-dPDFSETTINGS=/screen','-dColorImageFilter=/DCTEncode','-dGrayImageFilter=/DCTEncode','-dJPEGQ=45',
+      '-sOutputFile='+out,input
+    ],{timeout:8*60*1000,maxBuffer:4*1024*1024});
+  };
   try{
-    await runGs(output,quality);
-    let stat=await fs.promises.stat(output);
-    // Never return a larger file as a "compressed" result.
-    if(stat.size>=req.file.size){
+    try{await runGs(output,quality)}
+    catch(firstError){
       await fs.promises.unlink(output).catch(()=>{});
-      await runGs(output,30);
-      stat=await fs.promises.stat(output);
+      console.warn('pdf_downsample_retry',String(firstError?.stderr||firstError?.message||'').replace(/\s+/g,' ').slice(0,400));
+      await runGsFallback(output);
     }
-    if(stat.size>=req.file.size){
-      await cleanup();
-      return res.status(422).json({error:'pdf_already_optimized',message:'این PDF از قبل بهینه است و نسخه کوچک‌ترِ مطمئنی از آن ساخته نشد.'});
-    }
+    const stat=await fs.promises.stat(output);
+    const useOriginal=stat.size>=req.file.size;
+    const filePath=useOriginal?input:output;
+    const finalSize=useOriginal?req.file.size:stat.size;
     res.setHeader('Content-Type','application/pdf');
     res.setHeader('Content-Disposition','attachment; filename="amnayar-compressed.pdf"');
     res.setHeader('X-Original-Size',String(req.file.size));
-    res.setHeader('X-Compressed-Size',String(stat.size));
-    res.setHeader('X-Compression-Applied','yes');
-    res.sendFile(output,err=>{
+    res.setHeader('X-Compressed-Size',String(finalSize));
+    res.setHeader('X-Compression-Applied',useOriginal?'no':'yes');
+    res.sendFile(filePath,err=>{
       cleanup().catch(()=>{});
       if(err&&!res.headersSent)res.status(500).json({error:'pdf_send_failed'});
     });
   }catch(e){
     await cleanup();
     const msg=String(e?.stderr||e?.message||'');
-    console.error('pdf_compress_failed',msg.slice(0,1500));
+    console.error('pdf_compress_failed',msg.replace(/\s+/g,' ').slice(0,1500));
     if(/ENOENT/i.test(msg))return res.status(503).json({error:'ghostscript_unavailable'});
     if(/file size|too large|LIMIT_FILE_SIZE/i.test(msg))return res.status(413).json({error:'pdf_too_large'});
-    return res.status(422).json({error:'pdf_compress_failed'});
+    return res.status(422).json({error:'pdf_compress_failed',detail:msg.replace(/\s+/g,' ').slice(0,500)||'pdf_processing_failed'});
   }
 });
 
