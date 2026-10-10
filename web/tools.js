@@ -826,7 +826,7 @@ async function compressPDF(){
       const out=blob.blob,resp=blob.xhr;
       const original=Number(resp.getResponseHeader('X-Original-Size')||f.size),compressed=Number(resp.getResponseHeader('X-Compressed-Size')||out.size);
       if(!out.size||out.type.includes('json'))throw new Error('خروجی PDF معتبر دریافت نشد.');
-      if(compressed>=original){s.textContent='سرور نتوانست حجم را کاهش دهد؛ تلاش برای فشرده‌سازی محلی…';await compressPDFLocally(f,level,s);return}
+      if(compressed>=original){downloadBlob(out,'amnayar-pdf.pdf');s.textContent='فایل PDF معتبر دریافت شد؛ این فایل با روش فعلی کوچک‌تر نشد، اما نسخه قابل‌دانلود آماده است.';return}
       downloadBlob(out,'amnayar-compressed.pdf');
       s.textContent=savingsText(original,compressed)+' — فایل فشرده و دانلود شد.';
       if(typeof logLocalToolAction==='function')logLocalToolAction('فشرده‌سازی PDF با موفقیت','conversion');
@@ -962,3 +962,148 @@ async function compressPDFLocally(file,quality,status){
 
 /* Route native Android speech results into the standalone translator when it initiated recording. */
 (function(){const previous=window.amnayarVoiceResult;window.amnayarVoiceResult=function(text,direction,error){if(window.__amnaTranslationVoiceDirection===direction){const input=document.getElementById(direction==='fa-en'?'plainFaText':'plainEnText'),status=document.getElementById(direction==='fa-en'?'plainFaStatus':'plainEnStatus');if(error){if(status)status.textContent='تشخیص گفتار ناموفق بود؛ مجوز میکروفون یا اتصال را بررسی کنید.';return}if(input&&String(text||'').trim())input.value=String(text).trim();if(status)status.textContent=input&&input.value.trim()?'گفتار ثبت شد؛ اکنون دکمه ترجمه را بزنید.':'گفتاری دریافت نشد؛ دوباره تلاش کنید.';window.__amnaTranslationVoiceDirection=null;return}if(previous)previous(text,direction,error)}})();
+
+
+/* Stable online speech capture for browsers that fail with "Could not start audio source".
+   The recorder releases the microphone before posting the audio for server-side transcription. */
+(function installReliableSpeechCapture(){
+  const baseStartSpeech=window.startVoiceTranslation;
+  const baseStopSpeech=window.stopVoiceTranslation;
+  const baseStartTranslation=window.startTranslationVoice;
+  const baseStopTranslation=window.stopTranslationVoice;
+  const baseStartQuestion=window.startDocumentQuestionVoice;
+  const active=window.__amnaOnlineRecordings=window.__amnaOnlineRecordings||Object.create(null);
+
+  function targetFor(kind,direction){
+    if(kind==='speech')return {
+      input:document.getElementById(direction==='fa-en'?'faToEnText':'enToFaText'),
+      status:document.getElementById(direction==='fa-en'?'faVoiceStatus':'enVoiceStatus'),
+      language:direction==='fa-en'?'fa':'en'
+    };
+    if(kind==='translation')return {
+      input:document.getElementById(direction==='fa-en'?'plainFaText':'plainEnText'),
+      status:document.getElementById(direction==='fa-en'?'plainFaStatus':'plainEnStatus'),
+      language:direction==='fa-en'?'fa':'en'
+    };
+    return {input:document.getElementById('docQaQuestion'),status:document.getElementById('docQaStatus'),language:'fa'};
+  }
+  function stopTracks(stream){try{stream?.getTracks?.().forEach(t=>t.stop())}catch(_){}}
+  function setStatus(target,message){if(target.status)target.status.textContent=message}
+  function addQuestionStopButton(){
+    const button=[...document.querySelectorAll('#docqa button')].find(b=>(b.textContent||'').includes('پرسش صوتی'));
+    if(!button||document.getElementById('docQaVoiceStop'))return;
+    const stop=document.createElement('button');stop.id='docQaVoiceStop';stop.type='button';stop.className='btn soft';stop.textContent='■ پایان ضبط پرسش';
+    stop.addEventListener('click',()=>window.stopOnlineAmnaTranscription('docqa','fa-en'));
+    button.insertAdjacentElement('afterend',stop);
+  }
+  function fallbackBrowser(kind,direction,target){
+    const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!Recognition){setStatus(target,'ضبط صدا انجام شد، اما سرویس تبدیل آنلاین تنظیم نیست و این مرورگر تشخیص گفتار را پشتیبانی نمی‌کند.');return}
+    (async()=>{
+      try{
+        const permissionStream=await navigator.mediaDevices.getUserMedia({audio:true});
+        stopTracks(permissionStream);
+        const rec=new Recognition();rec.lang=target.language==='en'?'en-US':'fa-IR';rec.interimResults=true;rec.continuous=kind!=='docqa';rec.maxAlternatives=1;
+        let transcript='';
+        rec.onresult=e=>{
+          let interim='';
+          for(let i=e.resultIndex;i<e.results.length;i++){const t=String(e.results[i]?.[0]?.transcript||'');if(e.results[i].isFinal)transcript+=t+' ';else interim+=t}
+          if(target.input)target.input.value=(transcript+interim).trim();
+          setStatus(target,'در حال تشخیص گفتار آنلاین؛ صحبت کنید…');
+        };
+        rec.onerror=e=>setStatus(target,e.error==='not-allowed'?'اجازه میکروفون را در تنظیمات مرورگر فعال کنید.':e.error==='audio-capture'?'میکروفون در دسترس نیست؛ دسترسی میکروفون را فعال و برنامه‌های دیگر را ببندید.':'سرویس تشخیص گفتار مرورگر در دسترس نیست؛ کلید سرویس تبدیل گفتار سرور را تنظیم کنید.');
+        rec.onend=()=>{
+          const value=String(target.input?.value||'').trim();
+          if(!value){setStatus(target,'گفتاری تشخیص داده نشد؛ دوباره تلاش کنید.');return}
+          if(kind==='translation'){setStatus(target,'گفتار ثبت شد؛ ترجمه آنلاین در حال انجام است…');translateStandalone(direction)}
+          else if(kind==='docqa')setStatus(target,'پرسش صوتی ثبت شد؛ برای دریافت پاسخ از فایل، دکمه «یافتن پاسخ در فایل» را بزنید.');
+          else setStatus(target,'گفتار به نوشتار تبدیل شد؛ متن را بازبینی یا اصلاح کنید.');
+        };
+        window.__amnaBrowserSpeechRecognizers=window.__amnaBrowserSpeechRecognizers||{};
+        window.__amnaBrowserSpeechRecognizers['online-fallback-'+kind]=rec;
+        setStatus(target,'سرویس تبدیل صوت سرور پاسخ نداد؛ دوباره صحبت کنید تا مرورگر تشخیص دهد…');
+        setTimeout(()=>{try{rec.start()}catch(_){setStatus(target,'میکروفون آزاد نشد؛ دسترسی میکروفون را بررسی و دوباره تلاش کنید.')}},250);
+      }catch(e){setStatus(target,e.name==='NotAllowedError'?'اجازه میکروفون را در تنظیمات مرورگر فعال کنید.':'میکروفون در دسترس نیست؛ از HTTPS و دسترسی میکروفون استفاده کنید.')}
+    })();
+  }
+  async function start(kind,direction){
+    const target=targetFor(kind,direction);
+    if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){setStatus(target,'این مرورگر ضبط صوت را پشتیبانی نمی‌کند؛ Chrome به‌روز یا اپلیکیشن امنا یار را استفاده کنید.');return}
+    const key=kind;
+    if(active[key]?.rec?.state==='recording'){setStatus(target,'ضبط در حال انجام است؛ برای پایان ضبط دکمه توقف را بزنید.');return}
+    try{
+      if(typeof stopAllAmnaAudioRecorders==='function')stopAllAmnaAudioRecorders();
+      const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+      const candidates=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg;codecs=opus'];
+      const mime=candidates.find(x=>window.MediaRecorder.isTypeSupported?.(x));
+      const rec=new MediaRecorder(stream,mime?{mimeType:mime}:undefined),chunks=[];
+      const state={rec,stream,chunks,kind,direction,target,cancelled:false};active[key]=state;
+      rec.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data)};
+      rec.onerror=()=>{stopTracks(stream);setStatus(target,'خطا در ضبط صدا رخ داد؛ دوباره تلاش کنید.')};
+      rec.onstop=async()=>{
+        stopTracks(stream);
+        if(active[key]===state)delete active[key];
+        const blob=new Blob(chunks,{type:rec.mimeType||mime||'audio/webm'});
+        if(!blob.size){setStatus(target,'فایل صوتی خالی است؛ مجوز میکروفون و ورودی صدا را بررسی کنید.');return}
+        if(blob.size>25*1024*1024){setStatus(target,'صدای ضبط‌شده بیش از ۲۵ مگابایت است؛ کوتاه‌تر ضبط کنید.');return}
+        setStatus(target,'ضبط پایان یافت؛ در حال تبدیل آنلاین صدا به متن…');
+        try{
+          const fd=new FormData(),ext=blob.type.includes('mp4')?'m4a':blob.type.includes('ogg')?'ogg':'webm';
+          fd.append('file',blob,'amnayar-recording.'+ext);fd.append('language',target.language);
+          const response=await fetch('/api/ai/transcribe',{method:'POST',body:fd,cache:'no-store'});
+          const data=await response.json().catch(()=>({}));
+          if(!response.ok)throw new Error(data.error||'سرویس تبدیل گفتار در دسترس نیست.');
+          const transcript=String(data.text||'').trim();if(!transcript)throw new Error('گفتاری تشخیص داده نشد.');
+          if(target.input)target.input.value=transcript;
+          if(kind==='translation'){setStatus(target,'گفتار ثبت شد؛ ترجمه آنلاین در حال انجام است…');await translateStandalone(direction)}
+          else if(kind==='docqa')setStatus(target,'پرسش صوتی ثبت شد؛ برای دریافت پاسخ از فایل، دکمه «یافتن پاسخ در فایل» را بزنید.');
+          else setStatus(target,'گفتار به نوشتار تبدیل شد؛ متن را بازبینی یا اصلاح کنید.');
+        }catch(e){
+          const message=String(e.message||'');
+          setStatus(target,message.includes('OPENAI_API_KEY')||message.includes('کلید')?'ضبط صدا انجام شد؛ برای تبدیل آنلاین، کلید OPENAI_API_KEY باید در تنظیمات سرویس API در Render تنظیم شود.':message);
+          if(!message.includes('OPENAI_API_KEY')&&!message.includes('کلید'))fallbackBrowser(kind,direction,target);
+        }
+      };
+      rec.start(400);
+      setStatus(target,'در حال ضبط صدا؛ صحبت کنید و سپس «پایان ضبط» را بزنید.');
+      if(kind==='docqa')addQuestionStopButton();
+      if(kind==='speech')setVoiceButtons(direction,true);
+    }catch(e){
+      const message=e.name==='NotAllowedError'?'اجازه میکروفون را در تنظیمات مرورگر/برنامه فعال کنید.':e.name==='NotFoundError'?'میکروفونی روی دستگاه پیدا نشد.':e.name==='NotReadableError'?'میکروفون توسط برنامه دیگری اشغال شده است؛ برنامه‌های دیگر را ببندید و دوباره تلاش کنید.':(e.message||'شروع ضبط صدا ممکن نشد.');
+      setStatus(target,message);
+      if(kind==='speech')setVoiceButtons(direction,false);
+    }
+  }
+  window.stopOnlineAmnaTranscription=function(kind,direction){
+    const state=active[kind];
+    if(state?.rec?.state==='recording'){
+      setStatus(state.target,'در حال آماده‌سازی صدا برای تبدیل آنلاین…');
+      try{state.rec.stop()}catch(e){stopTracks(state.stream);setStatus(state.target,'توقف ضبط ناموفق بود؛ دوباره تلاش کنید.')}
+      if(kind==='speech')setVoiceButtons(direction||state.direction,false);
+      const stop=document.getElementById('docQaVoiceStop');if(kind==='docqa'&&stop)stop.disabled=true;
+      return;
+    }
+    const target=targetFor(kind,direction||'fa-en');
+    setStatus(target,'ضبط فعالی وجود ندارد؛ ابتدا ضبط را شروع کنید.');
+  };
+  window.startVoiceTranslation=function(direction){
+    if(window.AmnaYarSpeech&&typeof window.AmnaYarSpeech.startListening==='function'){baseStartSpeech(direction);return}
+    start('speech',direction);
+  };
+  window.stopVoiceTranslation=function(direction){
+    if(active.speech){window.stopOnlineAmnaTranscription('speech',direction);return}
+    if(baseStopSpeech)baseStopSpeech(direction);
+  };
+  window.startTranslationVoice=function(direction){
+    if(window.AmnaYarSpeech&&typeof window.AmnaYarSpeech.startListening==='function'){baseStartTranslation(direction);return}
+    start('translation',direction);
+  };
+  window.stopTranslationVoice=function(direction){
+    if(active.translation){window.stopOnlineAmnaTranscription('translation',direction);return}
+    if(baseStopTranslation)baseStopTranslation(direction);
+  };
+  window.startDocumentQuestionVoice=function(){
+    if(window.AmnaYarSpeech&&typeof window.AmnaYarSpeech.startListening==='function'){baseStartQuestion();return}
+    start('docqa','fa-en');
+  };
+})();
