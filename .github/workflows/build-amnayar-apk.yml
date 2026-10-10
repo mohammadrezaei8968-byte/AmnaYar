@@ -70,41 +70,31 @@ jobs:
           AMNAYAR_KEY_PASSWORD: ${{ secrets.AMNAYAR_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          if [ -n "$AMNAYAR_KEYSTORE_BASE64" ] && [ -n "$AMNAYAR_KEYSTORE_PASSWORD" ] && [ -n "$AMNAYAR_KEY_ALIAS" ] && [ -n "$AMNAYAR_KEY_PASSWORD" ]; then
-            echo "$AMNAYAR_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/amnayar-release.jks"
-            echo "AMNAYAR_KEYSTORE_PATH=$RUNNER_TEMP/amnayar-release.jks" >> "$GITHUB_ENV"
-            echo "AMNAYAR_RELEASE_SIGNING_READY=true" >> "$GITHUB_ENV"
-          else
-            echo "AMNAYAR_RELEASE_SIGNING_READY=false" >> "$GITHUB_ENV"
-            echo "No persistent release signing key configured; building the installable debug APK only."
+          if [ -z "$AMNAYAR_KEYSTORE_BASE64" ] || [ -z "$AMNAYAR_KEYSTORE_PASSWORD" ] || [ -z "$AMNAYAR_KEY_ALIAS" ] || [ -z "$AMNAYAR_KEY_PASSWORD" ]; then
+            echo "::error::Release signing secrets are missing. Refusing to build or publish a debug-signed APK as the production download."
+            exit 1
           fi
+          echo "$AMNAYAR_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/amnayar-release.jks"
+          test -s "$RUNNER_TEMP/amnayar-release.jks"
+          echo "AMNAYAR_KEYSTORE_PATH=$RUNNER_TEMP/amnayar-release.jks" >> "$GITHUB_ENV"
+          echo "AMNAYAR_RELEASE_SIGNING_READY=true" >> "$GITHUB_ENV"
 
       - name: Build installable APK
         working-directory: android
         run: |
-          if [ "$AMNAYAR_RELEASE_SIGNING_READY" = "true" ]; then
-            gradle --no-daemon :app:assembleRelease
-          else
-            gradle --no-daemon :app:assembleDebug
-          fi
+          test "$AMNAYAR_RELEASE_SIGNING_READY" = "true"
+          gradle --no-daemon :app:assembleRelease
 
       - name: Verify APK
         run: |
           set -euxo pipefail
-          if [ "$AMNAYAR_RELEASE_SIGNING_READY" = "true" ]; then
-            APK="android/app/build/outputs/apk/release/app-release.apk"
-          else
-            APK="android/app/build/outputs/apk/debug/app-debug.apk"
-          fi
+          test "$AMNAYAR_RELEASE_SIGNING_READY" = "true"
+          APK="android/app/build/outputs/apk/release/app-release.apk"
           test -s "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
           mkdir -p dist
           cp "$APK" "dist/AmnaYar.apk"
-          if [ "$AMNAYAR_RELEASE_SIGNING_READY" = "true" ]; then
-            echo "Verified persistent release-signed APK for app markets."
-          else
-            echo "WARNING: APK is debug-signed and cannot be submitted as a production market release."
-          fi
+          echo "Verified release-signed APK with apksigner; ready for market upload."
 
       - name: Publish APK to AmnaYar website
         run: |
