@@ -98,30 +98,76 @@ window.amnayarVoiceResult=function(text,direction,error){
   input.value=text;finishVoiceWait(direction);status.textContent='گفتار به متن تبدیل شد؛ متن را بازبینی یا اصلاح کنید.';
 }
 const $=s=>document.querySelector(s); const fa=n=>n.toLocaleString('fa-IR');
-async function editPDF(){
- const file=$('#editPdfFile')?.files?.[0],status=$('#editPdfStatus');
- if(!file){status.textContent='ابتدا فایل PDF را انتخاب کنید.';return}
- const text=$('#editPdfText')?.value?.trim();if(!text){status.textContent='متن موردنظر را وارد کنید.';return}
- if(!window.PDFLib){status.textContent='کتابخانه PDF آماده نیست؛ صفحه را تازه‌سازی کنید.';return}
- status.textContent='در حال آماده‌سازی ویرایش PDF…';
+/* In-page PDF editor: render the selected document, annotate the visible page, then export overlays. */
+let pdfEditorDocument=null,pdfEditorFile=null,pdfEditorPageNo=1,pdfEditorOverlays=Object.create(null),pdfEditorDrawing=false,pdfEditorLastPoint=null;
+function pdfEditorStatus(message){const el=document.getElementById('pdfEditorStatus');if(el)el.textContent=message}
+function pdfEditorSaveCurrentOverlay(){const canvas=document.getElementById('pdfEditorOverlay');if(canvas&&pdfEditorDocument)pdfEditorOverlays[pdfEditorPageNo]=canvas.toDataURL('image/png')}
+function pdfEditorRestoreOverlay(pageNo){const canvas=document.getElementById('pdfEditorOverlay'),ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);const src=pdfEditorOverlays[pageNo];if(!src)return;const img=new Image();img.onload=()=>{if(pageNo===pdfEditorPageNo)ctx.drawImage(img,0,0,canvas.width,canvas.height)};img.src=src}
+async function pdfEditorOpen(){
+ const input=document.getElementById('editPdfFile'),file=input&&input.files&&input.files[0];if(!file)return;
+ if(!window.pdfjsLib||!window.PDFLib){pdfEditorStatus('کتابخانه PDF هنوز بارگذاری نشده؛ اتصال اینترنت را بررسی و صفحه را تازه‌سازی کنید.');return}
+ pdfEditorFile=file;pdfEditorOverlays=Object.create(null);pdfEditorPageNo=1;
+ const controls=document.getElementById('pdfEditorControls');if(controls)controls.style.display='block';
+ pdfEditorStatus('در حال باز کردن فایل PDF…');
  try{
-  const doc=await PDFLib.PDFDocument.load(await file.arrayBuffer()),pages=doc.getPages();
-  const pageNo=Math.trunc(Number($('#editPdfPage').value)||1);
-  if(pageNo<1||pageNo>pages.length){status.textContent='شماره صفحه باید بین ۱ تا '+fa(pages.length)+' باشد.';return}
-  const page=pages[pageNo-1],size=page.getSize(),scale=3;
-  const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(size.width*scale));canvas.height=Math.max(1,Math.round(size.height*scale));
-  const ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);
-  const fontSize=Math.max(8,Math.min(96,Number($('#editPdfFontSize').value)||18));
-  ctx.font='700 '+(fontSize*scale)+'px Tahoma, Arial, sans-serif';ctx.fillStyle=$('#editPdfColor').value||'#c62828';ctx.textBaseline='top';ctx.direction='rtl';ctx.textAlign='left';
-  const xPct=Math.max(0,Math.min(100,Number($('#editPdfX').value)||0)),yPct=Math.max(0,Math.min(100,Number($('#editPdfY').value)||0));
-  const x=canvas.width*xPct/100,y=canvas.height*yPct/100,maxWidth=Math.max(1,canvas.width-x-20);
-  const lines=[];for(const paragraph of text.split(/\r?\n/)){let line='';for(const word of paragraph.split(/\s+/)){const next=line?line+' '+word:word;if(ctx.measureText(next).width>maxWidth&&line){lines.push(line);line=word}else line=next}lines.push(line)}
-  lines.forEach((line,i)=>ctx.fillText(line,x,y+i*fontSize*scale*1.35));
-  const png=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('canvas_export_failed')),'image/png'));
-  const image=await doc.embedPng(await png.arrayBuffer());page.drawImage(image,{x:0,y:0,width:size.width,height:size.height});
-  const bytes=await doc.save();download(bytes,'amnayar-edited.pdf','application/pdf');
-  status.textContent='ویرایش انجام شد؛ فایل PDF ویرایش‌شده دانلود شد. متن افزوده‌شده در صفحه '+fa(pageNo)+' قرار گرفت.';
- }catch(e){console.error('editPDF',e);status.textContent='ویرایش انجام نشد؛ فایل PDF را بررسی کنید یا فایل رمزدار را بازگشایی کنید.'}
+  pdfjsLib.GlobalWorkerOptions.workerSrc=window.__amnaPdfWorkerSrc||'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  pdfEditorDocument=await pdfjsLib.getDocument({data:await file.arrayBuffer(),useWorkerFetch:false,isEvalSupported:false}).promise;
+  const pageInput=document.getElementById('pdfEditorPage');pageInput.max=pdfEditorDocument.numPages;pageInput.value='1';
+  await pdfEditorRenderPage(1);
+  pdfEditorStatus('فایل باز شد: '+pdfEditorDocument.numPages+' صفحه. ابزار را انتخاب کنید و مستقیماً روی صفحه کار کنید.');
+ }catch(e){console.error('pdfEditorOpen',e);pdfEditorStatus('باز کردن فایل ناموفق بود. اگر فایل رمزدار است، ابتدا قفل آن را بردارید.')}
+}
+async function pdfEditorRenderPage(pageNo){
+ if(!pdfEditorDocument)return;
+ pdfEditorSaveCurrentOverlay();pageNo=Math.max(1,Math.min(pdfEditorDocument.numPages,Math.trunc(Number(pageNo)||1)));pdfEditorPageNo=pageNo;
+ const page=await pdfEditorDocument.getPage(pageNo),viewport=page.getViewport({scale:1.35});
+ const base=document.getElementById('pdfEditorBase'),overlay=document.getElementById('pdfEditorOverlay'),wrap=document.getElementById('pdfEditorPageWrap');
+ base.width=Math.ceil(viewport.width);base.height=Math.ceil(viewport.height);
+ overlay.width=base.width;overlay.height=base.height;
+ base.style.width=base.width+'px';base.style.height=base.height+'px';overlay.style.width=base.width+'px';overlay.style.height=base.height+'px';
+ wrap.style.width=base.width+'px';wrap.style.maxWidth='100%';
+ await page.render({canvasContext:base.getContext('2d'),viewport}).promise;
+ document.getElementById('pdfEditorPage').value=pageNo;
+ pdfEditorRestoreOverlay(pageNo);
+ pdfEditorStatus('صفحه '+pageNo+' از '+pdfEditorDocument.numPages+' — ابزار را انتخاب کنید و روی صفحه ویرایش کنید.');
+}
+function pdfEditorGo(delta){if(pdfEditorDocument)pdfEditorRenderPage(pdfEditorPageNo+delta)}
+function pdfEditorClearPage(){if(!pdfEditorDocument)return;delete pdfEditorOverlays[pdfEditorPageNo];const c=document.getElementById('pdfEditorOverlay');c.getContext('2d').clearRect(0,0,c.width,c.height);pdfEditorStatus('تغییرات صفحه جاری پاک شد.')}
+function pdfEditorPoint(e){const c=document.getElementById('pdfEditorOverlay'),r=c.getBoundingClientRect();return{x:(e.clientX-r.left)*(c.width/r.width),y:(e.clientY-r.top)*(c.height/r.height)}}
+(function setupPdfEditorCanvas(){
+ const canvas=document.getElementById('pdfEditorOverlay');if(!canvas)return;
+ canvas.addEventListener('pointerdown',e=>{
+  if(!pdfEditorDocument)return;
+  const tool=document.getElementById('pdfEditTool').value,ctx=canvas.getContext('2d'),p=pdfEditorPoint(e),color=document.getElementById('pdfEditColor').value||'#d32f2f',size=Math.max(2,Math.min(72,Number(document.getElementById('pdfEditSize').value)||5));
+  if(tool==='text'){const value=prompt('متن موردنظر را وارد کنید:');if(value===null||!value.trim())return;const fontSize=Math.max(10,size*3);ctx.save();ctx.fillStyle=color;ctx.font='700 '+fontSize+'px Tahoma, Arial, sans-serif';ctx.textBaseline='top';ctx.direction='rtl';ctx.textAlign='right';const lines=value.split(/\r?\n/);lines.forEach((line,i)=>ctx.fillText(line,p.x,p.y+i*fontSize*1.35));ctx.restore();pdfEditorSaveCurrentOverlay();pdfEditorStatus('متن روی صفحه قرار گرفت. برای ذخیره، دکمه دانلود PDF را بزنید.');return}
+  pdfEditorDrawing=true;pdfEditorLastPoint=p;canvas.setPointerCapture?.(e.pointerId);ctx.beginPath();ctx.moveTo(p.x,p.y);
+  ctx.lineCap='round';ctx.lineJoin='round';ctx.lineWidth=tool==='highlight'?size*4:size;
+  if(tool==='whiteout'){ctx.strokeStyle='#ffffff';ctx.fillStyle='#ffffff'}else if(tool==='highlight'){ctx.strokeStyle=color;ctx.globalAlpha=.32}else{ctx.strokeStyle=color;ctx.globalAlpha=1}
+  ctx.beginPath();ctx.arc(p.x,p.y,ctx.lineWidth/2,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.moveTo(p.x,p.y);
+  e.preventDefault();
+ });
+ canvas.addEventListener('pointermove',e=>{
+  if(!pdfEditorDrawing)return;const tool=document.getElementById('pdfEditTool').value,p=pdfEditorPoint(e),ctx=canvas.getContext('2d'),color=document.getElementById('pdfEditColor').value||'#d32f2f',size=Math.max(2,Math.min(72,Number(document.getElementById('pdfEditSize').value)||5));
+  ctx.lineCap='round';ctx.lineJoin='round';ctx.lineWidth=tool==='highlight'?size*4:size;ctx.strokeStyle=tool==='whiteout'?'#ffffff':color;ctx.globalAlpha=tool==='highlight'?.32:1;ctx.lineTo(p.x,p.y);ctx.stroke();ctx.beginPath();ctx.moveTo(p.x,p.y);e.preventDefault();
+ });
+ function finish(){if(!pdfEditorDrawing)return;pdfEditorDrawing=false;canvas.getContext('2d').globalAlpha=1;pdfEditorSaveCurrentOverlay()}
+ canvas.addEventListener('pointerup',finish);canvas.addEventListener('pointercancel',finish);canvas.addEventListener('lostpointercapture',finish);
+ const pageInput=document.getElementById('pdfEditorPage');pageInput?.addEventListener('change',()=>pdfEditorRenderPage(pageInput.value));
+ const fileInput=document.getElementById('editPdfFile');fileInput?.addEventListener('change',pdfEditorOpen);
+})();
+async function saveEditedPDF(){
+ if(!pdfEditorFile||!pdfEditorDocument){pdfEditorStatus('ابتدا فایل PDF را انتخاب کنید.');return}
+ pdfEditorSaveCurrentOverlay();pdfEditorStatus('در حال ساخت PDF و ذخیره تغییرات…');
+ try{
+  const doc=await PDFLib.PDFDocument.load(await pdfEditorFile.arrayBuffer()),pages=doc.getPages();
+  for(const key of Object.keys(pdfEditorOverlays)){
+   const pageNo=Number(key),dataUrl=pdfEditorOverlays[key];if(!dataUrl||!pages[pageNo-1])continue;
+   const response=await fetch(dataUrl),pngBytes=await response.arrayBuffer(),image=await doc.embedPng(pngBytes),size=pages[pageNo-1].getSize();
+   pages[pageNo-1].drawImage(image,{x:0,y:0,width:size.width,height:size.height});
+  }
+  const bytes=await doc.save();download(bytes,(pdfEditorFile.name.replace(/\.pdf$/i,'')||'amnayar')+'-edited.pdf','application/pdf');
+  pdfEditorStatus('PDF ویرایش‌شده دانلود شد. فایل اصلی تغییر نکرد.');
+ }catch(e){console.error('saveEditedPDF',e);pdfEditorStatus('ذخیره ناموفق بود؛ ممکن است فایل رمزدار یا ناسازگار باشد.')}
 }
 async function mergePDFs(){const files=[...$('#mergeFiles').files];if(!files.length)return $('#mergeStatus').textContent='حداقل یک فایل انتخاب کنید.';$('#mergeStatus').textContent='در حال پردازش...';const out=await PDFLib.PDFDocument.create();for(const f of files){const doc=await PDFLib.PDFDocument.load(await f.arrayBuffer());const pages=await out.copyPages(doc,doc.getPageIndices());pages.forEach(p=>out.addPage(p));}download(await out.save(),'amnayar-merged.pdf','application/pdf');$('#mergeStatus').textContent='فایل ادغام شد.'}
 function parsePages(s,max){const set=new Set();const normalized=String(s||'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٬،]/g,',').replace(/[–—−]/g,'-').replace(/\s+/g,'');for(const part of normalized.split(',').filter(Boolean)){if(part.includes('-')){const ab=part.split('-');if(ab.length!==2)continue;let[a,b]=ab.map(Number);if(!Number.isInteger(a)||!Number.isInteger(b))continue;a=Math.max(1,Math.min(max,a));b=Math.max(1,Math.min(max,b));if(a>b)[a,b]=[b,a];for(let i=a;i<=b;i++)set.add(i-1)}else{const n=Number(part);if(Number.isInteger(n)&&n>=1&&n<=max)set.add(n-1)}}return [...set].sort((a,b)=>a-b)}
