@@ -89,11 +89,15 @@ jobs:
         run: |
           set -euxo pipefail
           test "$AMNAYAR_RELEASE_SIGNING_READY" = "true"
-          APK="android/app/build/outputs/apk/release/app-release.apk"
+          echo "Searching for release APK under $GITHUB_WORKSPACE"
+          find "$GITHUB_WORKSPACE" -type f -path '*/build/outputs/apk/release/*.apk' -print
+          APK="$(find "$GITHUB_WORKSPACE" -type f -path '*/build/outputs/apk/release/*.apk' -print -quit)"
+          test -n "$APK"
           test -s "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
-          mkdir -p dist
-          cp "$APK" "dist/AmnaYar.apk"
+          mkdir -p "$GITHUB_WORKSPACE/dist"
+          cp "$APK" "$GITHUB_WORKSPACE/dist/AmnaYar.apk"
+          test -s "$GITHUB_WORKSPACE/dist/AmnaYar.apk"
           echo "Verified release-signed APK with apksigner; ready for market upload."
 
       - name: Publish APK to AmnaYar website
