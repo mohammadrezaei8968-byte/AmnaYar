@@ -112,7 +112,7 @@ async function editPDF(){
   const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(size.width*scale));canvas.height=Math.max(1,Math.round(size.height*scale));
   const ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);
   const fontSize=Math.max(8,Math.min(96,Number($('#editPdfFontSize').value)||18));
-  ctx.font='700 '+(fontSize*scale)+'px Tahoma, Arial, sans-serif';ctx.fillStyle=$('#editPdfColor').value||'#c62828';ctx.textBaseline='top';ctx.direction='rtl';ctx.textAlign='right';
+  ctx.font='700 '+(fontSize*scale)+'px Tahoma, Arial, sans-serif';ctx.fillStyle=$('#editPdfColor').value||'#c62828';ctx.textBaseline='top';ctx.direction='rtl';ctx.textAlign='left';
   const xPct=Math.max(0,Math.min(100,Number($('#editPdfX').value)||0)),yPct=Math.max(0,Math.min(100,Number($('#editPdfY').value)||0));
   const x=canvas.width*xPct/100,y=canvas.height*yPct/100,maxWidth=Math.max(1,canvas.width-x-20);
   const lines=[];for(const paragraph of text.split(/\r?\n/)){let line='';for(const word of paragraph.split(/\s+/)){const next=line?line+' '+word:word;if(ctx.measureText(next).width>maxWidth&&line){lines.push(line);line=word}else line=next}lines.push(line)}
