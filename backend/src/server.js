@@ -1113,7 +1113,10 @@ function parseCityNewsPage(html,mode){
     if(!link||!title||title.length<8)continue;
     if(!link.includes("shahrekhabar.com/"))continue;
     if(!/[\u0600-\u06FF]/.test(title))continue;
-    if(/^(پخش زنده|بیشترین لایک|اخبار|لایک کن|آخرین اخبار|منابع خبری|موضوعات خبری|خبرنامه)/.test(title))continue;
+    // Only show the actual news headline, not the publisher/source label or page navigation.
+    const normalizedTitle=title.replace(/[\u200c\u200f\u200e]/g," ").replace(/\s+/g," ").trim();
+    if(/^(پخش زنده|بیشترین لایک|اخبار|لایک کن|آخرین اخبار|منابع خبری|موضوعات خبری|خبرنامه)/.test(normalizedTitle))continue;
+    if(/^(همشهری آنلاین|خبرگزاری تسنیم|تسنیم|مشرق نیوز|مشرق|اطلاعات|اقتصاد نیوز|اقتصاد آنلاین|صد آنلاین|خبرورزشی|افکار نیوز|نامه نیوز|اکوایران|دنیای اقتصاد|ایرنا|ایسنا|ایمنا|فارس|مهر|تابناک|ایلنا|باشگاه خبرنگاران جوان|جوان آنلاین|فرارو|انتخاب|شرق|اعتماد|آفتاب نیوز|خبرآنلاین|شهرخبر)$/i.test(normalizedTitle))continue;
     const key=title.replace(/\s+/g," ").trim().toLowerCase();
     if(seen.has(key))continue;
     seen.add(key);
