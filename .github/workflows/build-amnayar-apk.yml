@@ -88,20 +88,29 @@ jobs:
           test "$AMNAYAR_RELEASE_SIGNING_READY" = "true"
           gradle --no-daemon :app:assembleRelease
 
-      - name: Verify APK
+      - name: Sign and verify APK
+        env:
+          AMNAYAR_KEYSTORE_PASSWORD: ${{ secrets.AMNAYAR_KEYSTORE_PASSWORD }}
+          AMNAYAR_KEY_ALIAS: ${{ secrets.AMNAYAR_KEY_ALIAS }}
+          AMNAYAR_KEY_PASSWORD: ${{ secrets.AMNAYAR_KEY_PASSWORD }}
         run: |
-          set -euxo pipefail
+          set -euo pipefail
           test "$AMNAYAR_RELEASE_SIGNING_READY" = "true"
-          echo "Searching for release APK under $GITHUB_WORKSPACE"
-          find "$GITHUB_WORKSPACE" -type f -path '*/build/outputs/apk/release/*.apk' -print
-          APK="$(find "$GITHUB_WORKSPACE" -type f -path '*/build/outputs/apk/release/*.apk' ! -name '*-unsigned.apk' -print -quit)"
+          test -s "$AMNAYAR_KEYSTORE_PATH"
+          APK="$(find "$GITHUB_WORKSPACE/android" -type f -path '*/build/outputs/apk/release/*.apk' -print -quit)"
           test -n "$APK"
           test -s "$APK"
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
           mkdir -p "$GITHUB_WORKSPACE/dist"
-          cp "$APK" "$GITHUB_WORKSPACE/dist/AmnaYar.apk"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign \
+            --ks "$AMNAYAR_KEYSTORE_PATH" \
+            --ks-key-alias "$AMNAYAR_KEY_ALIAS" \
+            --ks-pass env:AMNAYAR_KEYSTORE_PASSWORD \
+            --key-pass env:AMNAYAR_KEY_PASSWORD \
+            --out "$GITHUB_WORKSPACE/dist/AmnaYar.apk" \
+            "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$GITHUB_WORKSPACE/dist/AmnaYar.apk"
           test -s "$GITHUB_WORKSPACE/dist/AmnaYar.apk"
-          echo "Verified release-signed APK with apksigner; ready for market upload."
+          echo "APK signed with release keystore and signature verified."
 
       - name: Publish APK to AmnaYar website
         run: |
