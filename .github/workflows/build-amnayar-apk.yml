@@ -77,6 +77,9 @@ jobs:
           echo "$AMNAYAR_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/amnayar-release.jks"
           test -s "$RUNNER_TEMP/amnayar-release.jks"
           echo "AMNAYAR_KEYSTORE_PATH=$RUNNER_TEMP/amnayar-release.jks" >> "$GITHUB_ENV"
+          printf 'AMNAYAR_KEYSTORE_PASSWORD=%s\n' "$AMNAYAR_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          printf 'AMNAYAR_KEY_ALIAS=%s\n' "$AMNAYAR_KEY_ALIAS" >> "$GITHUB_ENV"
+          printf 'AMNAYAR_KEY_PASSWORD=%s\n' "$AMNAYAR_KEY_PASSWORD" >> "$GITHUB_ENV"
           echo "AMNAYAR_RELEASE_SIGNING_READY=true" >> "$GITHUB_ENV"
 
       - name: Build installable APK
@@ -91,7 +94,7 @@ jobs:
           test "$AMNAYAR_RELEASE_SIGNING_READY" = "true"
           echo "Searching for release APK under $GITHUB_WORKSPACE"
           find "$GITHUB_WORKSPACE" -type f -path '*/build/outputs/apk/release/*.apk' -print
-          APK="$(find "$GITHUB_WORKSPACE" -type f -path '*/build/outputs/apk/release/*.apk' -print -quit)"
+          APK="$(find "$GITHUB_WORKSPACE" -type f -path '*/build/outputs/apk/release/*.apk' ! -name '*-unsigned.apk' -print -quit)"
           test -n "$APK"
           test -s "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
