@@ -169,6 +169,25 @@ function findGregorianFromHijri(p){if(p.length!==3||!p.every(Number.isInteger)||
 function jalaliToHijriUI(){const p=parts($('#jhdate').value),out=$('#jhResult');if(!validJalaliParts(p)){out.textContent='تاریخ شمسی معتبر را به شکل سال/ماه/روز وارد کنید.';return}const g=j2g(...p),h=gregorianToHijriParts(...g);out.textContent='قمری: '+faDateDigits(datePartsText(h))+' — '+hijriMonthNames[h[1]-1]+' '+fa(h[2])+' '+fa(h[0])+' قمری'}
 function hijriToJalaliUI(){const p=parts($('#hjdate').value),out=$('#hjResult');const g=findGregorianFromHijri(p);if(!g){out.textContent='این تاریخ قمری در تقویم ام‌القری پیدا نشد؛ تاریخ را بررسی کنید.';return}const j=g2j(...g);out.textContent='شمسی: '+faDateDigits(datePartsText(j))+' — معادل '+faDateDigits(datePartsText(g))+' میلادی'}
 function gregorianToHijriUI(){const p=parts($('#ghdate').value),out=$('#ghResult');if(!validGregorianParts(p)){out.textContent='تاریخ میلادی معتبر را به شکل سال/ماه/روز وارد کنید.';return}const h=gregorianToHijriParts(...p);out.textContent='قمری: '+faDateDigits(datePartsText(h))+' — '+hijriMonthNames[h[1]-1]+' '+fa(h[2])+' '+fa(h[0])+' قمری'}
+function showUnifiedDateResult(id,text){const el=document.getElementById(id);if(el)el.textContent=text}
+function convertFromJalali(){
+ const p=parts($('#jdate').value);
+ if(!validJalaliParts(p)){showUnifiedDateResult('dateJResult','تاریخ شمسی معتبر را به شکل سال/ماه/روز وارد کنید.');return}
+ const g=j2g(...p),h=gregorianToHijriParts(...g);
+ showUnifiedDateResult('dateJResult','میلادی: '+faDateDigits(datePartsText(g))+'\nقمری: '+faDateDigits(datePartsText(h))+' ('+hijriMonthNames[h[1]-1]+')');
+}
+function convertFromHijri(){
+ const p=parts($('#hjdate').value),g=findGregorianFromHijri(p);
+ if(!g){showUnifiedDateResult('dateHResult','تاریخ قمری معتبر را به شکل سال/ماه/روز وارد کنید.');return}
+ const j=g2j(...g);
+ showUnifiedDateResult('dateHResult','شمسی: '+faDateDigits(datePartsText(j))+'\nمیلادی: '+faDateDigits(datePartsText(g)));
+}
+function convertFromGregorian(){
+ const p=parts($('#gdate').value);
+ if(!validGregorianParts(p)){showUnifiedDateResult('dateGResult','تاریخ میلادی معتبر را به شکل سال/ماه/روز وارد کنید.');return}
+ const j=g2j(...p),h=gregorianToHijriParts(...p);
+ showUnifiedDateResult('dateGResult','شمسی: '+faDateDigits(datePartsText(j))+'\nقمری: '+faDateDigits(datePartsText(h))+' ('+hijriMonthNames[h[1]-1]+')');
+}
 function calculateDateDistance(){const a=parts($('#dateDiffStart').value),b=parts($('#dateDiffEnd').value),out=$('#dateDistanceResult');if(!validJalaliParts(a)||!validJalaliParts(b)){out.textContent='تاریخ شمسی معتبر را به شکل سال/ماه/روز وارد کنید یا از تقویم شمسی انتخاب کنید.';return}const ga=j2g(...a),gb=j2g(...b),msA=Date.UTC(ga[0],ga[1]-1,ga[2]),msB=Date.UTC(gb[0],gb[1]-1,gb[2]),days=Math.round(Math.abs(msB-msA)/86400000)+1;out.textContent='فاصله دو تاریخ (با احتساب هر دو روز): '+fa(days)+' روز'+(days===1?' (هر دو تاریخ یکسان هستند)':'')}
 function discountCalc(){const p=+$('#price').value,x=+$('#percent').value;$('#discountResult').textContent=`مبلغ تخفیف: ${fa(Math.round(p*x/100))} — مبلغ نهایی: ${fa(Math.round(p*(1-x/100)))}`}function overtimeCalc(){const h=+$('#hourly').value,x=+$('#hours').value;$('#overtimeResult').textContent=`مبلغ اضافه‌کاری: ${fa(Math.round(h*x))}`}
 function textStats(){const t=$('#textInput').value;$('#textResult').textContent=`حروف: ${fa(t.replace(/\s/g,'').length)} — کلمات: ${fa(t.trim()?t.trim().split(/\s+/).length:0)} — کاراکتر: ${fa(t.length)}`}function faDigits(){let t=$('#textInput');t.value=t.value.replace(/[0-9]/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d])}function enDigits(){let t=$('#textInput');t.value=t.value.replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d))}function cleanText(){let t=$('#textInput');t.value=t.value.replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim()}
