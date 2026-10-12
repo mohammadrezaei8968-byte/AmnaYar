@@ -98,6 +98,31 @@ window.amnayarVoiceResult=function(text,direction,error){
   input.value=text;finishVoiceWait(direction);status.textContent='گفتار به متن تبدیل شد؛ متن را بازبینی یا اصلاح کنید.';
 }
 const $=s=>document.querySelector(s); const fa=n=>n.toLocaleString('fa-IR');
+async function editPDF(){
+ const file=$('#editPdfFile')?.files?.[0],status=$('#editPdfStatus');
+ if(!file){status.textContent='ابتدا فایل PDF را انتخاب کنید.';return}
+ const text=$('#editPdfText')?.value?.trim();if(!text){status.textContent='متن موردنظر را وارد کنید.';return}
+ if(!window.PDFLib){status.textContent='کتابخانه PDF آماده نیست؛ صفحه را تازه‌سازی کنید.';return}
+ status.textContent='در حال آماده‌سازی ویرایش PDF…';
+ try{
+  const doc=await PDFLib.PDFDocument.load(await file.arrayBuffer()),pages=doc.getPages();
+  const pageNo=Math.trunc(Number($('#editPdfPage').value)||1);
+  if(pageNo<1||pageNo>pages.length){status.textContent='شماره صفحه باید بین ۱ تا '+fa(pages.length)+' باشد.';return}
+  const page=pages[pageNo-1],size=page.getSize(),scale=3;
+  const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(size.width*scale));canvas.height=Math.max(1,Math.round(size.height*scale));
+  const ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);
+  const fontSize=Math.max(8,Math.min(96,Number($('#editPdfFontSize').value)||18));
+  ctx.font='700 '+(fontSize*scale)+'px Tahoma, Arial, sans-serif';ctx.fillStyle=$('#editPdfColor').value||'#c62828';ctx.textBaseline='top';ctx.direction='rtl';ctx.textAlign='right';
+  const xPct=Math.max(0,Math.min(100,Number($('#editPdfX').value)||0)),yPct=Math.max(0,Math.min(100,Number($('#editPdfY').value)||0));
+  const x=canvas.width*xPct/100,y=canvas.height*yPct/100,maxWidth=Math.max(1,canvas.width-x-20);
+  const lines=[];for(const paragraph of text.split(/\r?\n/)){let line='';for(const word of paragraph.split(/\s+/)){const next=line?line+' '+word:word;if(ctx.measureText(next).width>maxWidth&&line){lines.push(line);line=word}else line=next}lines.push(line)}
+  lines.forEach((line,i)=>ctx.fillText(line,x,y+i*fontSize*scale*1.35));
+  const png=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('canvas_export_failed')),'image/png'));
+  const image=await doc.embedPng(await png.arrayBuffer());page.drawImage(image,{x:0,y:0,width:size.width,height:size.height});
+  const bytes=await doc.save();download(bytes,'amnayar-edited.pdf','application/pdf');
+  status.textContent='ویرایش انجام شد؛ فایل PDF ویرایش‌شده دانلود شد. متن افزوده‌شده در صفحه '+fa(pageNo)+' قرار گرفت.';
+ }catch(e){console.error('editPDF',e);status.textContent='ویرایش انجام نشد؛ فایل PDF را بررسی کنید یا فایل رمزدار را بازگشایی کنید.'}
+}
 async function mergePDFs(){const files=[...$('#mergeFiles').files];if(!files.length)return $('#mergeStatus').textContent='حداقل یک فایل انتخاب کنید.';$('#mergeStatus').textContent='در حال پردازش...';const out=await PDFLib.PDFDocument.create();for(const f of files){const doc=await PDFLib.PDFDocument.load(await f.arrayBuffer());const pages=await out.copyPages(doc,doc.getPageIndices());pages.forEach(p=>out.addPage(p));}download(await out.save(),'amnayar-merged.pdf','application/pdf');$('#mergeStatus').textContent='فایل ادغام شد.'}
 function parsePages(s,max){const set=new Set();const normalized=String(s||'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٬،]/g,',').replace(/[–—−]/g,'-').replace(/\s+/g,'');for(const part of normalized.split(',').filter(Boolean)){if(part.includes('-')){const ab=part.split('-');if(ab.length!==2)continue;let[a,b]=ab.map(Number);if(!Number.isInteger(a)||!Number.isInteger(b))continue;a=Math.max(1,Math.min(max,a));b=Math.max(1,Math.min(max,b));if(a>b)[a,b]=[b,a];for(let i=a;i<=b;i++)set.add(i-1)}else{const n=Number(part);if(Number.isInteger(n)&&n>=1&&n<=max)set.add(n-1)}}return [...set].sort((a,b)=>a-b)}
 async function splitPDF(){const f=$('#splitFile').files[0],spec=$('#splitPages').value.trim(),s=$('#splitStatus');if(!f)return s.textContent='فایل PDF را انتخاب کنید.';if(!spec)return s.textContent='صفحات را وارد کنید.';s.textContent='در حال جدا کردن صفحات...';try{const doc=await PDFLib.PDFDocument.load(await f.arrayBuffer());const groups=spec.split(';').map(x=>x.trim()).filter(Boolean);const outputs=[];for(let g=0;g<groups.length;g++){const idx=parsePages(groups[g],doc.getPageCount());if(!idx.length)continue;const out=await PDFLib.PDFDocument.create();const pages=await out.copyPages(doc,idx);pages.forEach(p=>out.addPage(p));outputs.push({name:`amnayar-pages-${g+1}.pdf`,bytes:await out.save({useObjectStreams:true})})}if(!outputs.length)throw new Error('هیچ صفحه معتبری پیدا نشد.');if(outputs.length===1){download(outputs[0].bytes,outputs[0].name,'application/pdf');s.textContent='فایل PDF جدا شد.'}else{if(!window.JSZip)throw new Error('کتابخانه فشرده‌سازی آماده نیست.');const zip=new JSZip();outputs.forEach(x=>zip.file(x.name,x.bytes));const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});downloadBlob(blob,'amnayar-pdf-parts.zip');s.textContent=`${fa(outputs.length)} فایل PDF ساخته شد و داخل ZIP قرار گرفت.`}}catch(e){console.error(e);s.textContent='جداسازی PDF انجام نشد؛ فایل یا شماره صفحات را بررسی کنید.'}}
