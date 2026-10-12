@@ -104,6 +104,22 @@ async function splitPDF(){const f=$('#splitFile').files[0],spec=$('#splitPages')
 function download(bytes,name,type){downloadBlob(new Blob([bytes],{type}),name)}
 function j2g(jy,jm,jd){let jy2=jy-979,jm2=jm-1,jd2=jd-1;let j_day=365*jy2+Math.floor(jy2/33)*8+Math.floor((jy2%33+3)/4);for(let i=0;i<jm2;i++)j_day+=i<6?31:30;j_day+=jd2;let g_day=j_day+79;let gy=1600+400*Math.floor(g_day/146097);g_day%=146097;let leap=true;if(g_day>=36525){g_day--;gy+=100*Math.floor(g_day/36524);g_day%=36524;if(g_day>=365)g_day++;else leap=false}gy+=4*Math.floor(g_day/1461);g_day%=1461;if(g_day>=366){leap=false;g_day--;gy+=Math.floor(g_day/365);g_day%=365}let gd=g_day+1,gm=0;const md=[31,leap?29:28,31,30,31,30,31,31,30,31,30,31];while(gd>md[gm])gd-=md[gm++];return[gy,gm+1,gd]}
 function g2j(gy,gm,gd){const g_d_m=[0,31,59,90,120,151,181,212,243,273,304,334];const gy2=gm>2?gy+1:gy;let days=355666+365*gy+Math.floor((gy2+3)/4)-Math.floor((gy2+99)/100)+Math.floor((gy2+399)/400)+gd+g_d_m[gm-1];let jy=-1595+33*Math.floor(days/12053);days%=12053;jy+=4*Math.floor(days/1461);days%=1461;if(days>365){jy+=Math.floor((days-1)/365);days=(days-1)%365}const jm=days<186?1+Math.floor(days/31):7+Math.floor((days-186)/30);const jd=1+(days<186?days%31:(days-186)%30);return[jy,jm,jd]}
+// تاریخ‌ها فقط به صورت سال/ماه/روز قالب‌بندی می‌شوند؛ جداکنندهٔ سه‌رقمی هزارگان اضافه نمی‌شود.
+function formatDateInput(input){
+  if(!input||input.dataset.dateFormatBound==='1')return;
+  input.dataset.dateFormatBound='1';
+  input.addEventListener('input',()=>{
+    const before=input.value.slice(0,input.selectionStart||0);
+    const digitsBefore=(before.match(/[0-9۰-۹٠-٩]/g)||[]).length;
+    const digits=input.value.replace(/[^0-9۰-۹٠-٩]/g,'').slice(0,8);
+    const formatted=digits.slice(0,4)+(digits.length>4?'/'+digits.slice(4,6):'')+(digits.length>6?'/'+digits.slice(6,8):'');
+    input.value=formatted;
+    const posForCount=n=>{if(n<=4)return n;if(n<=6)return n+1;return n+2};
+    const pos=Math.min(formatted.length,posForCount(Math.min(digitsBefore,digits.length)));
+    try{input.setSelectionRange(pos,pos)}catch(_){}
+  });
+}
+['jdate','gdate','jhdate','hjdate','ghdate','hdate','dateDiffStart','dateDiffEnd'].forEach(id=>formatDateInput(document.getElementById(id)));
 function parts(s){return String(s||'').trim().replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[.\-]/g,'/').split('/').map(x=>x===''?NaN:Number(x))}
 function faDateDigits(value){return String(value).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[Number(d)])}
 function datePartsText(p){return String(p[0]).padStart(4,'0')+'/'+String(p[1]).padStart(2,'0')+'/'+String(p[2]).padStart(2,'0')}
