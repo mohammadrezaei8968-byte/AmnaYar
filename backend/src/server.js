@@ -1109,9 +1109,13 @@ function parseCityNewsPage(html,mode){
   const re=/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
   let m;
   while((m=re.exec(text))){
-    const link=cityAbsoluteUrl(m[1]), title=decodeCityHtml(m[2]);
+    const link=cityAbsoluteUrl(m[1]);
+    const title=decodeCityHtml(m[2]).replace(/(^|\s)#[\p{L}\p{N}_‌-]+/gu," ").replace(/#/g," ").replace(/\s+/g," ").trim();
     if(!link||!title||title.length<8)continue;
-    if(!link.includes("shahrekhabar.com/"))continue;
+    let articlePath="";
+    try{const parsedLink=new URL(link);if(parsedLink.hostname!=="www.shahrekhabar.com"&&parsedLink.hostname!=="shahrekhabar.com")continue;articlePath=parsedLink.pathname;}catch{continue;}
+    // Shahrekhabar article URLs use /news/<id>. Ignore publisher labels, navigation, tags and other non-article links.
+    if(!/^\/news\/\d+\/?$/.test(articlePath))continue;
     if(!/[\u0600-\u06FF]/.test(title))continue;
     // Only show the actual news headline, not the publisher/source label or page navigation.
     const normalizedTitle=title.replace(/[\u200c\u200f\u200e]/g," ").replace(/\s+/g," ").trim();
