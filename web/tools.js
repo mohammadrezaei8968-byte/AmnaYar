@@ -498,7 +498,8 @@ function imagePdfPreview(){
     const assignPage=()=>{
       const answer=window.prompt('این عکس در کدام صفحه PDF باشد؟ شماره‌ای از ۱ تا '+fs.length+' وارد کنید:',String(n+1));
       if(answer===null)return;
-      const pageNo=Number(answer.trim());
+      const normalizedAnswer=answer.trim().replace(/[۰-۹]/g,d=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٠-٩]/g,d=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
+      const pageNo=Number(normalizedAnswer);
       if(!Number.isInteger(pageNo)||pageNo<1||pageNo>imagePdfSelectedFiles.length){
         if(s)s.textContent='شماره صفحه باید عددی بین ۱ تا '+fa(imagePdfSelectedFiles.length)+' باشد.';
         return;
