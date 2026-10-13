@@ -781,15 +781,14 @@ async function askReferenceDocument(){
  try{
   const response=await fetch('/api/ai/document-question',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,sources:ranked.map(x=>({source:x.source,text:x.text}))}),cache:'no-store'});
   const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||'سرویس هوش مصنوعی در دسترس نیست.');
-  out.innerHTML='<div class="docqa-response"><div class="docqa-response-title"><span aria-hidden="true">✦</span><strong>پاسخ به پرسش شما</strong></div><div class="docqa-response-body">'+formatDocQaAnswer(data.answer||'پاسخی دریافت نشد.')+'</div><div class="docqa-citations"><strong>منابع بررسی‌شده</strong><div>'+ranked.map(x=>'<span class="docqa-citation">'+escapeDocQa(x.source)+'</span>').join('')+'</div></div></div>';
+  out.innerHTML='<div class="docqa-response"><div class="docqa-response-title"><span aria-hidden="true">✦</span><strong>پاسخ</strong></div><div class="docqa-response-body">'+formatDocQaAnswer(data.answer||'پاسخی دریافت نشد.')+'</div></div>';
   if(status)status.textContent='پرسش با هوش مصنوعی پردازش شد.';
  }catch(e){
   const message=String(e?.message||'');
   if(message.includes('OPENAI_API_KEY')||message.includes('پیکربندی نشده')){
-   const excerpts=ranked.slice(0,3).map(x=>'<li><b>'+escapeDocQa(x.source)+'</b><p>'+escapeDocQa(String(x.text||'').slice(0,900))+'</p></li>').join('');
-   out.innerHTML='<ol>'+excerpts+'</ol>';
+   out.textContent='امکان پاسخ‌گویی هوشمند در حال حاضر فراهم نیست. لطفاً بعداً دوباره تلاش کنید.';
    if(status)status.textContent='';
-  }else{out.textContent=message||'پرسش‌وپاسخ از فایل انجام نشد.';if(status)status.textContent='سرویس پرسش‌وپاسخ در دسترس نیست؛ وضعیت سرویس API بررسی شود.'}
+  }else{out.textContent=message||'پاسخ‌گویی به پرسش از فایل انجام نشد.';if(status)status.textContent='پاسخ‌گویی موقتاً در دسترس نیست.'}
  }
  finally{if(button){button.disabled=false;button.textContent=oldLabel||'یافتن پاسخ در فایل'}}
 }
