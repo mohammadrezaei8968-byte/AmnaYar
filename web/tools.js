@@ -781,7 +781,7 @@ async function askReferenceDocument(){
  try{
   const response=await fetch('/api/ai/document-question',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,sources:ranked.map(x=>({source:x.source,text:x.text}))}),cache:'no-store'});
   const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||'سرویس هوش مصنوعی در دسترس نیست.');
-  out.innerHTML='<p><b>پاسخ هوش مصنوعی بر اساس فایل</b></p><p>'+escapeDocQa(data.answer||'پاسخی دریافت نشد.')+'</p><p class="muted">منابع بررسی‌شده: '+ranked.map(x=>escapeDocQa(x.source)).join('، ')+'</p>';
+  out.innerHTML='<div class="docqa-response"><div class="docqa-response-title"><span aria-hidden="true">✦</span><strong>پاسخ به پرسش شما</strong></div><div class="docqa-response-body">'+formatDocQaAnswer(data.answer||'پاسخی دریافت نشد.')+'</div><div class="docqa-citations"><strong>منابع بررسی‌شده</strong><div>'+ranked.map(x=>'<span class="docqa-citation">'+escapeDocQa(x.source)+'</span>').join('')+'</div></div></div>';
   if(status)status.textContent='پرسش با هوش مصنوعی پردازش شد.';
  }catch(e){
   const message=String(e?.message||'');
@@ -794,6 +794,19 @@ async function askReferenceDocument(){
  finally{if(button){button.disabled=false;button.textContent=oldLabel||'یافتن پاسخ در فایل'}}
 }
 function escapeDocQa(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+
+function formatDocQaAnswer(value){
+ const lines=escapeDocQa(value).replace(/\r/g,'').split('\n');let html='',paragraph=[],list=[],listType='';
+ const flushParagraph=()=>{if(paragraph.length){html+='<p>'+paragraph.join('<br>')+'</p>';paragraph=[]}};
+ const flushList=()=>{if(list.length){html+='<'+listType+'>'+list.join('')+'</'+listType+'>';list=[];listType=''}};
+ for(const line of lines){const s=line.trim();if(!s){flushParagraph();flushList();continue}
+  const head=s.match(/^#{1,3}\s+(.+)$/);const bullet=s.match(/^(?:[-*•])\s+(.+)$/);const numbered=s.match(/^\d+[.)]\s+(.+)$/);
+  if(head){flushParagraph();flushList();html+='<h3>'+head[1]+'</h3>';continue}
+  if(bullet||numbered){flushParagraph();const type=bullet?'ul':'ol';if(listType&&listType!==type)flushList();listType=type;list.push('<li>'+((bullet||numbered)[1])+'</li>');continue}
+  flushList();paragraph.push(s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>'));
+ }
+ flushParagraph();flushList();return html||'<p>پاسخی دریافت نشد.</p>';
+}
 function startDocumentQuestionVoice(){stopAllAmnaAudioRecorders();const status=$('#docQaStatus');if(window.AmnaYarSpeech?.startListening){status.textContent='در حال آماده‌سازی میکروفون…';setTimeout(()=>{try{window.AmnaYarSpeech.startListening('doc-qa')}catch(e){status.textContent='شروع پرسش صوتی ممکن نشد؛ مجوز میکروفون را بررسی کنید.'}},600);return}const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R){status.textContent='تشخیص گفتار در این مرورگر فعال نیست؛ از نسخه اندروید یا مرورگر سازگار استفاده کنید.';return}const r=new R();window.__amnaBrowserSpeechRecognizers=window.__amnaBrowserSpeechRecognizers||{};window.__amnaBrowserSpeechRecognizers.docqa=r;r.lang='fa-IR';r.interimResults=false;r.continuous=false;r.maxAlternatives=1;r.onresult=e=>{const text=e.results?.[0]?.[0]?.transcript||'';if(text){$('#docQaQuestion').value=text;status.textContent='پرسش صوتی ثبت شد؛ برای جست‌وجو دکمه پاسخ را بزنید.'}else status.textContent='گفتاری تشخیص داده نشد؛ دوباره تلاش کنید.'};r.onerror=e=>{delete window.__amnaBrowserSpeechRecognizers?.docqa;status.textContent=e.error==='not-allowed'?'اجازه میکروفون را در مرورگر فعال کنید.':e.error==='audio-capture'?'میکروفون در دسترس نیست یا ضبط دیگری آن را اشغال کرده است؛ ضبط فعال را متوقف کنید.':e.error==='network'?'تشخیص گفتار آنلاین در دسترس نیست؛ اینترنت را بررسی کنید.':'گفتار ثبت نشد؛ مجوز میکروفون و اتصال اینترنت را بررسی کنید.'};r.onend=()=>{delete window.__amnaBrowserSpeechRecognizers?.docqa};setTimeout(()=>{try{r.start()}catch(e){status.textContent='شروع میکروفون ممکن نشد؛ دوباره تلاش کنید.'}},400)}
 window.amnayarDocumentQuestionResult=function(text,direction,error){const status=$('#docQaStatus');if(error||!text){status.textContent='گفتار پرسش ثبت نشد؛ دوباره تلاش کنید.';return}$('#docQaQuestion').value=text;status.textContent='پرسش صوتی ثبت شد؛ برای یافتن پاسخ از فایل، دکمه پاسخ را بزنید.'};
 
