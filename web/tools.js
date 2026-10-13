@@ -477,11 +477,21 @@ function imagePdfPreview(){
     const item=document.createElement('div');
     item.className='image-pdf-preview-item';
     item.style.position='relative';
+    const imageWrap=document.createElement('div');
+    imageWrap.style.cssText='position:relative;cursor:pointer';
     const img=document.createElement('img');
-    img.alt='شماره '+(n+1)+' — '+f.name;img.title='شماره '+(n+1)+'؛ برای انتقال این عکس به ابتدای ترتیب، روی آن بزنید';img.style.cursor='pointer';img.addEventListener('click',()=>{if(n===0)return;moveImagePdfFile(n,-n)});
+    img.alt='صفحه '+(n+1)+' — '+f.name;
+    img.title='این عکس صفحه '+(n+1)+' فایل PDF خواهد بود';
+    img.style.cssText='width:100%;height:120px;object-fit:cover;border-radius:8px;display:block;margin-bottom:6px';
     const u=URL.createObjectURL(f);
     img.src=u;
     img.onload=()=>URL.revokeObjectURL(u);
+    const pageNumber=document.createElement('span');
+    pageNumber.textContent=fa(n+1);
+    pageNumber.setAttribute('aria-label','صفحه '+(n+1));
+    pageNumber.style.cssText='position:absolute;top:7px;right:7px;min-width:30px;height:30px;padding:0 5px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#123b63;color:#fff;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);font-weight:900;font-size:14px;pointer-events:none';
+    imageWrap.append(img,pageNumber);
+    imageWrap.addEventListener('click',()=>{item.style.outline='3px solid #16845b';item.style.outlineOffset='2px';if(s)s.textContent='این عکس صفحه '+fa(n+1)+' PDF است.';setTimeout(()=>{item.style.outline='';item.style.outlineOffset=''},1200);});
     const name=document.createElement('small');
     name.textContent=(n+1)+'. '+f.name;
     const order=document.createElement('div');
@@ -498,11 +508,11 @@ function imagePdfPreview(){
     del.setAttribute('aria-label','حذف '+f.name);
     del.style.cssText='border:0;background:#fff0f0;color:#b33a3a;border-radius:8px;padding:6px 9px;margin-top:7px;cursor:pointer;font:inherit;font-size:10px;font-weight:800;width:100%';
     del.onclick=()=>removeImagePdfFile(n);
-    item.append(img,name,order,del);
+    item.append(imageWrap,name,order,del);
     p.appendChild(item);
   });
   if(c)c.textContent='تعداد عکس‌های انتخاب‌شده: '+fa(fs.length);
-  if(s)s.textContent=fa(fs.length)+' عکس انتخاب شده است؛ شماره روی هر عکس ترتیب صفحات PDF را مشخص می‌کند. برای تغییر ترتیب، عکس را بزنید تا به ابتدای فهرست منتقل شود یا از دکمه‌های بالا/پایین استفاده کنید.';
+  if(s)s.textContent=fa(fs.length)+' عکس انتخاب شده است؛ شماره روی هر عکس، شماره صفحه آن در PDF است. برای تغییر شماره صفحه، از دکمه‌های بالا و پایین استفاده کنید.';
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
