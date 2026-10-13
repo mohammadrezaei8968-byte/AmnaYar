@@ -767,6 +767,30 @@ async function loadReferenceDocument(){
  }catch(e){console.error('document extraction',e);status.textContent='خواندن فایل انجام نشد: '+(e.message||'فرمت فایل را بررسی کنید.')}
  finally{if(ocrWorker)try{await ocrWorker.terminate()}catch(e){}}
 }
+function buildDocumentAnswerFromText(question,chunks){
+ const normalize=v=>String(v||'').toLocaleLowerCase('fa').replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[^\p{L}\p{N}]+/gu,' ').trim();
+ const stop=new Set('از به با در را برای که این آن است بود شد می و یا اگر تا درباره طبق چیست چطور چگونه کدام چه آیا لطفا لطفاً من شما فایل متن مبلغ تاریخ شماره نام هست هستند شده شود می‌شود'.split(/\s+/));
+ const q=normalize(question), terms=[...new Set(q.split(/\s+/).filter(w=>w.length>1&&!stop.has(w)))];
+ if(!terms.length)return '';
+ const candidates=[];
+ for(const chunk of chunks){
+  const raw=String(chunk.text||'');
+  const parts=raw.split(/(?<=[.!?؟؛])\s+|\n+/).map(s=>s.trim()).filter(s=>s.length>12);
+  for(const sentence of parts){
+   const t=normalize(sentence);if(!t)continue;
+   let score=0,hits=0;
+   for(const term of terms){if(t.split(' ').includes(term)){score+=2;hits++}else if(term.length>=3&&t.includes(term)){score+=0.7;hits++}}
+   const nums=(q.match(/\d+/g)||[]);
+   for(const n of nums)if(t.includes(n))score+=3;
+   if(q.length>5&&t.includes(q))score+=5;
+   if(hits) candidates.push({sentence,score,hits});
+  }
+ }
+ candidates.sort((a,b)=>b.score-a.score);
+ const picked=[];
+ for(const c of candidates){if(!picked.some(p=>normalize(p)===normalize(c.sentence)))picked.push(c.sentence);if(picked.length>=3)break}
+ return picked.length?picked.join('\n\n'):'پاسخ دقیق در متن فایل پیدا نشد. برای جست‌وجوی دقیق‌تر، سؤال را با واژه‌های مشخص‌تر یا نام/تاریخ/مبلغ مطرح کنید.';
+}
 async function askReferenceDocument(){
  const q=String($('#docQaQuestion')?.value||'').trim(),out=$('#docQaAnswer'),status=$('#docQaStatus'),button=$('#docQaAsk');
  if(!amnaReferenceChunks.length){out.textContent='ابتدا فایل مرجع را بارگذاری و پردازش کنید.';return}
@@ -786,8 +810,9 @@ async function askReferenceDocument(){
  }catch(e){
   const message=String(e?.message||'');
   if(message.includes('OPENAI_API_KEY')||message.includes('پیکربندی نشده')){
-   out.textContent='امکان پاسخ‌گویی هوشمند در حال حاضر فراهم نیست. لطفاً بعداً دوباره تلاش کنید.';
-   if(status)status.textContent='';
+   const localAnswer=buildDocumentAnswerFromText(q,ranked);
+   out.textContent=localAnswer;
+   if(status)status.textContent='پاسخ از جملات مرتبطِ استخراج‌شده از فایل پیدا شد؛ این حالت بدون هوش مصنوعی مولد کار می‌کند و ممکن است پاسخ کامل نباشد.';
   }else{out.textContent=message||'پاسخ‌گویی به پرسش از فایل انجام نشد.';if(status)status.textContent='پاسخ‌گویی موقتاً در دسترس نیست.'}
  }
  finally{if(button){button.disabled=false;button.textContent=oldLabel||'یافتن پاسخ در فایل'}}
