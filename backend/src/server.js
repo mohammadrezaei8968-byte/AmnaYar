@@ -522,7 +522,7 @@ app.post("/api/translate",async(req,res)=>{
 
 // Document-grounded AI Q&A (OpenAI-compatible API).
 
-app.get("/api/ai/status",(req,res)=>res.json({configured:!!String(process.env.OPENAI_API_KEY||process.env.AI_API_KEY||"").trim(),model:String(process.env.OPENAI_MODEL||process.env.AI_MODEL||"gpt-4o-mini"),providerConfigured:!!String(process.env.OPENAI_BASE_URL||process.env.AI_BASE_URL||"").trim()}));
+app.get("/api/ai/status",(req,res)=>res.json({configured:!!String(process.env.OPENAI_API_KEY||process.env.AI_API_KEY||"").trim(),model:String(process.env.OPENAI_MODEL||process.env.AI_MODEL||"gpt-6.1-sol"),providerConfigured:!!String(process.env.OPENAI_BASE_URL||process.env.AI_BASE_URL||"").trim()}));
 
 // Online speech-to-text for supported browsers; uses the same server-side AI credentials as document Q&A.
 const speechUpload=multer({
@@ -566,7 +566,7 @@ app.post("/api/ai/document-question",async(req,res)=>{
  if(!context)return res.status(400).json({error:"ابتدا یک فایل قابل‌خواندن بارگذاری کنید."});
  const apiKey=String(process.env.OPENAI_API_KEY||process.env.AI_API_KEY||"").trim();
  if(!apiKey)return res.status(503).json({error:"سرویس هوش مصنوعی هنوز پیکربندی نشده است؛ کلید OPENAI_API_KEY باید در متغیرهای محیطی سرویس API تنظیم شود."});
- const base=String(process.env.OPENAI_BASE_URL||process.env.AI_BASE_URL||"https://api.openai.com/v1").replace(/\/+$/,""),model=String(process.env.OPENAI_MODEL||process.env.AI_MODEL||"gpt-4o-mini").trim();
+ const base=String(process.env.OPENAI_BASE_URL||process.env.AI_BASE_URL||"https://api.openai.com/v1").replace(/\/+$/,""),model=String(process.env.OPENAI_MODEL||process.env.AI_MODEL||"gpt-6.1-sol").trim();
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),45000);
  try{
   const response=await fetch(base+"/chat/completions",{method:"POST",headers:{"Authorization":"Bearer "+apiKey,"Content-Type":"application/json"},signal:controller.signal,body:JSON.stringify({model,temperature:0.1,max_tokens:900,messages:[
