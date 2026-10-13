@@ -491,7 +491,26 @@ function imagePdfPreview(){
     pageNumber.setAttribute('aria-label','صفحه '+(n+1));
     pageNumber.style.cssText='position:absolute;top:7px;right:7px;min-width:30px;height:30px;padding:0 5px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#123b63;color:#fff;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);font-weight:900;font-size:14px;pointer-events:none';
     imageWrap.append(img,pageNumber);
-    imageWrap.addEventListener('click',()=>{item.style.outline='3px solid #16845b';item.style.outlineOffset='2px';if(s)s.textContent='این عکس صفحه '+fa(n+1)+' PDF است.';setTimeout(()=>{item.style.outline='';item.style.outlineOffset=''},1200);});
+    imageWrap.setAttribute('role','button');
+    imageWrap.setAttribute('tabindex','0');
+    imageWrap.setAttribute('aria-label','تعیین شماره صفحه برای '+f.name);
+    imageWrap.title='برای تعیین شماره صفحه، روی عکس لمس کنید';
+    const assignPage=()=>{
+      const answer=window.prompt('این عکس در کدام صفحه PDF باشد؟ شماره‌ای از ۱ تا '+fs.length+' وارد کنید:',String(n+1));
+      if(answer===null)return;
+      const pageNo=Number(answer.trim());
+      if(!Number.isInteger(pageNo)||pageNo<1||pageNo>imagePdfSelectedFiles.length){
+        if(s)s.textContent='شماره صفحه باید عددی بین ۱ تا '+fa(imagePdfSelectedFiles.length)+' باشد.';
+        return;
+      }
+      const [selected]=imagePdfSelectedFiles.splice(n,1);
+      imagePdfSelectedFiles.splice(pageNo-1,0,selected);
+      syncImagePdfInput();
+      imagePdfPreview();
+      if(s)s.textContent='ترتیب عکس‌ها به‌روزرسانی شد؛ این عکس صفحه '+fa(pageNo)+' PDF است.';
+    };
+    imageWrap.addEventListener('click',assignPage);
+    imageWrap.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();assignPage();}});
     const name=document.createElement('small');
     name.textContent=(n+1)+'. '+f.name;
     const order=document.createElement('div');
@@ -512,7 +531,7 @@ function imagePdfPreview(){
     p.appendChild(item);
   });
   if(c)c.textContent='تعداد عکس‌های انتخاب‌شده: '+fa(fs.length);
-  if(s)s.textContent=fa(fs.length)+' عکس انتخاب شده است؛ شماره روی هر عکس، شماره صفحه آن در PDF است. برای تغییر شماره صفحه، از دکمه‌های بالا و پایین استفاده کنید.';
+  if(s)s.textContent=fa(fs.length)+' عکس انتخاب شده است؛ برای تعیین شماره صفحه، روی هر عکس لمس کنید و شماره دلخواه را وارد کنید؛ دکمه‌های بالا و پایین هم برای جابه‌جایی سریع هستند.';
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
