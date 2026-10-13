@@ -787,8 +787,8 @@ async function askReferenceDocument(){
   const message=String(e?.message||'');
   if(message.includes('OPENAI_API_KEY')||message.includes('پیکربندی نشده')){
    const excerpts=ranked.slice(0,3).map(x=>'<li><b>'+escapeDocQa(x.source)+'</b><p>'+escapeDocQa(String(x.text||'').slice(0,900))+'</p></li>').join('');
-   out.innerHTML='<p><b>بخش‌های مرتبط فایل (پاسخ موقت):</b> کلید سرویس AI روی سرور تنظیم نشده است؛ برای جلوگیری از توقف کار، بخش‌های مرتبط زیر نمایش داده شده‌اند.</p><ol>'+excerpts+'</ol>';
-   if(status)status.textContent='بخش‌های مرتبط فایل نمایش داده شد؛ برای پاسخ تولیدی باید OPENAI_API_KEY در Render تنظیم شود.';
+   out.innerHTML='<ol>'+excerpts+'</ol>';
+   if(status)status.textContent='';
   }else{out.textContent=message||'پرسش‌وپاسخ از فایل انجام نشد.';if(status)status.textContent='سرویس پرسش‌وپاسخ در دسترس نیست؛ وضعیت سرویس API بررسی شود.'}
  }
  finally{if(button){button.disabled=false;button.textContent=oldLabel||'یافتن پاسخ در فایل'}}
