@@ -809,11 +809,14 @@ async function askReferenceDocument(){
   if(status)status.textContent='پرسش با هوش مصنوعی پردازش شد.';
  }catch(e){
   const message=String(e?.message||'');
-  if(message.includes('OPENAI_API_KEY')||message.includes('پیکربندی نشده')){
-   const localAnswer=buildDocumentAnswerFromText(q,ranked);
-   out.textContent=localAnswer;
-   if(status)status.textContent='پاسخ از جملات مرتبطِ استخراج‌شده از فایل پیدا شد؛ این حالت بدون هوش مصنوعی مولد کار می‌کند و ممکن است پاسخ کامل نباشد.';
-  }else{out.textContent=message||'پاسخ‌گویی به پرسش از فایل انجام نشد.';if(status)status.textContent='پاسخ‌گویی موقتاً در دسترس نیست.'}
+  const localAnswer=buildDocumentAnswerFromText(q,ranked);
+  out.textContent=localAnswer;
+  if(status){
+   status.textContent=localAnswer.startsWith('پاسخ دقیق در متن فایل پیدا نشد')
+    ? 'اتصال هوش مصنوعی برقرار نیست و جست‌وجوی متنی هم پاسخ دقیقی پیدا نکرد. سؤال را با کلمات دقیق‌تر مطرح کنید.'
+    : 'اتصال هوش مصنوعی در دسترس نبود؛ نتیجه زیر با جست‌وجوی متنی داخل فایل پیدا شده و ممکن است کامل نباشد.';
+  }
+  console.warn('Document Q&A using local text fallback:',message.slice(0,180));
  }
  finally{if(button){button.disabled=false;button.textContent=oldLabel||'یافتن پاسخ در فایل'}}
 }
