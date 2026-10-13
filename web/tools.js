@@ -142,15 +142,15 @@ function pdfEditorPoint(e){const c=document.getElementById('pdfEditorOverlay'),r
   if(tool==='text'){const field=document.getElementById('pdfEditText'),value=field?field.value.trim():'';if(!value){pdfEditorStatus('برای افزودن متن، ابتدا متن را در کادر بالای ابزار بنویسید؛ سپس محل درج را روی PDF لمس کنید.');return}const fontSize=Math.max(10,size*3),fontSelect=document.getElementById('pdfEditFont'),fontFamily=fontSelect?fontSelect.value:'Tahoma, Arial, sans-serif';ctx.save();ctx.fillStyle=color;ctx.font='700 '+fontSize+'px '+fontFamily;ctx.textBaseline='top';const latin=fontSelect&&[1,2].includes(fontSelect.selectedIndex);ctx.direction=latin?'ltr':'rtl';ctx.textAlign=latin?'left':'right';const lines=value.split(/\r?\n/);lines.forEach((line,i)=>ctx.fillText(line,p.x,p.y+i*fontSize*1.35));ctx.restore();pdfEditorSaveCurrentOverlay();pdfEditorStatus('متن روی صفحه قرار گرفت. برای ذخیره، دکمه دانلود PDF را بزنید.');return}
   pdfEditorDrawing=true;pdfEditorLastPoint=p;canvas.setPointerCapture?.(e.pointerId);ctx.beginPath();ctx.moveTo(p.x,p.y);
   ctx.lineCap='round';ctx.lineJoin='round';ctx.lineWidth=tool==='highlight'?size*4:size;
-  if(tool==='whiteout'){ctx.strokeStyle='#ffffff';ctx.fillStyle='#ffffff'}else if(tool==='highlight'){ctx.strokeStyle=color;ctx.globalAlpha=.32}else{ctx.strokeStyle=color;ctx.globalAlpha=1}
+  if(tool==='whiteout'){ctx.strokeStyle='#ffffff';ctx.fillStyle='#ffffff';ctx.globalCompositeOperation='source-over'}else if(tool==='eraser'){ctx.strokeStyle='rgba(0,0,0,1)';ctx.fillStyle='rgba(0,0,0,1)';ctx.globalCompositeOperation='destination-out';ctx.globalAlpha=1;ctx.lineWidth=Math.max(12,size*3)}else if(tool==='highlight'){ctx.strokeStyle=color;ctx.globalCompositeOperation='source-over';ctx.globalAlpha=.32}else{ctx.strokeStyle=color;ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1}
   ctx.beginPath();ctx.arc(p.x,p.y,ctx.lineWidth/2,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.moveTo(p.x,p.y);
   e.preventDefault();
  });
  canvas.addEventListener('pointermove',e=>{
   if(!pdfEditorDrawing)return;const tool=document.getElementById('pdfEditTool').value,p=pdfEditorPoint(e),ctx=canvas.getContext('2d'),color=document.getElementById('pdfEditColor').value||'#d32f2f',size=Math.max(2,Math.min(72,Number(document.getElementById('pdfEditSize').value)||5));
-  ctx.lineCap='round';ctx.lineJoin='round';ctx.lineWidth=tool==='highlight'?size*4:size;ctx.strokeStyle=tool==='whiteout'?'#ffffff':color;ctx.globalAlpha=tool==='highlight'?.32:1;ctx.lineTo(p.x,p.y);ctx.stroke();ctx.beginPath();ctx.moveTo(p.x,p.y);e.preventDefault();
+  ctx.lineCap='round';ctx.lineJoin='round';ctx.lineWidth=tool==='highlight'?size*4:(tool==='eraser'?Math.max(12,size*3):size);ctx.strokeStyle=tool==='whiteout'?'#ffffff':(tool==='eraser'?'rgba(0,0,0,1)':color);ctx.globalCompositeOperation=tool==='eraser'?'destination-out':'source-over';ctx.globalAlpha=tool==='highlight'?.32:1;ctx.lineTo(p.x,p.y);ctx.stroke();ctx.beginPath();ctx.moveTo(p.x,p.y);e.preventDefault();
  });
- function finish(){if(!pdfEditorDrawing)return;pdfEditorDrawing=false;canvas.getContext('2d').globalAlpha=1;pdfEditorSaveCurrentOverlay()}
+ function finish(){if(!pdfEditorDrawing)return;pdfEditorDrawing=false;canvas.getContext('2d').globalAlpha=1;canvas.getContext('2d').globalCompositeOperation='source-over';pdfEditorSaveCurrentOverlay()}
  canvas.addEventListener('pointerup',finish);canvas.addEventListener('pointercancel',finish);canvas.addEventListener('lostpointercapture',finish);
  const pageInput=document.getElementById('pdfEditorPage');pageInput?.addEventListener('change',()=>pdfEditorRenderPage(pageInput.value));
  const fileInput=document.getElementById('editPdfFile');fileInput?.addEventListener('change',pdfEditorOpen);
