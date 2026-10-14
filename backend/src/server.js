@@ -548,7 +548,7 @@ function localDocumentAnswer(question, context) {
 
 // Document-grounded AI Q&A (OpenAI-compatible API).
 
-app.get("/api/ai/status",(req,res)=>res.json({configured:!!String(process.env.OPENAI_API_KEY||process.env.AI_API_KEY||"").trim(),model:String(process.env.OPENAI_MODEL||process.env.AI_MODEL||"gpt-6.1-sol"),providerConfigured:!!String(process.env.OPENAI_BASE_URL||process.env.AI_BASE_URL||"").trim()}));
+app.get("/api/ai/status",(req,res)=>{const gemini=!!String(process.env.GEMINI_API_KEY||"").trim();const openai=!!String(process.env.OPENAI_API_KEY||process.env.AI_API_KEY||"").trim();res.json({configured:gemini||openai,model:gemini?"gemini-2.5-flash":String(process.env.OPENAI_MODEL||process.env.AI_MODEL||"gpt-6.1-sol"),providerConfigured:gemini||!!String(process.env.OPENAI_BASE_URL||process.env.AI_BASE_URL||"").trim(),provider:gemini?"gemini":openai?"openai":"free-local"});});
 
 // Online speech-to-text for supported browsers; uses the same server-side AI credentials as document Q&A.
 const speechUpload=multer({
@@ -590,9 +590,21 @@ app.post("/api/ai/document-question",async(req,res)=>{
  const context=sources.map((s,i)=>"منبع "+(i+1)+" ("+String(s?.source||"بدون عنوان").slice(0,120)+"):\n"+String(s?.text||"").slice(0,3500)).join("\n\n").slice(0,18000);
  if(!question)return res.status(400).json({error:"پرسش خالی است."});
  if(!context)return res.status(400).json({error:"ابتدا یک فایل قابل‌خواندن بارگذاری کنید."});
- // Free mode: answer only from text provided by the user; no paid API requests.
+ // Prefer Gemini when a server-side key is configured. If unavailable, use the free local extractor.
+ const geminiKey=String(process.env.GEMINI_API_KEY||"").trim();
+ if(geminiKey){
+  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),45000);
+  try{
+   const response=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":geminiKey},body:JSON.stringify({systemInstruction:{parts:[{text:"You are AmnaYar document assistant. Answer in Persian unless the user asks otherwise. Use only the supplied document context. If the answer is not supported by the context, clearly say it was not found. Do not invent facts."}]},contents:[{role:"user",parts:[{text:"پرسش کاربر:\n"+question+"\n\nمتن فایل‌های بارگذاری‌شده:\n"+context}]}],generationConfig:{temperature:0.2,maxOutputTokens:900}}),signal:controller.signal});
+   const data=await response.json().catch(()=>({}));
+   const generated=String(data?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("\n")||"").trim();
+   if(response.ok&&generated)return res.json({ok:true,answer:generated,model:"gemini-2.5-flash",provider:"gemini"});
+   console.error("gemini_document_question",response.status,String(data?.error?.message||"").slice(0,300));
+  }catch(e){console.error("gemini_document_question_error",String(e?.message||e).slice(0,300));}
+  finally{clearTimeout(timer);}
+ }
  const answer=localDocumentAnswer(question,context);
- if(!answer)return res.json({ok:true,answer:"پاسخ این پرسش در متن قابل‌خواندن فایل پیدا نشد. اگر فایل اسکن‌شده است، ابتدا متن آن را استخراج کنید یا پرسش را با واژه‌های موجود در فایل دقیق‌تر بنویسید.",model:"local-document-search",provider:"free-local"});
+ if(!answer)return res.json({ok:true,answer:"پاسخ این پرسش در متن قابل‌خواندن فایل پیدا نشد. برای پاسخ هوشمندتر، کلید GEMINI_API_KEY باید در تنظیمات محیطی سرویس API تنظیم و فعال باشد.",model:"local-document-search",provider:"free-local"});
  return res.json({ok:true,answer,model:"local-document-search",provider:"free-local"});
 });
 
