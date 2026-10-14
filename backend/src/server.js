@@ -548,7 +548,7 @@ function localDocumentAnswer(question, context) {
 
 // Document-grounded AI Q&A (OpenAI-compatible API).
 
-app.get("/api/ai/status",(req,res)=>{const groq=!!String(process.env.GROQ_API_KEY||"").trim();const gemini=!!String(process.env.GEMINI_API_KEY||"").trim();const openai=!!String(process.env.OPENAI_API_KEY||process.env.AI_API_KEY||"").trim();res.json({configured:groq||gemini||openai,model:groq?String(process.env.GROQ_MODEL||"llama-3.3-70b-versatile"):gemini?"gemini-2.5-flash":String(process.env.OPENAI_MODEL||process.env.AI_MODEL||"gpt-6.1-sol"),providerConfigured:groq||gemini||!!String(process.env.OPENAI_BASE_URL||process.env.AI_BASE_URL||"").trim(),provider:groq?"groq":gemini?"gemini":openai?"openai":"free-local"});});
+app.get("/api/ai/status",(req,res)=>{const groq=!!String(process.env.GROQ_API_KEY||"").trim();const gemini=!!String(process.env.GEMINI_API_KEY||"").trim();const openai=!!String(process.env.OPENAI_API_KEY||process.env.AI_API_KEY||"").trim();res.json({configured:groq||gemini||openai,model:groq?"llama-3.1-8b-instant":gemini?"gemini-2.5-flash":String(process.env.OPENAI_MODEL||process.env.AI_MODEL||"gpt-6.1-sol"),providerConfigured:groq||gemini||!!String(process.env.OPENAI_BASE_URL||process.env.AI_BASE_URL||"").trim(),provider:groq?"groq":gemini?"gemini":openai?"openai":"free-local"});});
 
 // Online speech-to-text for supported browsers; uses the same server-side AI credentials as document Q&A.
 const speechUpload=multer({
@@ -595,10 +595,10 @@ app.post("/api/ai/document-question",async(req,res)=>{
  if(groqKey){
   const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),45000);
   try{
-   const response=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+groqKey},body:JSON.stringify({model:String(process.env.GROQ_MODEL||"llama-3.3-70b-versatile"),messages:[{role:"system",content:"You are AmnaYar document assistant. Answer in Persian unless the user asks otherwise. Use only the supplied document context. If the answer is not supported by the context, clearly say it was not found. Do not invent facts."},{role:"user",content:"پرسش کاربر:\\n"+question+"\\n\\nمتن فایل‌های بارگذاری‌شده:\\n"+context}],temperature:0.2,max_tokens:1200}),signal:controller.signal});
+   const response=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+groqKey},body:JSON.stringify({model:"llama-3.1-8b-instant",messages:[{role:"system",content:"You are AmnaYar document assistant. Answer in Persian unless the user asks otherwise. Use only the supplied document context. If the answer is not supported by the context, clearly say it was not found. Do not invent facts."},{role:"user",content:"پرسش کاربر:\\n"+question+"\\n\\nمتن فایل‌های بارگذاری‌شده:\\n"+context}],temperature:0.2,max_tokens:1200}),signal:controller.signal});
    const data=await response.json().catch(()=>({}));
    const generated=String(data?.choices?.[0]?.message?.content||"").trim();
-   if(response.ok&&generated)return res.json({ok:true,answer:generated,model:String(process.env.GROQ_MODEL||"llama-3.3-70b-versatile"),provider:"groq"});
+   if(response.ok&&generated)return res.json({ok:true,answer:generated,model:"llama-3.1-8b-instant",provider:"groq"});
    console.error("groq_document_question",response.status,String(data?.error?.message||"").slice(0,300));
   }catch(e){console.error("groq_document_question_error",String(e?.message||e).slice(0,300));}
   finally{clearTimeout(timer);}
