@@ -603,7 +603,7 @@ app.post("/api/ai/document-question",async(req,res)=>{
   }catch(e){console.error("groq_document_question_error",String(e?.message||e).slice(0,300));}
   finally{clearTimeout(timer);}
  }
- const markerGemini= // Prefer Gemini when a server-side key is configured. If unavailable, use the free local extractor.
+ // Prefer Gemini when a server-side key is configured. If unavailable, use the free local extractor.
  const geminiKey=String(process.env.GEMINI_API_KEY||"").trim();
  if(geminiKey){
   const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),45000);
