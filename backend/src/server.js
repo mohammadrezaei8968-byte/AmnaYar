@@ -595,7 +595,7 @@ app.post("/api/ai/document-question",async(req,res)=>{
  if(groqKey){
   const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),45000);
   try{
-   const response=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+groqKey},body:JSON.stringify({model:"openai/gpt-oss-20b",messages:[{role:"system",content:"You are AmnaYar document assistant. Answer in Persian unless the user asks otherwise. Use only the supplied document context. If the answer is not supported by the context, clearly say it was not found. Do not invent facts."},{role:"user",content:"پرسش کاربر:\\n"+question+"\\n\\nمتن فایل‌های بارگذاری‌شده:\\n"+context}],temperature:0.2,max_tokens:1200}),signal:controller.signal});
+   const response=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+groqKey},body:JSON.stringify({model:"openai/gpt-oss-20b",messages:[{role:"system",content:"You are AmnaYar document assistant. Answer in Persian unless the user asks otherwise. Use only the supplied document context. If the answer is not supported by the context, clearly say it was not found. Do not invent facts."},{role:"user",content:"پرسش کاربر:\\n"+question+"\\n\\nمتن فایل‌های بارگذاری‌شده:\\n"+context}],temperature:0.2,max_completion_tokens:1600,reasoning_effort:"low",include_reasoning:false}),signal:controller.signal});
    const data=await response.json().catch(()=>({}));
    const generated=String(data?.choices?.[0]?.message?.content||"").trim();
    if(response.ok&&generated)return res.json({ok:true,answer:generated,model:"openai/gpt-oss-20b",provider:"groq"});
