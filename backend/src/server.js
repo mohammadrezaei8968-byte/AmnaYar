@@ -617,7 +617,7 @@ app.post("/api/ai/document-question",async(req,res)=>{
   finally{clearTimeout(timer);}
  }
  const answer=localDocumentAnswer(question,context);
- if(!answer)return res.json({ok:true,answer:"پاسخ این پرسش در متن قابل‌خواندن فایل پیدا نشد. برای پاسخ هوشمندتر، کلید GEMINI_API_KEY باید در تنظیمات محیطی سرویس API تنظیم و فعال باشد.",model:"local-document-search",provider:"free-local"});
+ if(!answer)return res.json({ok:true,answer:"پاسخ این پرسش در متن قابل‌خواندن فایل پیدا نشد. برای پاسخ هوشمندتر، کلید GROQ_API_KEY یا GEMINI_API_KEY باید در تنظیمات محیطی سرویس API تنظیم و فعال باشد.",model:"local-document-search",provider:"free-local"});
  return res.json({ok:true,answer,model:"local-document-search",provider:"free-local"});
 });
 
