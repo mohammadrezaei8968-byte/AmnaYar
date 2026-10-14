@@ -1,0 +1,40 @@
+name: Check official service links
+
+on:
+  schedule:
+    - cron: "30 2 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "web/index.html"
+      - "scripts/check-official-links.cjs"
+      - ".github/workflows/check-official-links.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: official-link-check
+  cancel-in-progress: false
+
+jobs:
+  check-links:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Check official directory URLs
+        run: node scripts/check-official-links.cjs
+      - name: Commit latest status report
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet -- web/official-links-status.json; then
+            git add web/official-links-status.json
+            git commit -m "chore: refresh official links status"
+            git push
+          else
+            echo "Official link status report has no changes."
+          fi
