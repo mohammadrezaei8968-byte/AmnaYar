@@ -790,8 +790,21 @@ app.post("/api/owner/login", rateLimit({windowMs:15*60*1000,max:10,standardHeade
   const password=String(req.body.password||"");
   const ownerMatch=Boolean(OWNER_EMAIL && OWNER_PASSWORD) && normalizedIdentifier===OWNER_EMAIL && password===OWNER_PASSWORD;
   let adminMatch=false;
-  if(ADMIN_USERNAME && ADMIN_PASSWORD_HASH){
-    try{const legacyOwnerIdentifier=normalizedIdentifier===String(ADMIN_USERNAME).trim().toLowerCase() || normalizedIdentifier==="amnayar.2026@gmail.com";adminMatch=legacyOwnerIdentifier && bcrypt.compareSync(password,ADMIN_PASSWORD_HASH);}catch{}
+  const configuredAdmin=Boolean(ADMIN_USERNAME && (ADMIN_PASSWORD_HASH || ADMIN_PASSWORD || ADMIN_PASSWORD_SHA256));
+  if(configuredAdmin){
+    try{
+      const legacyOwnerIdentifier=normalizedIdentifier===String(ADMIN_USERNAME).trim().toLowerCase() || normalizedIdentifier==="amnayar.2026@gmail.com";
+      const passwordMatches=ADMIN_PASSWORD
+        ? password===ADMIN_PASSWORD
+        : ADMIN_PASSWORD_HASH
+          ? bcrypt.compareSync(password,ADMIN_PASSWORD_HASH)
+          : ADMIN_PASSWORD_SHA256
+            ? crypto.createHash("sha256").update(password).digest("hex")===ADMIN_PASSWORD_SHA256
+            : false;
+      adminMatch=Boolean(legacyOwnerIdentifier && passwordMatches);
+    }catch(e){
+      console.error("owner_login_config_error",{username:normalizedIdentifier,hashConfigured:Boolean(ADMIN_PASSWORD_HASH),passwordConfigured:Boolean(ADMIN_PASSWORD),sha256Configured:Boolean(ADMIN_PASSWORD_SHA256),message:String(e?.message||e)});
+    }
   }
   const authenticated=ownerMatch||adminMatch;
   const username=ownerMatch?OWNER_EMAIL:String(ADMIN_USERNAME||OWNER_EMAIL||identifier);
