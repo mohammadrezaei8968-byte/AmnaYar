@@ -1120,7 +1120,7 @@ async function compressPDF(){
   if(!/\.pdf$/i.test(f.name)&&f.type!=='application/pdf'){s.textContent='فایل انتخاب‌شده PDF نیست.';return}
   if(f.size>500*1024*1024){s.textContent='حداکثر حجم PDF برابر ۵۰۰ مگابایت است.';return}
   const level=Math.max(15,Math.min(75,Number($('#pdfQuality')?.value||35)));
-  const routes=['/api/tools/compress-pdf','https://api.amnayar.ir/api/tools/compress-pdf'];
+  const routes=['https://amnayar-gateway.onrender.com/api/tools/compress-pdf','/api/tools/compress-pdf','https://api.amnayar.ir/api/tools/compress-pdf'];
   s.textContent='آماده‌سازی فایل PDF برای ارسال…';
   let lastError=null;
   for(let i=0;i<routes.length;i++){
