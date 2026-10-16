@@ -52,7 +52,7 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
     const preset=level<=45?"/screen":"/ebook";
     await execFileAsync("gs",[
       "-sDEVICE=pdfwrite","-dCompatibilityLevel=1.4","-dNOPAUSE","-dQUIET","-dBATCH","-dSAFER","-dPDFSETTINGS="+preset,
-      "-dDetectDuplicateImages=true","-dOptimize=true","-dCompressPages=true","-dUseFlateCompression=true",
+      "-dDetectDuplicateImages=false","-dOptimize=true","-dCompressPages=true","-dUseFlateCompression=true",
       "-dCompressFonts=true","-dSubsetFonts=true","-dAutoRotatePages=/None",
       "-dDownsampleColorImages=true","-dDownsampleGrayImages=true","-dDownsampleMonoImages=true",
       "-dColorImageDownsampleType=/Average","-dGrayImageDownsampleType=/Average","-dMonoImageDownsampleType=/Subsample",
@@ -65,7 +65,7 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
   const runGsFallback=async(out)=>{
     await execFileAsync("gs",[
       "-sDEVICE=pdfwrite","-dCompatibilityLevel=1.4","-dNOPAUSE","-dQUIET","-dBATCH","-dSAFER",
-      "-dDetectDuplicateImages=true","-dCompressFonts=true","-dSubsetFonts=true","-dAutoRotatePages=/None",
+      "-dDetectDuplicateImages=false","-dCompressFonts=true","-dSubsetFonts=true","-dAutoRotatePages=/None",
       "-dPDFSETTINGS=/screen","-dColorImageFilter=/DCTEncode","-dGrayImageFilter=/DCTEncode","-dJPEGQ=45",
       "-sOutputFile="+out,input
     ],{timeout:45*60*1000,maxBuffer:4*1024*1024});
@@ -78,13 +78,7 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
       await runGsFallback(output);
     }
     let stat=await fs.promises.stat(output);
-    // If the regular pass did not reduce the file, retry once with the strongest image
-    // downsampling profile before asking the browser to use its memory-limited fallback.
-    if(stat.size>=req.file.size){
-      await fs.promises.unlink(output).catch(()=>{});
-      await runGs(output,15);
-      stat=await fs.promises.stat(output);
-    }
+    // Avoid a second full Ghostscript pass on large PDFs; use the explicit raster fallback below only when needed.
     // If vector/text-heavy PDFs do not shrink with pdfwrite, use a clearly-marked
     // raster fallback. This makes the selected quality meaningful for scanned, text,
     // and mixed PDFs, while the client warns that text selection/search is lost.
@@ -156,7 +150,7 @@ app.post("/api/tools/compress-video",videoUpload.single("file"),async(req,res)=>
     // Force an even width and height: H.264/yuv420p rejects some phone videos with odd dimensions.
     const audioBitrate=quality==="small"?"64k":quality==="high"?"128k":"80k";
     const commonArgs=["-hide_banner","-loglevel","error","-y","-fflags","+genpts","-i",input,"-map","0:v:0","-map","0:a?"];
-    const encodeArgs=["-c:v","libx264","-preset","veryfast","-crf",String(crf),"-pix_fmt","yuv420p","-c:a","aac","-b:a",audioBitrate,"-movflags","+faststart","-threads","0","-f","mp4",output];
+    const encodeArgs=["-c:v","libx264","-preset","ultrafast","-crf",String(crf),"-pix_fmt","yuv420p","-c:a","aac","-b:a",audioBitrate,"-movflags","+faststart","-threads","0","-f","mp4",output];
     try{
       await execFileAsync(ffmpegPath,[...commonArgs,"-vf",`scale=${targetWidth}:${targetWidth}:force_original_aspect_ratio=decrease:force_divisible_by=2`,...encodeArgs],{timeout:2*60*60*1000,maxBuffer:8*1024*1024});
     }catch(firstError){
@@ -168,7 +162,7 @@ app.post("/api/tools/compress-video",videoUpload.single("file"),async(req,res)=>
         await fs.promises.unlink(output).catch(()=>{});
         console.warn("video_audio_retry",String(secondError?.stderr||secondError?.message||"").replace(/\s+/g," ").slice(0,600));
         // If the source audio stream is unsupported or damaged, preserve the video by retrying without audio.
-        const videoOnlyArgs=["-hide_banner","-loglevel","error","-y","-fflags","+genpts","-i",input,"-map","0:v:0","-an","-vf","scale=trunc(iw/2)*2:trunc(ih/2)*2","-c:v","libx264","-preset","veryfast","-crf",String(crf),"-pix_fmt","yuv420p","-movflags","+faststart","-threads","0","-f","mp4",output];
+        const videoOnlyArgs=["-hide_banner","-loglevel","error","-y","-fflags","+genpts","-i",input,"-map","0:v:0","-an","-vf","scale=trunc(iw/2)*2:trunc(ih/2)*2","-c:v","libx264","-preset","ultrafast","-crf",String(crf),"-pix_fmt","yuv420p","-movflags","+faststart","-threads","0","-f","mp4",output];
         await execFileAsync(ffmpegPath,videoOnlyArgs,{timeout:2*60*60*1000,maxBuffer:8*1024*1024});
       }
     }
