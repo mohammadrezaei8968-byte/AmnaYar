@@ -51,14 +51,14 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
     const jpegQ=level<=15?12:level<=20?16:level<=30?22:level<=45?32:level<=60?45:58;
     const preset=level<=45?"/screen":"/ebook";
     await execFileAsync("gs",[
-      "-sDEVICE=pdfwrite","-dCompatibilityLevel=1.4","-dNOPAUSE","-dQUIET","-dBATCH","-dSAFER",
+      "-sDEVICE=pdfwrite","-dCompatibilityLevel=1.4","-dNOPAUSE","-dQUIET","-dBATCH","-dSAFER","-dPDFSETTINGS="+preset,
       "-dDetectDuplicateImages=true","-dOptimize=true","-dCompressPages=true","-dUseFlateCompression=true",
       "-dCompressFonts=true","-dSubsetFonts=true","-dAutoRotatePages=/None",
       "-dDownsampleColorImages=true","-dDownsampleGrayImages=true","-dDownsampleMonoImages=true",
       "-dColorImageDownsampleType=/Average","-dGrayImageDownsampleType=/Average","-dMonoImageDownsampleType=/Subsample",
       "-dColorImageResolution="+imageDpi,"-dGrayImageResolution="+imageDpi,"-dMonoImageResolution="+Math.max(150,imageDpi*2),
       "-dAutoFilterColorImages=false","-dAutoFilterGrayImages=false","-dColorImageFilter=/DCTEncode","-dGrayImageFilter=/DCTEncode",
-      "-dPassThroughJPEGImages=false","-dPassThroughJPXImages=false","-dJPEGQ="+jpegQ,"-dPDFSETTINGS="+preset,
+      "-dPassThroughJPEGImages=false","-dPassThroughJPXImages=false","-dJPEGQ="+jpegQ,
       "-sOutputFile="+out,input
     ],{timeout:45*60*1000,maxBuffer:4*1024*1024});
   };
