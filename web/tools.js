@@ -1145,7 +1145,8 @@ async function compressPDF(){
       if(!out.size||out.type.includes('json'))throw new Error('خروجی PDF معتبر دریافت نشد.');
       if(compressed>=original||out.size>=f.size){s.textContent='فشرده‌سازی حجم فایل را کاهش نداد؛ برای جلوگیری از دانلود فایل بدون تغییر، خروجی ارائه نشد. احتمالاً فایل از قبل بهینه است یا مسیر فشرده‌سازی سرور نیاز به بررسی دارد.';return}
       downloadBlob(out,'amnayar-compressed.pdf');
-      s.textContent=savingsText(original,compressed)+' — فایل فشرده و دانلود شد.';
+      const compressionMode=resp.getResponseHeader('X-Compression-Mode')||'preserved';
+      s.textContent=savingsText(original,compressed)+' — فایل فشرده و دانلود شد.'+(compressionMode==='rasterized'?' هشدار: برای کاهش حجم، صفحات به تصویر تبدیل شده‌اند و متن قابل انتخاب یا جست‌وجو نیست.':'');
       if(typeof logLocalToolAction==='function')logLocalToolAction('فشرده‌سازی PDF با موفقیت','conversion');
       return;
     }catch(e){
