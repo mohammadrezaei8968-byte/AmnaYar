@@ -16,6 +16,19 @@ const API_TARGET=process.env.API_TARGET||"https://amnayar-api.onrender.com";
 const WEB_DIR=path.resolve(__dirname,"../web");
 const execFileAsync=util.promisify(execFile);
 
+// Allow the main AmnaYar site to upload videos directly to this processing gateway.
+app.use((req,res,next)=>{
+  const origin=String(req.headers.origin||"");
+  if(["https://amnayar.ir","https://www.amnayar.ir","https://amnayar-web.onrender.com"].includes(origin)){
+    res.setHeader("Access-Control-Allow-Origin",origin);
+    res.setHeader("Vary","Origin");
+    res.setHeader("Access-Control-Allow-Methods","POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers","Content-Type");
+  }
+  if(req.method==="OPTIONS")return res.sendStatus(204);
+  next();
+});
+
 // Performance: gzip/brotli compress HTML, CSS and JS before sending to browsers.
 app.use(compression({threshold:1024}));
 
