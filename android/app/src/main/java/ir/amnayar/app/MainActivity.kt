@@ -361,6 +361,7 @@ class MainActivity : Activity() {
                 // These removals apply only inside the Android app; normal website visitors still see site ads.
                 view.evaluateJavascript("""(function(){
                   window.__AMNAYAR_ANDROID_APP__=true;
+                  (function(){var id='amnayar-app-version';if(document.getElementById(id))return;var b=document.createElement('div');b.id=id;b.textContent='نسخه اپلیکیشن 1.0.8';b.style.cssText='position:fixed;left:10px;top:calc(env(safe-area-inset-top, 0px) + 8px);z-index:2147483646;padding:5px 9px;border-radius:999px;background:#123b2d;color:#fff;font:10px Tahoma,Arial,sans-serif;opacity:.9;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.14)';document.body.appendChild(b);})();
                   (function(){
                     var keys=['amnayar_auth_token','amnayar_token','amnayar_access_token','auth_token'];
                     var token='';for(var i=0;i<keys.length;i++){try{token=localStorage.getItem(keys[i])||''}catch(e){}if(token)break}
@@ -374,7 +375,7 @@ class MainActivity : Activity() {
                       nav.appendChild(chip);
                     }).catch(function(){});
                   })();
-                  document.querySelectorAll('a[href]').forEach(function(a){try{var u=new URL(a.href,location.href);if(u.origin===location.origin){u.searchParams.set('app','1');u.searchParams.set('appVersion',new URLSearchParams(location.search).get('appVersion')||'1.0.7');a.href=u.toString();}}catch(e){}});
+                  document.querySelectorAll('a[href]').forEach(function(a){try{var u=new URL(a.href,location.href);if(u.origin===location.origin){u.searchParams.set('app','1');u.searchParams.set('appVersion',new URLSearchParams(location.search).get('appVersion')||'1.0.8');a.href=u.toString();}}catch(e){}});
                   document.querySelectorAll('a[target="_blank"]').forEach(function(a){try{if(new URL(a.href,location.href).origin!==location.origin)a.target='_self';}catch(e){}});
                   var style=document.getElementById('amnayar-app-cleanup');
                   if(!style){style=document.createElement('style');style.id='amnayar-app-cleanup';style.textContent='#topics,#support,.support,.ay-ad-showcase,.ad-grid,.ad-slot,.amnayar-free-ad,.monetization-section,.advertisement,.ad-container,[data-ad],iframe[src*="ad"],a[href="/advertising.html"],a[href^="/advertising.html"],a[href="#support"]{display:none!important}.nav .btn{white-space:nowrap!important;font-size:11px!important;padding:7px 8px!important}.brand span{white-space:nowrap!important}.tool-panel .tool-actions .btn{white-space:nowrap!important;overflow-wrap:normal!important;word-break:keep-all!important;font-size:12px!important}';document.head.appendChild(style);}
@@ -384,7 +385,7 @@ class MainActivity : Activity() {
                       if(/ثبت.?نام رایگان/.test(t))el.textContent='ثبت‌نام برای دسترسی کامل';
                       if(t==='ساخت حساب رایگان'){
                         el.textContent='ورود به‌عنوان مهمان';
-                        el.onclick=function(e){if(e)e.preventDefault();location.href='/tools.html?app=1&appVersion=1.0.7';};
+                        el.onclick=function(e){if(e)e.preventDefault();location.href='/tools.html?app=1&appVersion=1.0.8';};
                       }
                       if(t==='ساخت حساب')el.textContent='ثبت‌نام برای دسترسی کامل';
                     });
@@ -412,8 +413,9 @@ class MainActivity : Activity() {
                     .then(function(v){
                       var bazaarCode=Number(v&&v.bazaarPublishedVersionCode)||0;
                       var myketCode=Number(v&&v.myketPublishedVersionCode)||0;
-                      var publishedCode=Math.max(bazaarCode,myketCode);
-                      if(!v||Number(v.versionCode)<=currentCode||Number(v.versionCode)>publishedCode||document.getElementById('amnayar-update-banner'))return;
+                      var targetCode=Number(v&&v.versionCode)||0;
+                      if(!v||targetCode<=currentCode||bazaarCode<targetCode||myketCode<targetCode||document.getElementById('amnayar-update-banner'))return;
+                      var dismissedKey='amnayar_update_dismissed_'+targetCode;try{if(localStorage.getItem(dismissedKey)==='1')return;}catch(e){}
                       var box=document.createElement('section');box.id='amnayar-update-banner';
                       box.style.cssText='position:fixed;z-index:2147483647;inset:auto 12px 14px 12px;background:#fff;color:#14243b;border:1px solid #cbdcf0;border-radius:18px;box-shadow:0 12px 42px rgba(0,0,0,.25);padding:16px;font:14px Tahoma,Arial,sans-serif;direction:rtl';
                       var title=document.createElement('b');title.textContent='نسخه جدید امنا یار آماده است'+(v.versionName?' ('+v.versionName+')':'');
@@ -421,12 +423,12 @@ class MainActivity : Activity() {
                       var actions=document.createElement('div');actions.style.cssText='display:flex;gap:8px;flex-wrap:wrap';
                       var go=document.createElement('a');var bazaarReady=bazaarCode>=Number(v.versionCode);var myketReady=myketCode>=Number(v.versionCode);go.href=bazaarReady?(v.bazaarUrl||'https://cafebazaar.ir/search?q=%D8%A7%D9%85%D9%86%D8%A7%20%DB%8C%D8%A7%D8%B1'):(v.myketUrl||'https://myket.ir/search?query=%D8%A7%D9%85%D9%86%D8%A7%20%DB%8C%D8%A7%D8%B1');go.textContent=bazaarReady?'بررسی نسخه در بازار':'بررسی نسخه در مایکت';go.style.cssText='display:inline-block;padding:10px 14px;border-radius:10px;background:#0d4a91;color:#fff;text-decoration:none;font-weight:700';
                       var later=document.createElement('button');later.type='button';later.textContent='بعداً';later.style.cssText='padding:10px 14px;border:1px solid #d6e0ec;border-radius:10px;background:#f7f9fc;color:#14243b;font-weight:700';
-                      later.onclick=function(){box.remove()};actions.appendChild(go);actions.appendChild(later);box.appendChild(title);box.appendChild(detail);box.appendChild(actions);document.body.appendChild(box);
+                      later.onclick=function(){try{localStorage.setItem(dismissedKey,'1')}catch(e){}box.remove()};actions.appendChild(go);actions.appendChild(later);box.appendChild(title);box.appendChild(detail);box.appendChild(actions);document.body.appendChild(box);
                     }).catch(function(){});
                 })();""", null)
             }
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
-                if (request.isForMainFrame) view.postDelayed({ view.loadUrl("https://amnayar.ir/?app=1&appVersion=1.0.7") }, 500)
+                if (request.isForMainFrame) view.postDelayed({ view.loadUrl("https://amnayar.ir/?app=1&appVersion=1.0.8") }, 500)
             }
         }
 
@@ -498,7 +500,7 @@ class MainActivity : Activity() {
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf("android.permission.POST_NOTIFICATIONS"), 7401)
         }
-        if (savedInstanceState == null) web.loadUrl("https://amnayar.ir/?app=1&appVersion=1.0.7") else web.restoreState(savedInstanceState)
+        if (savedInstanceState == null) web.loadUrl("https://amnayar.ir/?app=1&appVersion=1.0.8") else web.restoreState(savedInstanceState)
     }
 
     @Deprecated("Deprecated in Java")
