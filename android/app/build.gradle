@@ -7,6 +7,21 @@ android {
     namespace 'ir.amnayar.app'
     compileSdk 35
 
+    signingConfigs {
+        release {
+            storeFile file(System.getenv('AMNAYAR_KEYSTORE_PATH'))
+            storePassword System.getenv('AMNAYAR_KEYSTORE_PASSWORD')
+            keyAlias System.getenv('AMNAYAR_KEY_ALIAS')
+            keyPassword System.getenv('AMNAYAR_KEY_PASSWORD')
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+        }
+    }
+
     defaultConfig {
         applicationId 'ir.amnayar.app'
         minSdk 23
