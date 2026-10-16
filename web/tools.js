@@ -1143,7 +1143,7 @@ async function compressPDF(){
       const out=blob.blob,resp=blob.xhr;
       const original=Number(resp.getResponseHeader('X-Original-Size')||f.size),compressed=Number(resp.getResponseHeader('X-Compressed-Size')||out.size);
       if(!out.size||out.type.includes('json'))throw new Error('خروجی PDF معتبر دریافت نشد.');
-      if(compressed>=original){downloadBlob(out,'amnayar-pdf.pdf');s.textContent='فایل PDF معتبر دریافت شد؛ این فایل با روش فعلی کوچک‌تر نشد، اما نسخه قابل‌دانلود آماده است.';return}
+      if(compressed>=original||out.size>=f.size){s.textContent='فشرده‌سازی حجم فایل را کاهش نداد؛ برای جلوگیری از دانلود فایل بدون تغییر، خروجی ارائه نشد. احتمالاً فایل از قبل بهینه است یا مسیر فشرده‌سازی سرور نیاز به بررسی دارد.';return}
       downloadBlob(out,'amnayar-compressed.pdf');
       s.textContent=savingsText(original,compressed)+' — فایل فشرده و دانلود شد.';
       if(typeof logLocalToolAction==='function')logLocalToolAction('فشرده‌سازی PDF با موفقیت','conversion');
@@ -1222,8 +1222,8 @@ document.addEventListener('DOMContentLoaded',()=>{
 /* Offline fallback: rasterizes PDF pages and rebuilds a smaller PDF when server Ghostscript is unavailable.
    This is intentionally limited because selectable text and annotations are flattened in this mode. */
 async function compressPDFLocally(file,quality,status){
-  if(file.size>40*1024*1024){downloadBlob(new Blob([await file.arrayBuffer()],{type:'application/pdf'}),'amnayar-pdf.pdf');status.textContent='سرویس فشرده‌سازی سرور در دسترس نیست و فایل برای فشرده‌سازی محلی بزرگ است؛ نسخه PDF اصلی برای دریافت آماده شد.';return}
-  if(!window.pdfjsLib||!window.PDFLib){downloadBlob(new Blob([await file.arrayBuffer()],{type:'application/pdf'}),'amnayar-pdf.pdf');status.textContent='کتابخانه فشرده‌سازی محلی بارگذاری نشد؛ نسخه PDF اصلی برای دریافت آماده شد. اتصال سرویس سرور باید بررسی شود.';return}
+  if(file.size>40*1024*1024){status.textContent='سرویس فشرده‌سازی سرور پاسخ نداد و این فایل برای فشرده‌سازی محلی بزرگ است؛ فایل اصلی به‌جای خروجی فشرده دانلود نشد. مسیر سرور باید بررسی شود.';return}
+  if(!window.pdfjsLib||!window.PDFLib){status.textContent='کتابخانه فشرده‌سازی محلی بارگذاری نشد و سرور هم پاسخ نداده است؛ فایل اصلی به‌جای خروجی فشرده دانلود نشد. اتصال سرویس سرور باید بررسی شود.';return}
   status.textContent='سرور در دسترس نیست؛ فشرده‌سازی محلی شروع شد. در این روش صفحات به تصویر تبدیل می‌شوند و متن PDF قابل انتخاب نخواهد بود.';
   let canvas=null;
   try{
@@ -1249,7 +1249,7 @@ async function compressPDFLocally(file,quality,status){
     }
     const bytes=await out.save({useObjectStreams:true,addDefaultPage:false});
     const blob=new Blob([bytes],{type:'application/pdf'});
-    if(blob.size>=file.size){downloadBlob(new Blob([await file.arrayBuffer()],{type:'application/pdf'}),'amnayar-pdf.pdf');status.textContent='حجم فایل کاهش نیافت؛ نسخه PDF معتبر برای دریافت آماده شد. سرویس فشرده‌سازی سرور باید بررسی شود.';return}
+    if(blob.size>=file.size){status.textContent='فشرده‌سازی محلی حجم را کاهش نداد؛ برای جلوگیری از تحویل فایل بدون تغییر، خروجی دانلود نشد. سرویس فشرده‌سازی سرور باید بررسی شود.';return}
     downloadBlob(blob,'amnayar-compressed-local.pdf');
     status.textContent=savingsText(file.size,blob.size)+' — فشرده‌سازی محلی انجام شد. توجه: متن صفحات به تصویر تبدیل شده است.';
     if(typeof logLocalToolAction==='function')logLocalToolAction('فشرده‌سازی محلی PDF با موفقیت','conversion');
