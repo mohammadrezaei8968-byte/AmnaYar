@@ -100,7 +100,9 @@ const videoUpload=multer({
 app.post("/api/tools/compress-video",videoUpload.single("file"),async(req,res)=>{
   const input=req.file?.path;
   if(!input)return res.status(400).json({error:"video_required"});
-  const quality=String(req.body?.quality||"balanced");
+  const requestedQuality=String(req.body?.quality||"balanced").toLowerCase();
+  // The web UI may send labels such as 480p instead of the legacy "small" value.
+  const quality=["small","480p","low","fast"].includes(requestedQuality)?"small":["high","1080p"].includes(requestedQuality)?"high":"balanced";
   const targetWidth=quality==="small"?480:quality==="high"?1080:720;
   const crf=quality==="small"?38:quality==="high"?27:34;
   const output=path.join(os.tmpdir(),"amnayar-video-"+crypto.randomUUID()+".mp4");
