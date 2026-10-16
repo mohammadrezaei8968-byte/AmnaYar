@@ -117,8 +117,16 @@ app.post("/api/tools/compress-video",videoUpload.single("file"),async(req,res)=>
       await execFileAsync(ffmpegPath,[...commonArgs,"-vf",`scale=${targetWidth}:${targetWidth}:force_original_aspect_ratio=decrease:force_divisible_by=2`,...encodeArgs],{timeout:2*60*60*1000,maxBuffer:8*1024*1024});
     }catch(firstError){
       await fs.promises.unlink(output).catch(()=>{});
-      console.warn("video_scale_retry",String(firstError?.stderr||firstError?.message||"").replace(/\s+/g," ").slice(0,400));
-      await execFileAsync(ffmpegPath,[...commonArgs,"-vf","scale=trunc(iw/2)*2:trunc(ih/2)*2",...encodeArgs],{timeout:2*60*60*1000,maxBuffer:8*1024*1024});
+      console.warn("video_scale_retry",String(firstError?.stderr||firstError?.message||"").replace(/\s+/g," ").slice(0,600));
+      try {
+        await execFileAsync(ffmpegPath,[...commonArgs,"-vf","scale=trunc(iw/2)*2:trunc(ih/2)*2",...encodeArgs],{timeout:2*60*60*1000,maxBuffer:8*1024*1024});
+      } catch (secondError) {
+        await fs.promises.unlink(output).catch(()=>{});
+        console.warn("video_audio_retry",String(secondError?.stderr||secondError?.message||"").replace(/\s+/g," ").slice(0,600));
+        // If the source audio stream is unsupported or damaged, preserve the video by retrying without audio.
+        const videoOnlyArgs=["-hide_banner","-loglevel","error","-y","-fflags","+genpts","-i",input,"-map","0:v:0","-an","-vf","scale=trunc(iw/2)*2:trunc(ih/2)*2","-c:v","libx264","-preset","veryfast","-crf",String(crf),"-pix_fmt","yuv420p","-movflags","+faststart","-threads","0","-f","mp4",output];
+        await execFileAsync(ffmpegPath,videoOnlyArgs,{timeout:2*60*60*1000,maxBuffer:8*1024*1024});
+      }
     }
     const stat=await fs.promises.stat(output);
     const useOriginal=stat.size>=req.file.size;
@@ -139,7 +147,7 @@ app.post("/api/tools/compress-video",videoUpload.single("file"),async(req,res)=>
     console.error("video_compress_failed",msg.slice(0,2000));
     if(/ENOENT/i.test(msg))return res.status(503).json({error:"ffmpeg_unavailable"});
     if(/LIMIT_FILE_SIZE|too large|File too large/i.test(msg))return res.status(413).json({error:"video_too_large"});
-    return res.status(422).json({error:"video_compress_failed",detail:msg.replace(/\s+/g," ").slice(0,500)||"unsupported_video"});
+    return res.status(422).json({error:"video_compress_failed",message:"پردازش ویدئو ناموفق بود؛ جزئیات فنی برای بررسی ثبت شد.",detail:msg.replace(/\s+/g," ").slice(0,500)||"unsupported_video"});
   }
 });
 
