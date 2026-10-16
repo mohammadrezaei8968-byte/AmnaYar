@@ -407,8 +407,9 @@ function compressVideo(){
   xhr.upload.onprogress=e=>{if(e.lengthComputable){const pct=Math.round(e.loaded/e.total*100),elapsed=Math.max(.25,(Date.now()-uploadStartedAt)/1000),mbps=(e.loaded/1048576)/elapsed;s.textContent='در حال ارسال فیلم: '+pct.toLocaleString('fa-IR')+'٪ — ارسال‌شده '+(e.loaded/1048576).toFixed(1)+' از '+(e.total/1048576).toFixed(1)+' مگابایت؛ میانگین '+mbps.toFixed(1)+' مگابایت/ثانیه';}};xhr.upload.onload=()=>{s.textContent='آپلود کامل شد؛ سرور در حال کم‌کردن حجم فیلم است…';};
   xhr.onload=async()=>{
     if(xhr.status<200||xhr.status>=300){
-      let message='فشرده‌سازی ویدئو انجام نشد؛ فایل یا فرمت را بررسی کنید.';
-      try{const data=JSON.parse(await xhr.response.text());if(data.error==='ffmpeg_unavailable')message='سرویس فشرده‌سازی ویدئو آماده نیست؛ استقرار سرور را بررسی کنید.';else if(data.error==='video_too_large')message='حجم فیلم از حد مجاز ۲ گیگابایت بیشتر است.';else if(data.error==='video_compress_failed')message='سرور نتوانست ویدئو را پردازش کند.';else if(data.error==='video_required')message='فایل ویدئویی معتبر انتخاب کنید.';if(data.detail)message+=' جزئیات فنی: '+String(data.detail).slice(0,240);}catch(e){}
+      let message='فشرده‌سازی ویدئو انجام نشد.';
+      let responseText='';
+      try{responseText=await xhr.response.text();const data=JSON.parse(responseText);if(data.error==='ffmpeg_unavailable')message='سرویس فشرده‌سازی ویدئو آماده نیست.';else if(data.error==='video_too_large')message='حجم فیلم از حد مجاز ۲ گیگابایت بیشتر است.';else if(data.error==='video_compress_failed')message='سرور نتوانست ویدئو را پردازش کند.';else if(data.error==='video_required')message='سرور فایل ویدئویی را دریافت نکرد؛ دوباره فایل را انتخاب کنید.';else if(data.error==='gateway_request_failed')message='خطای داخلی در درگاه پردازش فایل رخ داد.';if(data.detail)message+=' جزئیات: '+String(data.detail).slice(0,350);if(data.message&&!data.detail)message+=' '+String(data.message).slice(0,200);}catch(e){message='پاسخ نامعتبر از سرور فشرده‌سازی (HTTP '+xhr.status+').';if(responseText)message+=' '+responseText.replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').slice(0,180);}
       s.textContent=message;return;
     }
     const blob=xhr.response,original=Number(xhr.getResponseHeader('X-Original-Size')||f.size),compressed=Number(xhr.getResponseHeader('X-Compressed-Size')||blob.size);
