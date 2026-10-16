@@ -1231,8 +1231,9 @@ async function compressPDFLocally(file,quality,status){
     const source=await pdfjsLib.getDocument({data:await file.arrayBuffer(),useWorkerFetch:false,isEvalSupported:false}).promise;
     if(source.numPages>80){status.textContent='این فایل بیش از ۸۰ صفحه دارد؛ برای جلوگیری از پرشدن حافظه، فشرده‌سازی محلی انجام نشد. سرویس سرور باید فعال شود.';return}
     const out=await PDFLib.PDFDocument.create();
-    const scale=quality<=35?0.62:quality<=50?0.76:quality<=70?0.9:1.0;
-    const jpegQuality=quality<=35?0.34:quality<=50?0.46:quality<=70?0.58:0.7;
+    const normalized=Math.max(15,Math.min(75,Number(quality)||35));
+    const scale=0.55+((normalized-15)/60)*0.45;
+    const jpegQuality=0.28+((normalized-15)/60)*0.44;
     canvas=document.createElement('canvas');const ctx=canvas.getContext('2d');
     for(let index=1;index<=source.numPages;index++){
       status.textContent='فشرده‌سازی محلی صفحه '+index.toLocaleString('fa-IR')+' از '+source.numPages.toLocaleString('fa-IR')+'…';
