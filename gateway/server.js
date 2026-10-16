@@ -78,15 +78,18 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
       await runGsFallback(output);
     }
     const stat=await fs.promises.stat(output);
-    const useOriginal=stat.size>=req.file.size;
-    const filePath=useOriginal?input:output;
-    const finalSize=useOriginal?req.file.size:stat.size;
+    // Never report a successful compression while returning the original-sized file.
+    // A 422 response activates the browser's PDF.js raster fallback for files it can handle.
+    if(stat.size>=req.file.size){
+      await cleanup();
+      return res.status(422).json({error:"pdf_already_optimized",message:"روش سرور حجم فایل را کاهش نداد؛ فشرده‌سازی جایگزین در مرورگر آغاز می‌شود."});
+    }
     res.setHeader("Content-Type","application/pdf");
     res.setHeader("Content-Disposition",'attachment; filename="amnayar-compressed.pdf"');
     res.setHeader("X-Original-Size",String(req.file.size));
-    res.setHeader("X-Compressed-Size",String(finalSize));
-    res.setHeader("X-Compression-Applied",useOriginal?"no":"yes");
-    res.sendFile(filePath,err=>{
+    res.setHeader("X-Compressed-Size",String(stat.size));
+    res.setHeader("X-Compression-Applied","yes");
+    res.sendFile(output,err=>{
       cleanup().catch(()=>{});
       if(err&&!res.headersSent)res.status(500).json({error:"pdf_send_failed"});
     });
