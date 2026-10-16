@@ -47,8 +47,8 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
   const output=path.join(os.tmpdir(),"amnayar-compressed-"+crypto.randomUUID()+".pdf");
   const cleanup=()=>Promise.allSettled([fs.promises.unlink(input),fs.promises.unlink(output)]);
   const runGs=async(out,level)=>{
-    const imageDpi=level<=15?36:level<=20?42:level<=30?50:level<=45?65:level<=60?85:110;
-    const jpegQ=level<=15?12:level<=20?16:level<=30?22:level<=45?32:level<=60?45:58;
+    const imageDpi=Math.round(36+((level-15)/60)*74);
+    const jpegQ=Math.round(12+((level-15)/60)*58);
     const preset=level<=45?"/screen":"/ebook";
     await execFileAsync("gs",[
       "-sDEVICE=pdfwrite","-dCompatibilityLevel=1.4","-dNOPAUSE","-dQUIET","-dBATCH","-dSAFER","-dPDFSETTINGS="+preset,
