@@ -45,7 +45,8 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
   if(!input)return res.status(400).json({error:"pdf_required"});
   const quality=Math.max(15,Math.min(75,Number(req.body?.quality||35)));
   const output=path.join(os.tmpdir(),"amnayar-compressed-"+crypto.randomUUID()+".pdf");
-  const cleanup=()=>Promise.allSettled([fs.promises.unlink(input),fs.promises.unlink(output)]);
+  let rasterDir=null;
+  const cleanup=()=>Promise.allSettled([fs.promises.unlink(input),fs.promises.unlink(output),...(rasterDir?[fs.promises.rm(rasterDir,{recursive:true,force:true})]:[])]);
   const runGs=async(out,level)=>{
     const imageDpi=Math.round(36+((level-15)/60)*74);
     const jpegQ=Math.round(12+((level-15)/60)*58);
@@ -85,19 +86,31 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
     let compressionMode="preserved";
     if(stat.size>=req.file.size){
       await fs.promises.unlink(output).catch(()=>{});
-      const rasterDpi=Math.round(60+((quality-15)/60)*90);
+      // Reliable raster fallback: render each page to a JPEG, then rebuild a PDF.
+      // This avoids Ghostscript's optional pdfimage24 device, which is not present
+      // in every Render Ghostscript build.
+      const rasterDpi=Math.round(45+((quality-15)/60)*65);
+      const jpegQuality=Math.round(28+((quality-15)/60)*47);
       try{
-        await execFileAsync("gs",[
-          "-sDEVICE=pdfimage24","-dNOPAUSE","-dQUIET","-dBATCH","-dSAFER",
-          "-r"+rasterDpi,"-dAutoRotatePages=/None","-sOutputFile="+output,input
+        rasterDir=await fs.promises.mkdtemp(path.join(os.tmpdir(),"amnayar-pdf-pages-"));
+        const prefix=path.join(rasterDir,"page");
+        await execFileAsync("pdftoppm",[
+          "-jpeg","-jpegopt","quality="+jpegQuality+",optimize=y",
+          "-r",String(rasterDpi),input,prefix
         ],{timeout:45*60*1000,maxBuffer:4*1024*1024});
+        const pages=(await fs.promises.readdir(rasterDir))
+          .filter(name=>/^page-\\d+\\.jpg$/i.test(name))
+          .sort((a,b)=>Number(a.match(/page-(\\d+)\\.jpg/i)[1])-Number(b.match(/page-(\\d+)\\.jpg/i)[1]))
+          .map(name=>path.join(rasterDir,name));
+        if(!pages.length)throw new Error("pdf_raster_no_pages");
+        await execFileAsync("img2pdf",[...pages,"-o",output],{timeout:10*60*1000,maxBuffer:4*1024*1024});
         stat=await fs.promises.stat(output);
         compressionMode="rasterized";
       }catch(rasterError){
         await fs.promises.unlink(output).catch(()=>{});
         console.warn("pdf_raster_retry",String(rasterError?.stderr||rasterError?.message||"").replace(/\\s+/g," ").slice(0,500));
         await cleanup();
-        return res.status(422).json({error:"pdf_already_optimized",message:"فشرده‌سازی معمولی حجم را کاهش نداد و تبدیل تصویری PDF نیز موفق نشد."});
+        return res.status(422).json({error:"pdf_compression_failed",message:"تبدیل تصویری PDF موفق نشد؛ فایل اصلی بدون تغییر ارائه نمی‌شود."});
       }
     }
     // Never report a successful compression while returning the original-sized file.
