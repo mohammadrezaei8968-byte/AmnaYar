@@ -3,7 +3,7 @@ services:
     runtime: node
     name: amnayar-gateway
     rootDir: gateway
-    buildCommand: apt-get update && apt-get install -y ghostscript ffmpeg && npm install
+    buildCommand: apt-get update && apt-get install -y ghostscript ffmpeg poppler-utils img2pdf && npm install
     startCommand: npm start
     plan: free
     healthCheckPath: /health
