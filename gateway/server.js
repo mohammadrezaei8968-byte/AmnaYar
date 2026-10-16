@@ -85,16 +85,38 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
       await runGs(output,15);
       stat=await fs.promises.stat(output);
     }
+    // If vector/text-heavy PDFs do not shrink with pdfwrite, use a clearly-marked
+    // raster fallback. This makes the selected quality meaningful for scanned, text,
+    // and mixed PDFs, while the client warns that text selection/search is lost.
+    let compressionMode="preserved";
+    if(stat.size>=req.file.size){
+      await fs.promises.unlink(output).catch(()=>{});
+      const rasterDpi=Math.round(60+((quality-15)/60)*90);
+      try{
+        await execFileAsync("gs",[
+          "-sDEVICE=pdfimage24","-dNOPAUSE","-dQUIET","-dBATCH","-dSAFER",
+          "-r"+rasterDpi,"-dAutoRotatePages=/None","-sOutputFile="+output,input
+        ],{timeout:45*60*1000,maxBuffer:4*1024*1024});
+        stat=await fs.promises.stat(output);
+        compressionMode="rasterized";
+      }catch(rasterError){
+        await fs.promises.unlink(output).catch(()=>{});
+        console.warn("pdf_raster_retry",String(rasterError?.stderr||rasterError?.message||"").replace(/\\s+/g," ").slice(0,500));
+        await cleanup();
+        return res.status(422).json({error:"pdf_already_optimized",message:"فشرده‌سازی معمولی حجم را کاهش نداد و تبدیل تصویری PDF نیز موفق نشد."});
+      }
+    }
     // Never report a successful compression while returning the original-sized file.
     if(stat.size>=req.file.size){
       await cleanup();
-      return res.status(422).json({error:"pdf_already_optimized",message:"پس از دو سطح فشرده‌سازی، حجم فایل کمتر نشد؛ احتمالاً PDF از قبل بهینه است یا تصاویر آن قابل کاهش بیشتر نیستند."});
+      return res.status(422).json({error:"pdf_already_optimized",message:"حتی پس از فشرده‌سازی تصویری، حجم خروجی کمتر نشد؛ فایل اصلی دانلود نمی‌شود."});
     }
     res.setHeader("Content-Type","application/pdf");
     res.setHeader("Content-Disposition",'attachment; filename="amnayar-compressed.pdf"');
     res.setHeader("X-Original-Size",String(req.file.size));
     res.setHeader("X-Compressed-Size",String(stat.size));
     res.setHeader("X-Compression-Applied","yes");
+    res.setHeader("X-Compression-Mode",compressionMode);
     res.sendFile(output,err=>{
       cleanup().catch(()=>{});
       if(err&&!res.headersSent)res.status(500).json({error:"pdf_send_failed"});
