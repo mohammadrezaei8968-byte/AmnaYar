@@ -403,7 +403,7 @@ function compressVideo(){
   const q=$('#videoQuality').value;
   s.textContent='در حال ارسال ویدئو برای فشرده‌سازی؛ برای فایل‌های حجیم این مرحله ممکن است زمان ببرد…';
   const fd=new FormData();fd.append('file',f,f.name);fd.append('quality',q);
-  const xhr=new XMLHttpRequest();xhr.open('POST','/api/tools/compress-video');xhr.responseType='blob';xhr.timeout=2*60*60*1000;const uploadStartedAt=Date.now();
+  const xhr=new XMLHttpRequest();xhr.open('POST','https://amnayar-gateway.onrender.com/api/tools/compress-video');xhr.responseType='blob';xhr.timeout=2*60*60*1000;const uploadStartedAt=Date.now();
   xhr.upload.onprogress=e=>{if(e.lengthComputable){const pct=Math.round(e.loaded/e.total*100),elapsed=Math.max(.25,(Date.now()-uploadStartedAt)/1000),mbps=(e.loaded/1048576)/elapsed;s.textContent='در حال ارسال فیلم: '+pct.toLocaleString('fa-IR')+'٪ — ارسال‌شده '+(e.loaded/1048576).toFixed(1)+' از '+(e.total/1048576).toFixed(1)+' مگابایت؛ میانگین '+mbps.toFixed(1)+' مگابایت/ثانیه';}};xhr.upload.onload=()=>{s.textContent='آپلود کامل شد؛ سرور در حال کم‌کردن حجم فیلم است…';};
   xhr.onload=async()=>{
     if(xhr.status<200||xhr.status>=300){
