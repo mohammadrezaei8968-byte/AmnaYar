@@ -1152,7 +1152,7 @@ async function compressPDF(){
     }catch(e){
       lastError=e;
       if(e.status===404||e.status===502||e.status===503||e.message==='network_error')continue;
-      if(e.message==='ghostscript_unavailable'||e.message==='pdf_already_optimized'||e.status===422){s.textContent='سرور نتوانست این PDF را با تنظیمات انتخابی کوچک‌تر کند؛ فایل اصلی به‌جای خروجی فشرده دانلود نمی‌شود. این خطا برای بررسی ثبت شد.';return}
+      if(e.message==='ghostscript_unavailable'||e.message==='pdf_already_optimized'||e.status===422){console.warn('Server PDF compression unavailable; trying local compression',e);break}
       if(e.message==='timeout'){s.textContent='پردازش PDF بیش از زمان مجاز طول کشید؛ فایل کوچک‌تر یا کیفیت پایین‌تر را امتحان کنید.';return}
       console.warn('PDF compression route failed',e);
     }
