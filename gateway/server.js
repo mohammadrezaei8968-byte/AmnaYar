@@ -99,8 +99,8 @@ app.post("/api/tools/compress-pdf",pdfUpload.single("file"),async(req,res)=>{
           "-r",String(rasterDpi),input,prefix
         ],{timeout:45*60*1000,maxBuffer:4*1024*1024});
         const pages=(await fs.promises.readdir(rasterDir))
-          .filter(name=>/^page-\\d+\\.jpg$/i.test(name))
-          .sort((a,b)=>Number(a.match(/page-(\\d+)\\.jpg/i)[1])-Number(b.match(/page-(\\d+)\\.jpg/i)[1]))
+          .filter(name=>/^page-\d+\.jpg$/i.test(name))
+          .sort((a,b)=>Number(a.match(/page-(\d+)\.jpg/i)[1])-Number(b.match(/page-(\d+)\.jpg/i)[1]))
           .map(name=>path.join(rasterDir,name));
         if(!pages.length)throw new Error("pdf_raster_no_pages");
         await execFileAsync("img2pdf",[...pages,"-o",output],{timeout:10*60*1000,maxBuffer:4*1024*1024});
