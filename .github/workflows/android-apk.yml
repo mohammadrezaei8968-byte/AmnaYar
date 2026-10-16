@@ -65,8 +65,8 @@ jobs:
         run: |
           APK="android/app/build/outputs/apk/release/app-release.apk"
           test -s "$APK"
-          apksigner verify --verbose "$APK"
-          apksigner verify --print-certs "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$APK"
           ls -lh "$APK"
           sha256sum "$APK"
 
