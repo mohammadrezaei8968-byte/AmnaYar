@@ -131,6 +131,21 @@ class MainActivity : Activity() {
         }
     }
 
+    // Persists update announcements across WebView page changes and app restarts.
+    private inner class VersionNoticeBridge {
+        @JavascriptInterface
+        fun getLastNotifiedVersionCode(): Int {
+            return getSharedPreferences("amnayar_version_notice", MODE_PRIVATE)
+                .getInt("last_notified_version_code", 0)
+        }
+
+        @JavascriptInterface
+        fun markVersionNotified(versionCode: Int) {
+            getSharedPreferences("amnayar_version_notice", MODE_PRIVATE)
+                .edit().putInt("last_notified_version_code", versionCode).apply()
+        }
+    }
+
     private inner class DeviceBridge {
         @JavascriptInterface
         fun getDeviceKey(): String {
@@ -415,15 +430,19 @@ class MainActivity : Activity() {
                       var myketCode=Number(v&&v.myketPublishedVersionCode)||0;
                       var targetCode=Number(v&&v.versionCode)||0;
                       if(!v||targetCode<=currentCode||bazaarCode<targetCode||myketCode<targetCode||document.getElementById('amnayar-update-banner'))return;
-                      var dismissedKey='amnayar_update_dismissed_'+targetCode;try{if(localStorage.getItem(dismissedKey)==='1')return;}catch(e){}
+                      // Show each published version announcement at most once per installation.
+                      // Native preferences survive WebView navigation and localStorage quirks.
+                      try{if(window.AmnaYarVersionNotice&&window.AmnaYarVersionNotice.getLastNotifiedVersionCode()>=targetCode)return;}catch(e){}
                       var box=document.createElement('section');box.id='amnayar-update-banner';
+                      try{if(window.AmnaYarVersionNotice)window.AmnaYarVersionNotice.markVersionNotified(targetCode);}catch(e){}
+                      try{localStorage.setItem('amnayar_update_dismissed_'+targetCode,'1')}catch(e){}
                       box.style.cssText='position:fixed;z-index:2147483647;inset:auto 12px 14px 12px;background:#fff;color:#14243b;border:1px solid #cbdcf0;border-radius:18px;box-shadow:0 12px 42px rgba(0,0,0,.25);padding:16px;font:14px Tahoma,Arial,sans-serif;direction:rtl';
                       var title=document.createElement('b');title.textContent='نسخه جدید امنا یار آماده است'+(v.versionName?' ('+v.versionName+')':'');
                       var detail=document.createElement('p');detail.textContent=v.releaseNotes||'برای دریافت امکانات و اصلاحات جدید، نسخه تازه را از بازار بررسی کنید.';detail.style.cssText='margin:8px 0 12px;line-height:1.8';
                       var actions=document.createElement('div');actions.style.cssText='display:flex;gap:8px;flex-wrap:wrap';
                       var go=document.createElement('a');var bazaarReady=bazaarCode>=Number(v.versionCode);var myketReady=myketCode>=Number(v.versionCode);go.href=bazaarReady?(v.bazaarUrl||'https://cafebazaar.ir/search?q=%D8%A7%D9%85%D9%86%D8%A7%20%DB%8C%D8%A7%D8%B1'):(v.myketUrl||'https://myket.ir/search?query=%D8%A7%D9%85%D9%86%D8%A7%20%DB%8C%D8%A7%D8%B1');go.textContent=bazaarReady?'بررسی نسخه در بازار':'بررسی نسخه در مایکت';go.style.cssText='display:inline-block;padding:10px 14px;border-radius:10px;background:#0d4a91;color:#fff;text-decoration:none;font-weight:700';
                       var later=document.createElement('button');later.type='button';later.textContent='بعداً';later.style.cssText='padding:10px 14px;border:1px solid #d6e0ec;border-radius:10px;background:#f7f9fc;color:#14243b;font-weight:700';
-                      later.onclick=function(){try{localStorage.setItem(dismissedKey,'1')}catch(e){}box.remove()};actions.appendChild(go);actions.appendChild(later);box.appendChild(title);box.appendChild(detail);box.appendChild(actions);document.body.appendChild(box);
+                      later.onclick=function(){box.remove()};actions.appendChild(go);actions.appendChild(later);box.appendChild(title);box.appendChild(detail);box.appendChild(actions);document.body.appendChild(box);
                     }).catch(function(){});
                 })();""", null)
             }
@@ -433,6 +452,7 @@ class MainActivity : Activity() {
         }
 
         web.addJavascriptInterface(DownloadBridge(), "AmnaYarDownloader")
+        web.addJavascriptInterface(VersionNoticeBridge(), "AmnaYarVersionNotice")
         web.addJavascriptInterface(DeviceBridge(), "AmnaYarDevice")
         web.addJavascriptInterface(SpeechBridge(), "AmnaYarSpeech")
 
