@@ -1,13 +1,13 @@
 {
-  "currentVersion": "1.0.7",
-  "latestVersion": "1.0.7",
+  "currentVersion": "1.0.8",
+  "latestVersion": "1.0.8",
   "minimumVersion": "1.0.3",
-  "versionCode": 8,
-  "versionName": "1.0.7",
-  "releaseNotes": "بهبود پرسش‌وپاسخ فایل و OCR صفحات اسکن‌شده، اصلاح ارسال نتیجه گفتار در ترجمه، بهبود خطاهای فشرده‌سازی و اصلاح بارگذاری فایل‌های سایت.",
+  "versionCode": 9,
+  "versionName": "1.0.8",
+  "releaseNotes": "نمایش شماره نسخه اپلیکیشن و اصلاح زمان نمایش اعلان نسخه جدید.",
   "bazaarUrl": "https://cafebazaar.ir/app/ir.amnayar.app",
   "message": "نسخه جدید امنا یار منتشر شده است.",
-  "bazaarPublishedVersionCode": 8,
-  "myketPublishedVersionCode": 8,
+  "bazaarPublishedVersionCode": 0,
+  "myketPublishedVersionCode": 0,
   "myketUrl": "https://myket.ir/search?query=%D8%A7%D9%85%D9%86%D8%A7%20%DB%8C%D8%A7%D8%B1"
 }
