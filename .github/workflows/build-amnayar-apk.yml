@@ -59,7 +59,7 @@ jobs:
           grep -q 'id="translationFile"' web/tools.html
           grep -q 'async function translateUploadedFile' web/tools.js
           grep -q 'app.js?v=3959' web/index.html
-          grep -q 'versionName = "1.0.7"' android/app/build.gradle.kts
+          grep -q 'versionName = "1.0.8"' android/app/build.gradle.kts
           git diff --check
 
       - name: Prepare optional Cafe Bazaar release signing
