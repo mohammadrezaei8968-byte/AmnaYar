@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="ماشین حساب حرفه‌ای رایگان امنا یار؛ محاسبات پایه، درصد، توان، ریشه و تاریخچه محاسبات.">
+<link rel="canonical" href="https://amnayar.ir/calculator.html">
+<title>ماشین حساب حرفه‌ای | امنا یار</title>
+<link rel="stylesheet" href="/styles.css?v=3942">
+<style>
+.calc-wrap{max-width:760px;margin:28px auto;padding:0 14px}.calc-card{background:#fff;border:1px solid #dbe5ee;border-radius:24px;padding:clamp(16px,4vw,28px);box-shadow:0 16px 42px #12334d12}.calc-screen{background:linear-gradient(135deg,#103a4a,#087b68);color:#fff;border-radius:18px;padding:18px;margin-bottom:16px}.calc-screen label{display:block;color:#c9f3e6;font-size:13px}.calc-expression{width:100%;background:transparent;border:0;color:#fff;font-size:clamp(24px,6vw,38px);text-align:left;direction:ltr;outline:0;padding:12px 0}.calc-result{min-height:30px;font-size:clamp(22px,5vw,30px);font-weight:800;direction:ltr;text-align:left;overflow-wrap:anywhere}.calc-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}.calc-key{min-height:54px;border:1px solid #dce6ec;border-radius:13px;background:#f7fafc;color:#16364a;font-size:18px;font-weight:700;cursor:pointer}.calc-key:active{transform:scale(.97)}.calc-key.fn{background:#e8f5f1;color:#08765d}.calc-key.op{background:#eaf2ff;color:#1d4e89}.calc-key.eq{background:#07835e;color:#fff}.calc-key.danger{background:#fff0f0;color:#b42318}.calc-bottom{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.calc-bottom button{flex:1}.calc-history{margin-top:20px;border-top:1px solid #e2e8f0;padding-top:16px}.calc-history h3{margin:0 0 10px}.calc-history-list{display:grid;gap:8px}.calc-history-item{display:flex;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:10px;background:#f8fafc;direction:ltr;text-align:left;overflow-wrap:anywhere}.calc-note{font-size:12px;color:#64748b;margin-top:12px}@media(max-width:420px){.calc-grid{gap:6px}.calc-key{min-height:49px;font-size:16px}}
+</style>
+</head>
+<body>
+<header class="nav"><a class="brand" href="/"><img src="/assets/logo-amnayar.png" alt="لوگوی امنا یار"><span>امنا یار<small>کافی‌نت همراه شما</small></span></a><nav><a href="/">خانه</a><a href="/tools.html">همه ابزارها</a></nav></header>
+<main class="calc-wrap"><div class="heading"><span>رایگان</span><h1>ماشین حساب حرفه‌ای</h1><p>محاسبات روزمره، درصد، توان و ریشه؛ سریع و دقیق، روی موبایل و رایانه.</p></div>
+<section class="calc-card" aria-label="ماشین حساب">
+<div class="calc-screen"><label for="calcExpression">عبارت محاسباتی</label><input id="calcExpression" class="calc-expression" value="0" inputmode="decimal" autocomplete="off" aria-label="عبارت محاسباتی"><div id="calcResult" class="calc-result" aria-live="polite">0</div></div>
+<div class="calc-grid" id="calcKeys">
+<button class="calc-key danger" data-action="clear">AC</button><button class="calc-key fn" data-action="back">⌫</button><button class="calc-key fn" data-value="(">(</button><button class="calc-key op" data-value="/">÷</button>
+<button class="calc-key" data-value="7">۷</button><button class="calc-key" data-value="8">۸</button><button class="calc-key" data-value="9">۹</button><button class="calc-key op" data-value="*">×</button>
+<button class="calc-key" data-value="4">۴</button><button class="calc-key" data-value="5">۵</button><button class="calc-key" data-value="6">۶</button><button class="calc-key op" data-value="-">−</button>
+<button class="calc-key" data-value="1">۱</button><button class="calc-key" data-value="2">۲</button><button class="calc-key" data-value="3">۳</button><button class="calc-key op" data-value="+">+</button>
+<button class="calc-key fn" data-action="percent">%</button><button class="calc-key" data-value="0">۰</button><button class="calc-key" data-value=".">.</button><button class="calc-key op" data-value=")">)</button>
+<button class="calc-key fn" data-action="sqrt">√</button><button class="calc-key fn" data-action="square">x²</button><button class="calc-key fn" data-value="**">xʸ</button><button class="calc-key eq" data-action="equals">=</button>
+</div><div class="calc-bottom"><button class="btn soft" id="calcCopy" type="button">کپی نتیجه</button><button class="btn soft" id="calcClearHistory" type="button">پاک‌کردن تاریخچه</button></div><div class="calc-history"><h3>تاریخچه محاسبات</h3><div id="calcHistory" class="calc-history-list"><p class="muted">محاسبات انجام‌شده اینجا نمایش داده می‌شوند.</p></div></div><p id="calcStatus" class="calc-note" aria-live="polite">می‌توانید از صفحه‌کلید هم استفاده کنید. برای درصد، عدد را وارد کرده و % را بزنید.</p>
+</section></main>
+<footer><div class="brand"><img src="/assets/logo-amnayar.png" alt="امنا یار"><span>امنا یار<small>ابزارهای رایگان</small></span></div><span>امنا یار؛ کافی‌نت همراه شما © ۱۴۰۵</span></footer>
+<script>
+(()=>{const input=document.getElementById('calcExpression'),result=document.getElementById('calcResult'),historyBox=document.getElementById('calcHistory'),status=document.getElementById('calcStatus');let history=[];
+const normalize=s=>String(s).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/٫/g,'.').replace(/,/g,'');
+function evaluate(){let s=normalize(input.value).replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-').trim();if(!s)return 0;if(!/^[0-9+\-*/().%\s]+$/.test(s))throw Error('فقط اعداد و عملگرهای مجاز را وارد کنید.');if(/(?:^|[+\-*/(])\s*[*/]/.test(s)||/[+*/.-]{2,}$/.test(s))throw Error('عبارت کامل نیست.');s=s.replace(/(\d+(?:\.\d+)?)%/g,'($1/100)');const v=Function('"use strict";return ('+s+')')();if(typeof v!=='number'||!Number.isFinite(v))throw Error('نتیجه قابل محاسبه نیست.');return Object.is(v,-0)?0:v;}
+function fmt(n){return new Intl.NumberFormat('en-US',{maximumFractionDigits:10}).format(n)}
+function render(){try{result.textContent=fmt(evaluate());status.textContent='';}catch(e){result.textContent='…';status.textContent=e.message||'عبارت را بررسی کنید.'}}
+function addHistory(expr,val){history.unshift({expr,val});history=history.slice(0,10);historyBox.innerHTML='';history.forEach(item=>{const row=document.createElement('button');row.type='button';row.className='calc-history-item';row.innerHTML='<span></span><strong></strong>';row.children[0].textContent=item.expr;row.children[1].textContent='= '+fmt(item.val);row.addEventListener('click',()=>{input.value=String(item.val);render()});historyBox.appendChild(row)})}
+document.getElementById('calcKeys').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const action=b.dataset.action,val=b.dataset.value;if(action==='clear'){input.value='0';render();return}if(action==='back'){input.value=input.value.length>1?input.value.slice(0,-1):'0';render();return}if(action==='equals'){try{const expr=input.value,n=evaluate();result.textContent=fmt(n);addHistory(expr,n);input.value=String(n);status.textContent='محاسبه انجام شد.'}catch(err){status.textContent=err.message}return}if(action==='sqrt'||action==='square'||action==='percent'){try{const n=evaluate();let v;if(action==='sqrt'){if(n<0)throw Error('ریشهٔ عدد منفی در اعداد حقیقی تعریف نشده است.');v=Math.sqrt(n)}else if(action==='square')v=n*n;else v=n/100;input.value=String(v);render()}catch(err){status.textContent=err.message}return}if(val){input.value=(input.value==='0'&&/[0-9.]/.test(val))?val:input.value+val;render()}input.focus()});
+input.addEventListener('input',render);input.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key==='='){e.preventDefault();document.querySelector('[data-action="equals"]').click()}if(e.key==='Escape'){input.value='0';render()}});
+document.getElementById('calcCopy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(result.textContent);status.textContent='نتیجه کپی شد.'}catch(_){status.textContent='کپی خودکار در این مرورگر در دسترس نیست.'}});
+document.getElementById('calcClearHistory').addEventListener('click',()=>{history=[];historyBox.innerHTML='<p class="muted">تاریخچه پاک شد.</p>'});
+})();
+</script></body></html>
