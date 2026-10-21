@@ -376,7 +376,7 @@ class MainActivity : Activity() {
                 // These removals apply only inside the Android app; normal website visitors still see site ads.
                 view.evaluateJavascript("""(function(){
                   window.__AMNAYAR_ANDROID_APP__=true;
-                  (function(){var id='amnayar-app-version';if(document.getElementById(id))return;var b=document.createElement('div');b.id=id;b.textContent='نسخه اپلیکیشن 1.0.8';b.style.cssText='position:fixed;left:10px;top:calc(env(safe-area-inset-top, 0px) + 8px);z-index:2147483646;padding:5px 9px;border-radius:999px;background:#123b2d;color:#fff;font:10px Tahoma,Arial,sans-serif;opacity:.9;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.14)';document.body.appendChild(b);})();
+                  (function(){var id='amnayar-app-version';if(document.getElementById(id))return;var b=document.createElement('div');b.id=id;b.textContent='نسخه اپلیکیشن 1.0.9';b.style.cssText='position:fixed;left:10px;top:calc(env(safe-area-inset-top, 0px) + 8px);z-index:2147483646;padding:5px 9px;border-radius:999px;background:#123b2d;color:#fff;font:10px Tahoma,Arial,sans-serif;opacity:.9;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.14)';document.body.appendChild(b);})();
                   (function(){
                     var keys=['amnayar_auth_token','amnayar_token','amnayar_access_token','auth_token'];
                     var token='';for(var i=0;i<keys.length;i++){try{token=localStorage.getItem(keys[i])||''}catch(e){}if(token)break}
@@ -390,7 +390,7 @@ class MainActivity : Activity() {
                       nav.appendChild(chip);
                     }).catch(function(){});
                   })();
-                  document.querySelectorAll('a[href]').forEach(function(a){try{var u=new URL(a.href,location.href);if(u.origin===location.origin){u.searchParams.set('app','1');u.searchParams.set('appVersion',new URLSearchParams(location.search).get('appVersion')||'1.0.8');a.href=u.toString();}}catch(e){}});
+                  document.querySelectorAll('a[href]').forEach(function(a){try{var u=new URL(a.href,location.href);if(u.origin===location.origin){u.searchParams.set('app','1');u.searchParams.set('appVersion',new URLSearchParams(location.search).get('appVersion')||'1.0.9');a.href=u.toString();}}catch(e){}});
                   document.querySelectorAll('a[target="_blank"]').forEach(function(a){try{if(new URL(a.href,location.href).origin!==location.origin)a.target='_self';}catch(e){}});
                   var style=document.getElementById('amnayar-app-cleanup');
                   if(!style){style=document.createElement('style');style.id='amnayar-app-cleanup';style.textContent='#topics,#support,.support,.ay-ad-showcase,.ad-grid,.ad-slot,.amnayar-free-ad,.monetization-section,.advertisement,.ad-container,[data-ad],iframe[src*="ad"],a[href="/advertising.html"],a[href^="/advertising.html"],a[href="#support"]{display:none!important}.nav .btn{white-space:nowrap!important;font-size:11px!important;padding:7px 8px!important}.brand span{white-space:nowrap!important}.tool-panel .tool-actions .btn{white-space:nowrap!important;overflow-wrap:normal!important;word-break:keep-all!important;font-size:12px!important}';document.head.appendChild(style);}
@@ -400,7 +400,7 @@ class MainActivity : Activity() {
                       if(/ثبت.?نام رایگان/.test(t))el.textContent='ثبت‌نام برای دسترسی کامل';
                       if(t==='ساخت حساب رایگان'){
                         el.textContent='ورود به‌عنوان مهمان';
-                        el.onclick=function(e){if(e)e.preventDefault();location.href='/tools.html?app=1&appVersion=1.0.8';};
+                        el.onclick=function(e){if(e)e.preventDefault();location.href='/tools.html?app=1&appVersion=1.0.9';};
                       }
                       if(t==='ساخت حساب')el.textContent='ثبت‌نام برای دسترسی کامل';
                     });
@@ -454,7 +454,7 @@ class MainActivity : Activity() {
                 })();""", null)
             }
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
-                if (request.isForMainFrame) view.postDelayed({ view.loadUrl("https://amnayar.ir/?app=1&appVersion=1.0.8") }, 500)
+                if (request.isForMainFrame) view.postDelayed({ view.loadUrl("https://amnayar.ir/?app=1&appVersion=1.0.9") }, 500)
             }
         }
 
@@ -527,7 +527,7 @@ class MainActivity : Activity() {
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf("android.permission.POST_NOTIFICATIONS"), 7401)
         }
-        if (savedInstanceState == null) web.loadUrl("https://amnayar.ir/?app=1&appVersion=1.0.8") else web.restoreState(savedInstanceState)
+        if (savedInstanceState == null) web.loadUrl("https://amnayar.ir/?app=1&appVersion=1.0.9") else web.restoreState(savedInstanceState)
     }
 
     @Deprecated("Deprecated in Java")
