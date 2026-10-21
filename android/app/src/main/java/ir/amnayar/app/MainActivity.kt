@@ -115,18 +115,6 @@ class MainActivity : Activity() {
     @Deprecated("Deprecated in Java")
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == webAudioPermissionRequestCode) {
-            val request = pendingWebAudioRequest
-            pendingWebAudioRequest = null
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) request?.grant(arrayOf(PermissionRequest.RESOURCE_AUDIO_CAPTURE)) else request?.deny()
-            return
-        }
-        if (requestCode != speechPermissionRequestCode) return
-        if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            startSpeechRecognition(pendingSpeechDirection)
-        } else {
-            sendVoiceResult("", pendingSpeechDirection, "permission")
-        }
     }
 
     // Persists update announcements across WebView page changes and app restarts.
@@ -328,9 +316,6 @@ class MainActivity : Activity() {
     private lateinit var web: WebView
     private var speechRecognizer: SpeechRecognizer? = null
     private var pendingSpeechDirection: String = "fa-en"
-    private val speechPermissionRequestCode = 301
-    private val webAudioPermissionRequestCode = 302
-    private var pendingWebAudioRequest: PermissionRequest? = null
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
     private val fileChooserRequestCode = 4101
 
@@ -475,16 +460,8 @@ class MainActivity : Activity() {
 
         web.webChromeClient = object : WebChromeClient() {
             override fun onPermissionRequest(request: PermissionRequest) {
-                runOnUiThread {
-                    if (request.resources.contains(PermissionRequest.RESOURCE_AUDIO_CAPTURE)) {
-                        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                            request.grant(arrayOf(PermissionRequest.RESOURCE_AUDIO_CAPTURE))
-                        } else {
-                            pendingWebAudioRequest = request
-                            requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), webAudioPermissionRequestCode)
-                        }
-                    } else request.deny()
-                }
+                // The app intentionally does not request or grant microphone access.
+                request.deny()
             }
 
             override fun onShowFileChooser(
