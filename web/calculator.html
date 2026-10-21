@@ -26,7 +26,7 @@
 </section></main>
 <footer><div class="brand"><img src="/assets/logo-amnayar.png" alt="امنا یار"><span>امنا یار<small>ابزارهای رایگان</small></span></div><span>امنا یار؛ کافی‌نت همراه شما © ۱۴۰۵</span></footer>
 <script>
-(()=>{const back=document.getElementById('calcBack');if(back)back.addEventListener('click',()=>{if(history.length>1){history.back();return}location.href='/tools.html'});const input=document.getElementById('calcExpression'),result=document.getElementById('calcResult'),historyBox=document.getElementById('calcHistory'),status=document.getElementById('calcStatus');let history=[];
+(()=>{const back=document.getElementById('calcBack');if(back)back.addEventListener('click',()=>{if(window.history.length>1){window.history.back();return}location.href='/tools.html'});const input=document.getElementById('calcExpression'),result=document.getElementById('calcResult'),historyBox=document.getElementById('calcHistory'),status=document.getElementById('calcStatus');let history=[];
 const normalize=s=>String(s).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/٫/g,'.').replace(/,/g,'');
 function evaluate(){let s=normalize(input.value).replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-').trim();if(!s)return 0;if(!/^[0-9+\-*/().%\s]+$/.test(s))throw Error('فقط اعداد و عملگرهای مجاز را وارد کنید.');if(/(?:^|[+\-*/(])\s*[*/]/.test(s)||/[+*/.-]{2,}$/.test(s))throw Error('عبارت کامل نیست.');s=s.replace(/(\d+(?:\.\d+)?)%/g,'($1/100)');const v=Function('"use strict";return ('+s+')')();if(typeof v!=='number'||!Number.isFinite(v))throw Error('نتیجه قابل محاسبه نیست.');return Object.is(v,-0)?0:v;}
 function fmt(n){return new Intl.NumberFormat('en-US',{maximumFractionDigits:10}).format(n)}
