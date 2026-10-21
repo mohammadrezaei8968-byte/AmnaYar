@@ -43,11 +43,9 @@ class MainActivity : Activity() {
                     "translate-fa-en" -> "translate-fa-en"
                     else -> "fa-en"
                 }
-                if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-                    requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), speechPermissionRequestCode)
-                    return@runOnUiThread
-                }
-                startSpeechRecognition(pendingSpeechDirection)
+                // Microphone permission is intentionally removed from this app.
+                sendVoiceResult("", pendingSpeechDirection, "permission")
+                return@runOnUiThread
             }
         }
 
